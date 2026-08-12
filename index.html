@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compartilhar Projetos — Encontre, publique e conecte-se</title>
+<meta name="description" content="Compartilhar Projetos é a plataforma de assinatura onde criadores publicam e descobrem projetos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner container">
+    <a href="#/" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+    </a>
+
+    <nav class="main-nav" id="mainNav">
+      <a href="#/explorar">Explorar</a>
+      <a href="#/comunidade">Comunidade</a>
+      <a href="#/planos">Planos</a>
+      <a href="#/indicacoes" class="auth-only">Indicações</a>
+    </nav>
+
+    <div class="header-actions">
+      <div class="guest-only header-guest-actions">
+        <a href="#/entrar" class="btn btn-ghost btn-sm">Entrar</a>
+        <a href="#/cadastrar" class="btn btn-primary btn-sm">Cadastrar</a>
+      </div>
+      <div class="auth-only header-user-actions">
+        <span class="sub-pill" id="subPill">—</span>
+        <button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar-circle" id="avatarInitial">?</span>
+        </button>
+        <div class="user-menu" id="userMenu">
+          <a href="#/painel">Meu painel</a>
+          <a href="#/perfil">Meu perfil</a>
+          <a href="#/indicacoes">Indicações</a>
+          <a href="#/planos">Assinatura</a>
+          <a href="admin.html" class="admin-only">Painel admin</a>
+          <button id="logoutBtn">Sair</button>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="#/explorar">Explorar projetos</a>
+    <a href="#/comunidade">Comunidade</a>
+    <a href="#/planos">Planos</a>
+    <a href="#/indicacoes" class="auth-only">Indicações</a>
+    <a href="#/painel" class="auth-only">Meu painel</a>
+    <a href="#/perfil" class="auth-only">Meu perfil</a>
+    <button id="logoutBtnMobile" class="auth-only">Sair</button>
+    <a href="#/entrar" class="guest-only">Entrar</a>
+    <a href="#/cadastrar" class="guest-only btn-fill">Cadastrar</a>
+  </nav>
+</header>
+
+<main id="app" role="main"></main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+      <p>A plataforma de assinatura para publicar e descobrir projetos incríveis.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Plataforma</h4>
+      <a href="#/explorar">Explorar projetos</a>
+      <a href="#/comunidade">Comunidade</a>
+      <a href="#/planos">Planos de assinatura</a>
+    </div>
+    <div class="footer-col">
+      <h4>Conta</h4>
+      <a href="#/entrar">Entrar</a>
+      <a href="#/cadastrar">Criar conta</a>
+      <a href="#/indicacoes">Programa de indicação</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <a href="admin.html">Área administrativa</a>
+      <a href="#/">Sobre</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© 2026 Compartilhar Projetos. Todos os direitos reservados.</span>
+  </div>
+</footer>
+
+<!-- ===== TOAST ===== -->
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
