@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel administrativo — Compartilhar Projetos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body{background:var(--bg)}
+  .admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+  .admin-sidebar{background:var(--navy-950);color:#dfe6f6;padding:26px 18px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+  .admin-brand{display:flex;align-items:center;gap:10px;padding:0 10px 26px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:18px}
+  .admin-brand strong{font-family:var(--font-display);font-size:16px;color:#fff}
+  .admin-brand span{display:block;font-size:11px;color:var(--gold-300,#f0d97a);font-family:var(--font-mono)}
+  .admin-nav{display:flex;flex-direction:column;gap:2px;flex:1}
+  .admin-nav button{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;font-weight:600;font-size:14px;color:#c3cdea;text-align:left}
+  .admin-nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+  .admin-nav button.active{background:linear-gradient(135deg,var(--blue-600),var(--blue-700));color:#fff}
+  .admin-back{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+  .admin-back a{display:block;padding:10px 12px;font-size:13.5px;color:#a9b4d4;font-weight:600}
+  .admin-back a:hover{color:#fff}
+  .admin-main{padding:36px 42px}
+  .admin-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;gap:16px;flex-wrap:wrap}
+  .admin-head h1{font-size:25px;color:var(--navy-900)}
+  .admin-head p{color:var(--ink-600);margin-top:6px;font-size:14px}
+  .section-block{display:none}
+  .section-block.active{display:block}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  @media (max-width:900px){
+    .admin-shell{grid-template-columns:1fr}
+    .admin-sidebar{position:static;height:auto}
+    .admin-nav{flex-direction:row;overflow-x:auto}
+    .admin-nav button{white-space:nowrap}
+    .admin-main{padding:24px 18px}
+  }
+</style>
+</head>
+<body>
+
+<!-- Tela de acesso restrito (mostrada se não houver admin logado) -->
+<div class="gate" id="gateScreen" style="display:none">
+  <div class="auth-card text-center" style="max-width:420px">
+    <h2>Área restrita</h2>
+    <p class="sub">Este painel é exclusivo para administradores da plataforma. Entre com uma conta de administrador para continuar.</p>
+    <a href="index.html#/entrar" class="btn btn-primary btn-block">Ir para o login</a>
+    <a href="index.html" class="link mt-2" style="display:inline-block">Voltar para o site</a>
+  </div>
+</div>
+
+<!-- Painel administrativo -->
+<div class="admin-shell" id="adminShell" style="display:none">
+  <nav class="admin-sidebar">
+    <div class="admin-brand">
+      <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
+        <rect x="2" y="9" width="12" height="16" rx="2" fill="#d4af37" transform="rotate(-8 8 17)"/>
+        <rect x="10" y="5" width="12" height="16" rx="2" fill="#2f63e0" transform="rotate(6 16 13)"/>
+      </svg>
+      <div><strong>Compartilhar Projetos</strong><span>PAINEL ADMIN</span></div>
+    </div>
+    <div class="admin-nav" id="adminNav">
+      <button data-section="visao" class="active">Visão geral</button>
+      <button data-section="usuarios">Usuários</button>
+      <button data-section="assinaturas">Assinaturas</button>
+      <button data-section="projetos">Projetos</button>
+      <button data-section="categorias">Categorias</button>
+      <button data-section="comunidade">Comunidade</button>
+      <button data-section="indicacoes">Indicações &amp; comissões</button>
+      <button data-section="saques">Saques</button>
+    </div>
+    <div class="admin-back">
+      <a href="index.html">← Voltar ao site</a>
+      <a href="#" id="adminLogout">Sair da conta</a>
+    </div>
+  </nav>
+
+  <main class="admin-main">
+
+    <!-- VISÃO GERAL -->
+    <section class="section-block active" id="sec-visao">
+      <div class="admin-head"><div><h1>Visão geral</h1><p>Estatísticas gerais da plataforma em tempo real.</p></div></div>
+      <div class="stat-grid" id="statGrid"></div>
+      <div class="panel">
+        <div class="panel-head"><h3>Últimos projetos publicados</h3></div>
+        <div class="table-wrap"><table class="data-table" id="recentProjectsTable"><thead><tr><th>Projeto</th><th>Autor</th><th>Categoria</th><th>Data</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- USUÁRIOS -->
+    <section class="section-block" id="sec-usuarios">
+      <div class="admin-head"><div><h1>Usuários</h1><p>Gerencie contas, permissões e suspensões.</p></div></div>
+      <div class="toolbar"><input type="search" id="userSearch" class="search-input" placeholder="Buscar por nome ou e-mail…" style="max-width:320px"></div>
+      <div class="panel"><div class="table-wrap"><table class="data-table" id="usersTable">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Assinatura</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- ASSINATURAS -->
+    <section class="section-block" id="sec-assinaturas">
+      <div class="admin-head"><div><h1>Assinaturas</h1><p>Acompanhe planos ativos, expirados e receita estimada.</p></div></div>
+      <div class="stat-grid" id="subStatGrid"></div>
+      <div class="panel"><div class="table-wrap"><table class="data-table" id="subsTable">
+        <thead><tr><th>Usuário</th><th>Plano</th><th>Expira em</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- PROJETOS -->
+    <section class="section-block" id="sec-projetos">
+      <div class="admin-head"><div><h1>Projetos</h1><p>Modere publicações da plataforma.</p></div></div>
+      <div class="toolbar"><input type="search" id="projectSearch" class="search-input" placeholder="Buscar projetos…" style="max-width:320px"></div>
+      <div class="panel"><div class="table-wrap"><table class="data-table" id="projectsTable">
+        <thead><tr><th>Projeto</th><th>Autor</th><th>Categoria</th><th>Data</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section class="section-block" id="sec-categorias">
+      <div class="admin-head"><div><h1>Categorias</h1><p>Organize os tipos de projeto disponíveis na plataforma.</p></div></div>
+      <div class="panel" style="max-width:420px">
+        <form id="catForm" class="flex gap-1">
+          <input type="text" id="newCatName" class="search-input" placeholder="Nome da nova categoria" required>
+          <button class="btn btn-primary" type="submit">Adicionar</button>
+        </form>
+      </div>
+      <div class="panel"><div class="table-wrap"><table class="data-table" id="catsTable">
+        <thead><tr><th>Categoria</th><th>Projetos</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- COMUNIDADE -->
+    <section class="section-block" id="sec-comunidade">
+      <div class="admin-head"><div><h1>Comunidade</h1><p>Modere publicações e comentários da comunidade.</p></div></div>
+      <div class="panel"><div class="table-wrap"><table class="data-table" id="communityTable">
+        <thead><tr><th>Autor</th><th>Conteúdo</th><th>Comentários</th><th>Data</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- INDICAÇÕES -->
+    <section class="section-block" id="sec-indicacoes">
+      <div class="admin-head"><div><h1>Indicações &amp; comissões</h1><p>Visualize o desempenho do programa de indicação.</p></div></div>
+      <div class="stat-grid" id="refStatGrid"></div>
+      <div class="panel"><div class="table-wrap"><table class="data-table" id="refsTable">
+        <thead><tr><th>Indicador</th><th>Indicado</th><th>Comissão</th><th>Status</th><th>Data</th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+    </section>
+
+    <!-- SAQUES -->
+    <section class="section-block" id="sec-saques">
+      <div class="admin-head"><div><h1>Solicitações de saque</h1><p>Aprove ou recuse pedidos de saque de comissão. Saque mínimo: R$ 10,00.</p></div></div>
+      <div class="panel"><div class="table-wrap"><table class="data-table" id="withdrawTable">
+        <thead><tr><th>Usuário</th><th>Valor</th><th>Solicitado em</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table></div></div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>
