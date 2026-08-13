@@ -243,8 +243,9 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
             ${
               u.role !== "admin"
                 ? `<button class="btn btn-sm ${u.suspended ? "btn-ghost" : "btn-danger"}" data-suspend="${u.id}">${u.suspended ? "Reativar" : "Suspender"}</button>
+                   <button class="btn btn-sm btn-ghost" data-promote="${u.id}">Tornar admin</button>
                    <button class="btn btn-sm btn-danger" data-deluser="${u.id}">Excluir</button>`
-                : `<span class="muted" style="font-size:12px">Conta protegida</span>`
+                : `<button class="btn btn-sm btn-ghost" data-demote="${u.id}">Remover admin</button>`
             }
           </td>
         </tr>`;
@@ -257,6 +258,42 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
         u.suspended = !u.suspended;
         saveDB(db);
         toast(u.suspended ? "Usuário suspenso." : "Usuário reativado.", "success");
+        renderAll();
+      })
+    );
+    qsa("[data-promote]").forEach((btn) =>
+      btn.addEventListener("click", async () => {
+        const u = userById(btn.getAttribute("data-promote"));
+        const ok = await confirmAction(`Tornar "${u.name}" um administrador? Isto dá acesso total ao painel admin.`, {
+          title: "Promover a admin",
+          neutral: true,
+          confirmLabel: "Sim, promover",
+        });
+        if (!ok) return;
+        u.role = "admin";
+        u.isAdmin = true;
+        saveDB(db);
+        toast(`${u.name} agora é administrador.`, "success");
+        renderAll();
+      })
+    );
+    qsa("[data-demote]").forEach((btn) =>
+      btn.addEventListener("click", async () => {
+        const u = userById(btn.getAttribute("data-demote"));
+        if (u.id === currentUser().id) {
+          toast("Você não pode remover seu próprio acesso de administrador.", "error");
+          return;
+        }
+        const ok = await confirmAction(`Remover o acesso de administrador de "${u.name}"?`, {
+          title: "Remover admin",
+          neutral: true,
+          confirmLabel: "Sim, remover",
+        });
+        if (!ok) return;
+        u.role = "user";
+        u.isAdmin = false;
+        saveDB(db);
+        toast(`Acesso de administrador removido de ${u.name}.`, "success");
         renderAll();
       })
     );
