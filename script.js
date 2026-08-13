@@ -240,11 +240,16 @@
   function toast(msg, type) {
     const stack = document.getElementById("toastStack");
     if (!stack) return;
+    const icon = type === "success" ? "✓" : type === "error" ? "✕" : "i";
     const el = document.createElement("div");
     el.className = "toast" + (type ? " " + type : "");
-    el.textContent = msg;
+    el.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-text">${escapeHtml(msg)}</span>`;
     stack.appendChild(el);
-    setTimeout(() => el.remove(), 3600);
+    const dismiss = () => {
+      el.classList.add("leaving");
+      setTimeout(() => el.remove(), 220);
+    };
+    setTimeout(dismiss, 3600);
   }
   function qs(sel, root) {
     return (root || document).querySelector(sel);
