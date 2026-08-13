@@ -1,41 +1,27 @@
 /* =========================================================
    COMPARTILHAR PROJETOS — ADMIN.JS
-   Painel administrativo. Compartilha o mesmo "banco de dados"
-   (localStorage) usado em script.js.
+   Painel administrativo. Agora sincronizado com o Firebase
+   Realtime Database (mesmo nó usado por script.js).
    ========================================================= */
+
+import { auth } from "./firebase-config.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getDB, saveDB, onDBChange } from "./db-sync.js";
 
 (function () {
   "use strict";
 
-  const DB_KEY = "cp_database_v1";
-  const SESSION_KEY = "cp_session_v1";
   const PLAN_NAMES = { p4: "Plano 4 Dias", p7: "Plano 7 Dias" };
   const MIN_WITHDRAW = 10;
 
-  function loadDB() {
-    try {
-      return JSON.parse(localStorage.getItem(DB_KEY));
-    } catch (e) {
-      return null;
-    }
-  }
-  function saveDB() {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-  }
-  function getSession() {
-    try {
-      return JSON.parse(localStorage.getItem(SESSION_KEY));
-    } catch (e) {
-      return null;
-    }
-  }
-
-  let db = loadDB();
+  let db = null;
+  let firebaseUser = null;
+  let authReady = false;
+  let dbReady = false;
 
   function currentUser() {
-    const s = getSession();
-    if (!s || !db) return null;
-    return db.users.find((u) => u.id === s.userId) || null;
+    if (!db || !firebaseUser) return null;
+    return db.users.find((u) => u.id === firebaseUser.uid) || null;
   }
 
   /* ---------- utils ---------- */
@@ -81,8 +67,6 @@
     setTimeout(dismiss, 3400);
   }
 
-  // Caixa de confirmação personalizada (substitui o window.confirm nativo do navegador).
-  // Uso: const ok = await confirmAction("Excluir isto?"); if (!ok) return;
   function confirmAction(message, opts) {
     opts = opts || {};
     return new Promise((resolve) => {
@@ -146,7 +130,9 @@
      GATE — só administradores acessam
   --------------------------------------------------------- */
   function boot() {
-    db = loadDB();
+    // ainda não sabemos se está logado / dados ainda não chegaram
+    if (!authReady || !dbReady) return;
+
     const user = currentUser();
     if (!db || !user || user.role !== "admin") {
       qs("#gateScreen").style.display = "flex";
@@ -162,6 +148,9 @@
 
   function bindNav() {
     qsa("#adminNav button").forEach((btn) => {
+      // evita registrar o listener mais de uma vez a cada boot()
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = "1";
       btn.addEventListener("click", () => {
         qsa("#adminNav button").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
@@ -169,18 +158,21 @@
         qs("#sec-" + btn.getAttribute("data-section")).classList.add("active");
       });
     });
-    qs("#adminLogout").addEventListener("click", (e) => {
-      e.preventDefault();
-      localStorage.removeItem(SESSION_KEY);
-      location.href = "index.html";
-    });
+    const logoutBtn = qs("#adminLogout");
+    if (logoutBtn && !logoutBtn.dataset.bound) {
+      logoutBtn.dataset.bound = "1";
+      logoutBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await signOut(auth);
+        location.href = "index.html";
+      });
+    }
   }
 
   /* ---------------------------------------------------------
      RENDER ALL
   --------------------------------------------------------- */
   function renderAll() {
-    db = loadDB();
     renderOverview();
     renderUsers();
     renderSubscriptions();
@@ -193,7 +185,6 @@
 
   function renderOverview() {
     const activeSubs = db.users.filter(isSubActive).length;
-    const revenue = db.commissions.reduce((s, c) => s + c.amount / 0.3, 0); // aproxima receita bruta a partir das comissões geradas
     const totalRevenueEstimate = estimateRevenue();
     qs("#statGrid").innerHTML = [
       stat("Usuários cadastrados", db.users.length),
@@ -215,7 +206,6 @@
   }
 
   function estimateRevenue() {
-    // soma o valor de cada assinatura ativa/expirada com base no plano atual salvo por usuário (aproximação para fins de demonstração)
     return db.users.reduce((sum, u) => {
       if (u.subscription && u.subscription.plan) {
         const price = u.subscription.plan === "p4" ? 10 : u.subscription.plan === "p7" ? 20 : 0;
@@ -265,21 +255,22 @@
       btn.addEventListener("click", () => {
         const u = userById(btn.getAttribute("data-suspend"));
         u.suspended = !u.suspended;
-        saveDB();
+        saveDB(db);
         toast(u.suspended ? "Usuário suspenso." : "Usuário reativado.", "success");
         renderAll();
       })
     );
     qsa("[data-deluser]").forEach((btn) =>
       btn.addEventListener("click", async () => {
-        const ok = await confirmAction("Excluir este usuário permanentemente? Esta ação não pode ser desfeita.", {
-          title: "Excluir usuário",
-        });
+        const ok = await confirmAction(
+          "Excluir este usuário permanentemente? Isto remove o perfil do banco de dados — a conta de login (Firebase Authentication) deve ser removida separadamente pelo console do Firebase.",
+          { title: "Excluir usuário" }
+        );
         if (!ok) return;
         const id = btn.getAttribute("data-deluser");
         db.users = db.users.filter((u) => u.id !== id);
-        saveDB();
-        toast("Usuário excluído.", "success");
+        saveDB(db);
+        toast("Usuário excluído do banco de dados.", "success");
         renderAll();
       })
     );
@@ -334,7 +325,7 @@
         const ok = await confirmAction("Excluir este projeto? Ele deixará de aparecer para todos os usuários.", { title: "Excluir projeto" });
         if (!ok) return;
         db.projects = db.projects.filter((p) => p.id !== btn.getAttribute("data-delproj"));
-        saveDB();
+        saveDB(db);
         toast("Projeto excluído.", "success");
         renderAll();
       })
@@ -361,7 +352,7 @@
           if (!ok) return;
         }
         db.categories = db.categories.filter((c) => c.id !== id);
-        saveDB();
+        saveDB(db);
         toast("Categoria removida.", "success");
         renderAll();
       })
@@ -391,7 +382,7 @@
         const ok = await confirmAction("Excluir esta publicação e todos os comentários?", { title: "Excluir publicação" });
         if (!ok) return;
         db.posts = db.posts.filter((p) => p.id !== btn.getAttribute("data-delpost"));
-        saveDB();
+        saveDB(db);
         toast("Publicação removida.", "success");
         renderAll();
       })
@@ -453,7 +444,6 @@
       btn.addEventListener("click", () => {
         const w = db.withdrawals.find((w) => w.id === btn.getAttribute("data-approve"));
         w.status = "approved";
-        // marca comissões disponíveis correspondentes como pagas (aproximação simples por ordem)
         let remaining = w.amount;
         db.commissions
           .filter((c) => c.referrerId === w.userId && c.status === "available")
@@ -463,7 +453,7 @@
               remaining -= c.amount;
             }
           });
-        saveDB();
+        saveDB(db);
         toast("Saque aprovado.", "success");
         renderAll();
       })
@@ -472,7 +462,7 @@
       btn.addEventListener("click", () => {
         const w = db.withdrawals.find((w) => w.id === btn.getAttribute("data-reject"));
         w.status = "rejected";
-        saveDB();
+        saveDB(db);
         toast("Saque recusado.", "success");
         renderAll();
       })
@@ -483,34 +473,50 @@
      FORMULÁRIOS (busca, nova categoria)
   --------------------------------------------------------- */
   function bindForms() {
-    qs("#userSearch").addEventListener("input", (e) => renderUsers(e.target.value));
-    qs("#projectSearch").addEventListener("input", (e) => renderProjects(e.target.value));
-    qs("#catForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const input = qs("#newCatName");
-      const name = input.value.trim();
-      if (!name) return;
-      if (db.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-        toast("Essa categoria já existe.", "error");
-        return;
-      }
-      db.categories.push({ id: "c_" + Math.random().toString(36).slice(2, 9), name });
-      saveDB();
-      input.value = "";
-      toast("Categoria adicionada.", "success");
-      renderAll();
-    });
+    const userSearch = qs("#userSearch");
+    if (userSearch && !userSearch.dataset.bound) {
+      userSearch.dataset.bound = "1";
+      userSearch.addEventListener("input", (e) => renderUsers(e.target.value));
+    }
+    const projectSearch = qs("#projectSearch");
+    if (projectSearch && !projectSearch.dataset.bound) {
+      projectSearch.dataset.bound = "1";
+      projectSearch.addEventListener("input", (e) => renderProjects(e.target.value));
+    }
+    const catForm = qs("#catForm");
+    if (catForm && !catForm.dataset.bound) {
+      catForm.dataset.bound = "1";
+      catForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = qs("#newCatName");
+        const name = input.value.trim();
+        if (!name) return;
+        if (db.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+          toast("Essa categoria já existe.", "error");
+          return;
+        }
+        db.categories.push({ id: "c_" + Math.random().toString(36).slice(2, 9), name });
+        saveDB(db);
+        input.value = "";
+        toast("Categoria adicionada.", "success");
+        renderAll();
+      });
+    }
   }
 
   /* ---------------------------------------------------------
-     TEMPO REAL ENTRE ABAS
-     Se o banco de dados mudar em outra aba (outro admin, ou o
-     próprio site em index.html), este painel atualiza sozinho.
+     TEMPO REAL — Firebase Auth + Realtime Database
   --------------------------------------------------------- */
-  window.addEventListener("storage", (e) => {
-    if (e.key !== DB_KEY) return;
-    if (qs("#adminShell").style.display === "none") return; // não logado, nada a atualizar
-    renderAll();
+  onAuthStateChanged(auth, (user) => {
+    firebaseUser = user;
+    authReady = true;
+    boot();
+  });
+
+  onDBChange((newDb) => {
+    db = newDb;
+    dbReady = true;
+    boot();
   });
 
   document.addEventListener("DOMContentLoaded", boot);
