@@ -69,14 +69,67 @@
   function toast(msg, type) {
     const stack = document.getElementById("toastStack");
     if (!stack) return;
+    const icon = type === "success" ? "✓" : type === "error" ? "✕" : "i";
     const el = document.createElement("div");
     el.className = "toast" + (type ? " " + type : "");
-    el.textContent = msg;
+    el.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-text">${escapeHtml(msg)}</span>`;
     stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+    const dismiss = () => {
+      el.classList.add("leaving");
+      setTimeout(() => el.remove(), 220);
+    };
+    setTimeout(dismiss, 3400);
   }
-  function confirmAction(msg) {
-    return window.confirm(msg);
+
+  // Caixa de confirmação personalizada (substitui o window.confirm nativo do navegador).
+  // Uso: const ok = await confirmAction("Excluir isto?"); if (!ok) return;
+  function confirmAction(message, opts) {
+    opts = opts || {};
+    return new Promise((resolve) => {
+      const overlay = qs("#confirmOverlay");
+      const box = overlay.querySelector(".confirm-box");
+      const icon = qs("#confirmIcon");
+      const titleEl = qs("#confirmTitle");
+      const msgEl = qs("#confirmMessage");
+      const okBtn = qs("#confirmOkBtn");
+      const cancelBtn = qs("#confirmCancelBtn");
+
+      titleEl.textContent = opts.title || "Confirmar ação";
+      msgEl.textContent = message;
+      okBtn.textContent = opts.confirmLabel || "Sim, excluir";
+      cancelBtn.textContent = opts.cancelLabel || "Cancelar";
+      box.classList.toggle("is-neutral", !!opts.neutral);
+      icon.textContent = opts.neutral ? "?" : "!";
+
+      overlay.classList.add("open");
+      okBtn.focus();
+
+      function settle(result) {
+        overlay.classList.remove("open");
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        overlay.removeEventListener("mousedown", onOverlayClick);
+        document.removeEventListener("keydown", onKey);
+        resolve(result);
+      }
+      function onOk() {
+        settle(true);
+      }
+      function onCancel() {
+        settle(false);
+      }
+      function onOverlayClick(e) {
+        if (e.target === overlay) settle(false);
+      }
+      function onKey(e) {
+        if (e.key === "Escape") settle(false);
+        if (e.key === "Enter") settle(true);
+      }
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+      overlay.addEventListener("mousedown", onOverlayClick);
+      document.addEventListener("keydown", onKey);
+    });
   }
 
   function availableCommission(userId) {
@@ -218,8 +271,11 @@
       })
     );
     qsa("[data-deluser]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        if (!confirmAction("Excluir este usuário permanentemente? Esta ação não pode ser desfeita.")) return;
+      btn.addEventListener("click", async () => {
+        const ok = await confirmAction("Excluir este usuário permanentemente? Esta ação não pode ser desfeita.", {
+          title: "Excluir usuário",
+        });
+        if (!ok) return;
         const id = btn.getAttribute("data-deluser");
         db.users = db.users.filter((u) => u.id !== id);
         saveDB();
@@ -274,8 +330,9 @@
         .join("") || `<tr><td colspan="5" class="muted text-center">Nenhum projeto encontrado.</td></tr>`;
 
     qsa("[data-delproj]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        if (!confirmAction("Excluir este projeto?")) return;
+      btn.addEventListener("click", async () => {
+        const ok = await confirmAction("Excluir este projeto? Ele deixará de aparecer para todos os usuários.", { title: "Excluir projeto" });
+        if (!ok) return;
         db.projects = db.projects.filter((p) => p.id !== btn.getAttribute("data-delproj"));
         saveDB();
         toast("Projeto excluído.", "success");
@@ -296,10 +353,13 @@
       .join("");
 
     qsa("[data-delcat]").forEach((btn) =>
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-delcat");
         const inUse = db.projects.some((p) => p.categoryId === id);
-        if (inUse && !confirmAction("Existem projetos usando essa categoria. Remover mesmo assim?")) return;
+        if (inUse) {
+          const ok = await confirmAction("Existem projetos usando essa categoria. Remover mesmo assim?", { title: "Remover categoria" });
+          if (!ok) return;
+        }
         db.categories = db.categories.filter((c) => c.id !== id);
         saveDB();
         toast("Categoria removida.", "success");
@@ -327,8 +387,9 @@
         .join("") || `<tr><td colspan="5" class="muted text-center">Nenhuma publicação na comunidade.</td></tr>`;
 
     qsa("[data-delpost]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        if (!confirmAction("Excluir esta publicação e todos os comentários?")) return;
+      btn.addEventListener("click", async () => {
+        const ok = await confirmAction("Excluir esta publicação e todos os comentários?", { title: "Excluir publicação" });
+        if (!ok) return;
         db.posts = db.posts.filter((p) => p.id !== btn.getAttribute("data-delpost"));
         saveDB();
         toast("Publicação removida.", "success");
