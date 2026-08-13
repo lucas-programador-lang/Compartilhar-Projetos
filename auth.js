@@ -120,11 +120,22 @@
   function toast(msg, type) {
     const stack = document.getElementById("toastStack");
     if (!stack) return;
+    const iconChar = type === "success" ? "✓" : type === "error" ? "✕" : "i";
     const el = document.createElement("div");
     el.className = "toast" + (type ? " " + type : "");
-    el.textContent = msg;
+    const icon = document.createElement("span");
+    icon.className = "toast-icon";
+    icon.textContent = iconChar;
+    const text = document.createElement("span");
+    text.className = "toast-text";
+    text.textContent = msg;
+    el.append(icon, text);
     stack.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+    const dismiss = () => {
+      el.classList.add("leaving");
+      setTimeout(() => el.remove(), 220);
+    };
+    setTimeout(dismiss, 3400);
   }
   function getParam(name) {
     return new URLSearchParams(location.search).get(name);
