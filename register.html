@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar conta — Compartilhar Projetos</title>
+<meta name="description" content="Crie sua conta gratuita na Compartilhar Projetos e comece a explorar projetos publicados pela comunidade.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+    </a>
+    <div class="header-actions">
+      <a href="login.html" class="btn btn-ghost btn-sm">Entrar</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <h2>Criar conta gratuita</h2>
+      <p class="sub">Visualize todos os projetos publicados. Assine um plano quando quiser publicar o seu.</p>
+      <form id="registerForm">
+        <div class="field"><label>Nome completo</label><input name="name" required placeholder="Seu nome" autocomplete="name"></div>
+        <div class="field"><label>E-mail</label><input type="email" name="email" required placeholder="voce@email.com" autocomplete="email"></div>
+        <div class="field"><label>Senha</label><input type="password" name="password" required placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+        <div class="field"><label>Código de indicação (opcional)</label><input name="refCode" id="refCodeInput" placeholder="Ex.: MARINA7X"></div>
+        <div class="field-error" id="registerError"></div>
+        <button class="btn btn-primary btn-block" type="submit">Criar conta</button>
+      </form>
+      <div class="form-foot">Já tem conta? <a href="login.html" class="link" id="goLogin">Entrar</a></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script src="auth.js"></script>
+</body>
+</html>
