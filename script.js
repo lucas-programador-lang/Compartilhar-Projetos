@@ -200,6 +200,11 @@
     if (!user || !user.subscription || !user.subscription.active) return false;
     return new Date(user.subscription.expiresAt) > new Date();
   }
+  // Administradores podem publicar projetos mesmo sem assinatura ativa.
+  function canPublish(user) {
+    if (!user) return false;
+    return user.role === "admin" || isSubscriptionActive(user);
+  }
 
   /* ---------------------------------------------------------
      3. UTILITÁRIOS
@@ -320,7 +325,7 @@
   function publishProject(data) {
     const user = currentUser();
     if (!user) throw new Error("Você precisa entrar na sua conta.");
-    if (!isSubscriptionActive(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
+    if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
     if (!data.title || data.title.trim().length < 3) throw new Error("Informe um título para o projeto.");
     if (!data.description || data.description.trim().length < 10) throw new Error("Descreva melhor o seu projeto.");
     if (!data.categoryId) throw new Error("Selecione uma categoria.");
@@ -377,13 +382,21 @@
     saveDB(db);
   }
 
-  function requestWithdrawal(amount) {
+  function requestWithdrawal(amount, pixKey) {
     const user = currentUser();
     if (!user) throw new Error("Entre na sua conta.");
     const available = availableCommission(user.id);
+    if (!pixKey || !pixKey.trim()) throw new Error("Informe sua chave Pix para receber o saque.");
     if (amount < MIN_WITHDRAW) throw new Error(`O saque mínimo é ${fmtBRL(MIN_WITHDRAW)}.`);
     if (amount > available) throw new Error("Valor solicitado maior que o saldo disponível.");
-    db.withdrawals.push({ id: uid("wd"), userId: user.id, amount, status: "pending", createdAt: nowISO() });
+    db.withdrawals.push({
+      id: uid("wd"),
+      userId: user.id,
+      amount,
+      pixKey: sanitizeText(pixKey.trim()),
+      status: "pending",
+      createdAt: nowISO(),
+    });
     // marca comissões disponíveis como "em processo" só conceitualmente — mantemos o saldo calculado dinamicamente
     saveDB(db);
   }
@@ -396,6 +409,10 @@
       .filter((w) => w.userId === userId && (w.status === "approved" || w.status === "pending"))
       .reduce((s, w) => s + w.amount, 0);
     return Math.max(0, Math.round((earned - withdrawn) * 100) / 100);
+  }
+  function lastPixKey(userId) {
+    const mine = db.withdrawals.filter((w) => w.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return mine.length ? mine[0].pixKey || "" : "";
   }
   function pendingCommission(userId) {
     return db.commissions.filter((c) => c.referrerId === userId && c.status === "pending").reduce((s, c) => s + c.amount, 0);
@@ -639,8 +656,7 @@
 
   function viewPublish() {
     const user = currentUser();
-    const active = isSubscriptionActive(user);
-    if (!active) {
+    if (!canPublish(user)) {
       return `
       <div class="auth-shell">
         <div class="auth-card text-center">
@@ -654,7 +670,8 @@
     <section class="section" style="padding-top:44px;max-width:720px;margin:0 auto">
       <div class="container">
         <span class="tag-label">Novo projeto</span>
-        <h2 style="margin-bottom:26px">Publicar projeto</h2>
+        <h2 style="margin-bottom:6px">Publicar projeto</h2>
+        ${user.role === "admin" ? `<p class="field-hint" style="margin-bottom:20px">Você está publicando como administrador — não é necessário ter assinatura ativa.</p>` : `<div style="margin-bottom:26px"></div>`}
         <form id="publishForm" class="panel">
           <div class="field"><label>Nome do projeto</label><input name="title" required placeholder="Ex.: Nimbus — painel financeiro"></div>
           <div class="field"><label>Descrição</label><textarea name="description" rows="5" required placeholder="Conte o que é, para quem serve e o que torna especial."></textarea></div>
@@ -767,7 +784,9 @@
         <h2>Assine para publicar seus projetos</h2>
         <p class="muted" style="max-width:520px;margin:12px auto 0">Contas gratuitas podem visualizar todos os projetos. Para publicar, escolha um plano abaixo.</p>
         ${
-          active
+          user && user.role === "admin"
+            ? `<div class="badge badge-blue mt-2">Administradores podem publicar sem assinatura</div>`
+            : active
             ? `<div class="badge badge-success mt-2">Assinatura ativa até ${fmtDate(user.subscription.expiresAt)}</div>`
             : user
             ? `<div class="badge badge-danger mt-2">Você ainda não tem assinatura ativa</div>`
@@ -839,7 +858,11 @@
         </div>
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-label">Status da assinatura</div><div class="stat-value" style="font-size:16px">${
-            active ? `<span class="badge badge-success">Ativa</span>` : `<span class="badge badge-danger">Expirada</span>`
+            user.role === "admin"
+              ? `<span class="badge badge-blue">Administrador</span>`
+              : active
+              ? `<span class="badge badge-success">Ativa</span>`
+              : `<span class="badge badge-danger">Expirada</span>`
           }</div></div>
           <div class="stat-card"><div class="stat-label">Projetos publicados</div><div class="stat-value">${myProjects.length}</div></div>
           <div class="stat-card gold"><div class="stat-label">Comissões disponíveis</div><div class="stat-value">${fmtBRL(availableCommission(user.id))}</div></div>
@@ -870,7 +893,7 @@
         </div>
 
         ${
-          !active
+          !active && user.role !== "admin"
             ? `<div class="panel" style="border-color:var(--gold-400)"><div class="panel-head"><h3>Sua assinatura expirou</h3></div><p class="muted">Renove seu plano para voltar a publicar novos projetos.</p><a href="#/planos" class="btn btn-gold mt-2">Ver planos</a></div>`
             : ""
         }
@@ -929,9 +952,10 @@
         <div class="panel">
           <div class="panel-head"><h3>Solicitar saque</h3></div>
           <p class="muted mt-1">Saque mínimo de ${fmtBRL(MIN_WITHDRAW)}. Saldo disponível: <strong>${fmtBRL(availableCommission(user.id))}</strong></p>
-          <form id="withdrawForm" class="flex gap-1 mt-2" style="max-width:340px">
-            <input type="number" min="${MIN_WITHDRAW}" step="0.01" name="amount" placeholder="Valor em R$" class="search-input" required>
-            <button class="btn btn-gold" type="submit">Solicitar</button>
+          <form id="withdrawForm" class="mt-2" style="max-width:360px">
+            <div class="field"><label>Valor do saque</label><input type="number" min="${MIN_WITHDRAW}" step="0.01" name="amount" placeholder="Ex.: 15,00" required></div>
+            <div class="field"><label>Chave Pix</label><input type="text" name="pixKey" placeholder="CPF, e-mail, telefone ou chave aleatória" value="${escapeHtml(lastPixKey(user.id))}" required></div>
+            <button class="btn btn-gold btn-block" type="submit">Solicitar saque</button>
           </form>
         </div>
 
@@ -959,16 +983,16 @@
           <div class="panel-head"><h3>Solicitações de saque</h3></div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Data</th><th>Valor</th><th>Status</th></tr></thead>
+              <thead><tr><th>Data</th><th>Valor</th><th>Chave Pix</th><th>Status</th></tr></thead>
               <tbody>
                 ${
                   db.withdrawals
                     .filter((w) => w.userId === user.id)
                     .map((w) => {
                       const label = { pending: ["badge-warning", "Em análise"], approved: ["badge-success", "Aprovado"], rejected: ["badge-danger", "Recusado"] }[w.status];
-                      return `<tr><td>${fmtDate(w.createdAt)}</td><td>${fmtBRL(w.amount)}</td><td><span class="badge ${label[0]}">${label[1]}</span></td></tr>`;
+                      return `<tr><td>${fmtDate(w.createdAt)}</td><td>${fmtBRL(w.amount)}</td><td>${escapeHtml(w.pixKey || "—")}</td><td><span class="badge ${label[0]}">${label[1]}</span></td></tr>`;
                     })
-                    .join("") || `<tr><td colspan="3" class="muted text-center">Nenhum saque solicitado.</td></tr>`
+                    .join("") || `<tr><td colspan="4" class="muted text-center">Nenhum saque solicitado.</td></tr>`
                 }
               </tbody>
             </table>
@@ -1134,7 +1158,7 @@
         e.preventDefault();
         const fd = new FormData(withdrawForm);
         try {
-          requestWithdrawal(parseFloat(fd.get("amount")));
+          requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey"));
           toast("Solicitação de saque enviada!", "success");
           render();
         } catch (err) {
@@ -1212,7 +1236,24 @@
   }
 
   /* ---------------------------------------------------------
-     10. INIT
+     10. TEMPO REAL ENTRE ABAS
+     Sempre que o admin (em admin.html) ou outra aba alterar o
+     "banco de dados" no localStorage, esta página recarrega os
+     dados e re-renderiza automaticamente — sem precisar dar F5.
+  --------------------------------------------------------- */
+  window.addEventListener("storage", (e) => {
+    if (e.key === DB_KEY) {
+      db = loadDB();
+      render();
+    }
+    if (e.key === SESSION_KEY) {
+      db = loadDB();
+      render();
+    }
+  });
+
+  /* ---------------------------------------------------------
+     11. INIT
   --------------------------------------------------------- */
   window.addEventListener("hashchange", render);
   document.addEventListener("DOMContentLoaded", () => {
