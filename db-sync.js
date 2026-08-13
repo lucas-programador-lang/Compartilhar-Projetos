@@ -48,14 +48,24 @@ onValue(
   (snapshot) => {
     if (snapshot.exists()) {
       cache = snapshot.val();
-      // garante que os arrays esperados existam mesmo se o nó estiver incompleto
-      cache.users = cache.users || [];
-      cache.categories = cache.categories || [];
-      cache.projects = cache.projects || [];
-      cache.posts = cache.posts || [];
-      cache.referrals = cache.referrals || [];
-      cache.commissions = cache.commissions || [];
-      cache.withdrawals = cache.withdrawals || [];
+      // garante que os arrays esperados existam mesmo se o nó estiver incompleto,
+      // e remove entradas vazias/nulas — o Firebase pode gerar "buracos" em
+      // listas quando um item é editado ou apagado manualmente pelo console
+      const clean = (arr) => (Array.isArray(arr) ? arr.filter(Boolean) : Object.values(arr || {}).filter(Boolean));
+      cache.users = clean(cache.users);
+      cache.categories = clean(cache.categories);
+      cache.projects = clean(cache.projects);
+      cache.posts = clean(cache.posts);
+      cache.referrals = clean(cache.referrals);
+      cache.commissions = clean(cache.commissions);
+      cache.withdrawals = clean(cache.withdrawals);
+      // também limpa comentários/respostas dentro de cada post, pelo mesmo motivo
+      cache.posts.forEach((p) => {
+        p.comments = clean(p.comments);
+        p.comments.forEach((c) => {
+          c.replies = clean(c.replies);
+        });
+      });
     } else {
       cache = seedDB();
       set(ref(rtdb, DB_PATH), cache);
