@@ -188,9 +188,6 @@
       return null;
     }
   }
-  function setSession(userId) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ userId }));
-  }
   function clearSession() {
     localStorage.removeItem(SESSION_KEY);
   }
@@ -283,51 +280,8 @@
 
   /* ---------------------------------------------------------
      4. AÇÕES DE NEGÓCIO
+     (login e cadastro ficam em auth.js — login.html / register.html)
   --------------------------------------------------------- */
-  function registerUser({ name, email, password, refCode }) {
-    email = email.trim().toLowerCase();
-    if (!name || name.trim().length < 2) throw new Error("Informe seu nome completo.");
-    if (!isValidEmail(email)) throw new Error("Informe um e-mail válido.");
-    if (!password || password.length < 6) throw new Error("A senha deve ter ao menos 6 caracteres.");
-    if (db.users.some((u) => u.email === email)) throw new Error("Este e-mail já está cadastrado.");
-
-    let referredBy = null;
-    if (refCode) {
-      const ref = db.users.find((u) => u.refCode.toLowerCase() === refCode.trim().toLowerCase());
-      if (ref) referredBy = ref.id;
-    }
-
-    const user = {
-      id: uid("u"),
-      name: name.trim(),
-      email,
-      password, // demo apenas — em produção use hash + salt no backend
-      role: "user",
-      avatarColor: ["#1d4fc4", "#b8860b", "#0f8a5f", "#8a6410", "#163e8c"][Math.floor(Math.random() * 5)],
-      createdAt: nowISO(),
-      refCode: (name.split(" ")[0] + Math.random().toString(36).slice(2, 6)).toUpperCase(),
-      referredBy,
-      subscription: { active: false, plan: null, expiresAt: null },
-      suspended: false,
-      bio: "",
-    };
-    db.users.push(user);
-    if (referredBy) {
-      db.referrals.push({ id: uid("rf"), referrerId: referredBy, referredId: user.id, createdAt: nowISO() });
-    }
-    saveDB(db);
-    return user;
-  }
-
-  function loginUser(email, password) {
-    email = email.trim().toLowerCase();
-    const user = db.users.find((u) => u.email === email && u.password === password);
-    if (!user) throw new Error("E-mail ou senha incorretos.");
-    if (user.suspended) throw new Error("Sua conta foi suspensa. Entre em contato com o suporte.");
-    setSession(user.id);
-    return user;
-  }
-
   function logoutUser() {
     clearSession();
   }
@@ -511,9 +465,8 @@
     const user = currentUser();
 
     if (PROTECTED_ROUTES.some((p) => path.startsWith(p)) && !user) {
-      app.innerHTML = "";
-      navigate("/entrar");
-      toast("Entre na sua conta para continuar.", "error");
+      const dest = path.replace(/^\//, "").split("?")[0] || "painel";
+      location.href = "login.html?redirect=" + encodeURIComponent(dest);
       return;
     }
 
@@ -529,8 +482,6 @@
     else if (path === "/painel") html = viewDashboard();
     else if (path === "/perfil") html = viewProfile();
     else if (path === "/indicacoes") html = viewReferrals();
-    else if (path === "/entrar") html = viewLogin(params);
-    else if (path === "/cadastrar") html = viewRegister(params);
     else html = view404();
 
     app.innerHTML = html;
@@ -571,7 +522,7 @@
           <h1>Encontre projetos, <span class="accent">compartilhe</span> suas ideias e conecte-se com criadores.</h1>
           <p class="lead">Compartilhar Projetos é onde desenvolvedores, designers e criadores publicam o que estão construindo — e descobrem o que o resto da comunidade está criando.</p>
           <div class="hero-cta">
-            <a href="#/cadastrar" class="btn btn-gold btn-lg">Cadastrar grátis</a>
+            <a href="register.html" class="btn btn-gold btn-lg">Cadastrar grátis</a>
             <a href="#/explorar" class="btn btn-ghost btn-lg" style="border-color:rgba(255,255,255,.35);color:#fff">Explorar projetos</a>
           </div>
           <div class="hero-stats">
@@ -744,7 +695,7 @@
                   <textarea id="postInput" placeholder="Compartilhe uma novidade, peça feedback ou converse sobre a plataforma…"></textarea>
                   <div class="composer-foot"><span class="muted" style="font-size:12.5px">Publicando como ${escapeHtml(user.name)}</span><button class="btn btn-primary btn-sm" id="postSubmit">Publicar</button></div>
                 </div>`
-              : `<div class="panel text-center"><p class="muted">Entre na sua conta para participar da comunidade.</p><a href="#/entrar" class="btn btn-ghost btn-sm mt-2">Entrar</a></div>`
+              : `<div class="panel text-center"><p class="muted">Entre na sua conta para participar da comunidade.</p><a href="login.html?redirect=comunidade" class="btn btn-ghost btn-sm mt-2">Entrar</a></div>`
           }
           <div id="postsList">${posts.map(postCard).join("") || emptyState("Ainda não há publicações", "Seja a primeira pessoa a iniciar uma conversa.")}</div>
         </div>
@@ -855,43 +806,6 @@
     </section>`;
   }
 
-  function viewLogin(params) {
-    return `
-    <div class="auth-shell">
-      <div class="auth-card">
-        <h2>Entrar na conta</h2>
-        <p class="sub">Acesse para visualizar, publicar e participar da comunidade.</p>
-        <form id="loginForm">
-          <div class="field"><label>E-mail</label><input type="email" name="email" required placeholder="voce@email.com" value="marina@demo.com"></div>
-          <div class="field"><label>Senha</label><input type="password" name="password" required placeholder="••••••••" value="demo123"></div>
-          <div class="field-error" id="loginError"></div>
-          <button class="btn btn-primary btn-block" type="submit">Entrar</button>
-        </form>
-        <p class="field-hint text-center mt-2">Demo: marina@demo.com / demo123 · admin: admin@compartilharprojetos.com / admin123</p>
-        <div class="form-foot">Não tem conta? <a href="#/cadastrar" class="link">Cadastre-se grátis</a></div>
-      </div>
-    </div>`;
-  }
-
-  function viewRegister(params) {
-    return `
-    <div class="auth-shell">
-      <div class="auth-card">
-        <h2>Criar conta gratuita</h2>
-        <p class="sub">Visualize todos os projetos publicados. Assine um plano quando quiser publicar o seu.</p>
-        <form id="registerForm">
-          <div class="field"><label>Nome completo</label><input name="name" required placeholder="Seu nome"></div>
-          <div class="field"><label>E-mail</label><input type="email" name="email" required placeholder="voce@email.com"></div>
-          <div class="field"><label>Senha</label><input type="password" name="password" required placeholder="Mínimo 6 caracteres"></div>
-          <div class="field"><label>Código de indicação (opcional)</label><input name="refCode" placeholder="Ex.: MARINA7X" value="${escapeHtml(params.ref || "")}"></div>
-          <div class="field-error" id="registerError"></div>
-          <button class="btn btn-primary btn-block" type="submit">Criar conta</button>
-        </form>
-        <div class="form-foot">Já tem conta? <a href="#/entrar" class="link">Entrar</a></div>
-      </div>
-    </div>`;
-  }
-
   function view404() {
     return `<div class="section text-center"><div class="container"><h2>Página não encontrada</h2><p class="muted mt-1">O endereço acessado não existe.</p><a href="#/" class="btn btn-primary mt-3">Voltar para o início</a></div></div>`;
   }
@@ -991,7 +905,7 @@
 
   function viewReferrals() {
     const user = currentUser();
-    const link = `${location.origin}${location.pathname}#/cadastrar?ref=${user.refCode}`;
+    const link = `${location.origin}${location.pathname.replace(/index\.html$/, "")}register.html?ref=${user.refCode}`;
     const myRefs = db.referrals.filter((r) => r.referrerId === user.id);
     const commissions = db.commissions.filter((c) => c.referrerId === user.id);
     return `
@@ -1080,52 +994,11 @@
       catFilter.addEventListener("change", () => updateExploreQuery());
     }
 
-    // login
-    const loginForm = qs("#loginForm");
-    if (loginForm) {
-      loginForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const fd = new FormData(loginForm);
-        try {
-          loginUser(fd.get("email"), fd.get("password"));
-          toast("Bem-vindo(a) de volta!", "success");
-          navigate("/painel");
-        } catch (err) {
-          qs("#loginError").textContent = err.message;
-          qs("#loginError").style.display = "block";
-        }
-      });
-    }
-
-    // cadastro
-    const registerForm = qs("#registerForm");
-    if (registerForm) {
-      registerForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const fd = new FormData(registerForm);
-        try {
-          const u = registerUser({
-            name: fd.get("name"),
-            email: fd.get("email"),
-            password: fd.get("password"),
-            refCode: fd.get("refCode"),
-          });
-          setSession(u.id);
-          toast("Conta criada com sucesso!", "success");
-          navigate("/painel");
-        } catch (err) {
-          qs("#registerError").textContent = err.message;
-          qs("#registerError").style.display = "block";
-        }
-      });
-    }
-
-    // planos
+    // planos (login e cadastro acontecem em login.html / register.html via auth.js)
     qsa("[data-plan]").forEach((btn) => {
       btn.addEventListener("click", () => {
         if (!currentUser()) {
-          toast("Entre na sua conta para assinar um plano.", "error");
-          navigate("/entrar");
+          location.href = "login.html?redirect=planos";
           return;
         }
         try {
