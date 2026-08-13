@@ -374,6 +374,7 @@
           return `<tr>
           <td>${escapeHtml(u ? u.name : "—")}</td>
           <td>${fmtBRL(w.amount)}</td>
+          <td class="muted" style="font-family:var(--font-mono);font-size:12.5px">${escapeHtml(w.pixKey || "—")}</td>
           <td>${fmtDate(w.createdAt)}</td>
           <td><span class="badge ${label[0]}">${label[1]}</span></td>
           <td class="flex gap-1">
@@ -385,7 +386,7 @@
           </td>
         </tr>`;
         })
-        .join("") || `<tr><td colspan="5" class="muted text-center">Nenhuma solicitação de saque (mínimo ${fmtBRL(MIN_WITHDRAW)}).</td></tr>`;
+        .join("") || `<tr><td colspan="6" class="muted text-center">Nenhuma solicitação de saque (mínimo ${fmtBRL(MIN_WITHDRAW)}).</td></tr>`;
 
     qsa("[data-approve]").forEach((btn) =>
       btn.addEventListener("click", () => {
@@ -439,6 +440,17 @@
       renderAll();
     });
   }
+
+  /* ---------------------------------------------------------
+     TEMPO REAL ENTRE ABAS
+     Se o banco de dados mudar em outra aba (outro admin, ou o
+     próprio site em index.html), este painel atualiza sozinho.
+  --------------------------------------------------------- */
+  window.addEventListener("storage", (e) => {
+    if (e.key !== DB_KEY) return;
+    if (qs("#adminShell").style.display === "none") return; // não logado, nada a atualizar
+    renderAll();
+  });
 
   document.addEventListener("DOMContentLoaded", boot);
 })();
