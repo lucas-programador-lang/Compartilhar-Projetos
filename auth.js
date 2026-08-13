@@ -97,6 +97,7 @@ import { uid, nowISO } from "./seed.js";
       name: name.trim(),
       email,
       role: "user",
+      isAdmin: false,
       avatarColor: ["#1d4fc4", "#b8860b", "#0f8a5f", "#8a6410", "#163e8c"][Math.floor(Math.random() * 5)],
       createdAt: nowISO(),
       refCode: (name.trim().split(" ")[0] + Math.random().toString(36).slice(2, 6)).toUpperCase(),
