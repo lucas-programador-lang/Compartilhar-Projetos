@@ -448,15 +448,58 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .modal-box h2{font-size:21px;color:var(--navy-900);margin-bottom:6px}
 .modal-box .sub{color:var(--ink-600);font-size:13.5px;margin-bottom:22px}
 
-/* =================== TOAST =================== */
-.toast-stack{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:400}
-.toast{
-  background:var(--navy-950);color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:500;
-  box-shadow:var(--shadow-lg);min-width:240px;border-left:4px solid var(--gold-500);animation:toastIn .25s ease;
+/* =================== CONFIRM DIALOG =================== */
+.confirm-overlay{
+  position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(4,11,26,.62);backdrop-filter:blur(3px);
 }
+.confirm-overlay.open{display:flex;animation:overlayIn .18s ease}
+.confirm-box{
+  background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:380px;
+  padding:30px 28px 26px;text-align:center;box-shadow:var(--shadow-lg);
+  border:1px solid var(--border);animation:confirmIn .2s ease;
+}
+.confirm-icon{
+  width:52px;height:52px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--danger-bg),#fbd8d4);color:var(--danger);font-family:var(--font-display);
+  font-weight:800;font-size:24px;border:1px solid rgba(207,53,39,.25);
+}
+.confirm-box.is-neutral .confirm-icon{
+  background:linear-gradient(135deg,var(--gold-100),var(--gold-200));color:var(--gold-700);border-color:var(--border-gold);
+}
+.confirm-box h3{font-size:18px;color:var(--navy-900);margin-bottom:8px}
+.confirm-box p{font-size:14px;color:var(--ink-600);line-height:1.55;margin-bottom:24px}
+.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes confirmIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* =================== TOAST =================== */
+.toast-stack{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:600;max-width:calc(100vw - 32px)}
+.toast{
+  display:flex;align-items:flex-start;gap:12px;
+  background:linear-gradient(165deg,var(--navy-900),var(--navy-950));color:#fff;padding:14px 18px;border-radius:14px;
+  font-size:13.5px;font-weight:500;line-height:1.45;
+  box-shadow:0 16px 34px rgba(4,11,26,.35);min-width:260px;max-width:340px;
+  border:1px solid rgba(220,174,44,.18);border-left:3px solid var(--gold-500);
+  animation:toastIn .28s cubic-bezier(.2,.8,.3,1.2);
+}
+.toast .toast-icon{
+  flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;font-family:var(--font-display);margin-top:1px;
+  background:rgba(220,174,44,.16);color:var(--gold-300,#f4da85);
+}
+.toast .toast-text{flex:1;padding-top:1px}
 .toast.error{border-left-color:var(--danger)}
+.toast.error .toast-icon{background:rgba(207,53,39,.16);color:#ff9186}
 .toast.success{border-left-color:var(--success)}
-@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.toast.success .toast-icon{background:rgba(14,143,96,.18);color:#5fe0ab}
+.toast.leaving{animation:toastOut .22s ease forwards}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes toastOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(6px) scale(.97)}}
+@media (max-width:480px){
+  .toast-stack{left:16px;right:16px;bottom:16px;align-items:stretch}
+  .toast{max-width:none}
+}
 
 /* =================== FOOTER =================== */
 .site-footer{
