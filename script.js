@@ -1,18 +1,16 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — APP.JS
-   SPA leve com "banco de dados" simulado em localStorage.
-   Estrutura pronta para ser trocada por chamadas a uma API real:
-   troque as funções em DB.* por fetch() para o seu backend.
+   COMPARTILHAR PROJETOS — SCRIPT.JS
+   SPA leve, agora sincronizada com o Firebase Realtime Database
+   em vez de localStorage. Autenticação via Firebase Auth.
    ========================================================= */
+
+import { auth } from "./firebase-config.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getDB, saveDB, onDBChange } from "./db-sync.js";
+import { uid, nowISO } from "./seed.js";
 
 (function () {
   "use strict";
-
-  /* ---------------------------------------------------------
-     1. CAMADA DE DADOS (localStorage)
-  --------------------------------------------------------- */
-  const DB_KEY = "cp_database_v1";
-  const SESSION_KEY = "cp_session_v1";
 
   const PLANS = {
     p4: { id: "p4", name: "Plano 4 Dias", price: 10, days: 4 },
@@ -21,180 +19,21 @@
   const COMMISSION_RATE = 0.3; // 30% para quem indicou
   const MIN_WITHDRAW = 10;
 
-  function uid(prefix) {
-    return (prefix || "id") + "_" + Math.random().toString(36).slice(2, 10);
-  }
-
-  function nowISO() {
-    return new Date().toISOString();
-  }
-
-  function loadDB() {
-    let raw = localStorage.getItem(DB_KEY);
-    if (!raw) {
-      const seeded = seedDB();
-      localStorage.setItem(DB_KEY, JSON.stringify(seeded));
-      return seeded;
-    }
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      const seeded = seedDB();
-      localStorage.setItem(DB_KEY, JSON.stringify(seeded));
-      return seeded;
-    }
-  }
-
-  function saveDB(db) {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-  }
-
-  function seedDB() {
-    const adminId = uid("u");
-    const demoId = uid("u");
-    const day = 24 * 60 * 60 * 1000;
-
-    const users = [
-      {
-        id: adminId,
-        name: "Equipe Compartilhar Projetos",
-        email: "admin@compartilharprojetos.com",
-        password: "admin123",
-        role: "admin",
-        avatarColor: "#1d4fc4",
-        createdAt: nowISO(),
-        refCode: "ADMIN01",
-        referredBy: null,
-        subscription: { active: false, plan: null, expiresAt: null },
-        suspended: false,
-        bio: "Conta oficial da plataforma.",
-      },
-      {
-        id: demoId,
-        name: "Marina Duarte",
-        email: "marina@demo.com",
-        password: "demo123",
-        role: "user",
-        avatarColor: "#b8860b",
-        createdAt: nowISO(),
-        refCode: "MARINA7X",
-        referredBy: null,
-        subscription: { active: true, plan: "p7", expiresAt: new Date(Date.now() + 7 * day).toISOString() },
-        suspended: false,
-        bio: "Product designer e criadora de side-projects.",
-      },
-    ];
-
-    const categories = [
-      { id: uid("c"), name: "Web" },
-      { id: uid("c"), name: "Mobile" },
-      { id: uid("c"), name: "Design" },
-      { id: uid("c"), name: "Inteligência Artificial" },
-      { id: uid("c"), name: "Open Source" },
-      { id: uid("c"), name: "Jogos" },
-    ];
-    const catByName = (n) => categories.find((c) => c.name === n).id;
-
-    const projects = [
-      {
-        id: uid("pj"),
-        title: "Nimbus — Painel financeiro para freelancers",
-        description:
-          "Nimbus ajuda freelancers a organizar contratos, cobranças e fluxo de caixa em um só lugar.\n\nConstruído com foco em simplicidade: sem planilhas, sem complicação. Você cadastra o cliente, gera a cobrança e acompanha o status de pagamento em tempo real.",
-        images: [
-          "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1200&auto=format&fit=crop",
-        ],
-        categoryId: catByName("Web"),
-        link: "https://example.com/nimbus",
-        ownerName: "Marina Duarte",
-        contact: "marina@demo.com",
-        ownerId: demoId,
-        createdAt: nowISO(),
-        status: "published",
-      },
-      {
-        id: uid("pj"),
-        title: "Trilha — App de trilhas e caminhadas offline",
-        description:
-          "Um app mobile para quem gosta de explorar trilhas sem depender de internet. Mapas offline, registro de percurso e comunidade de trilheiros.",
-        images: [
-          "https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=1200&auto=format&fit=crop",
-        ],
-        categoryId: catByName("Mobile"),
-        link: "https://example.com/trilha",
-        ownerName: "Marina Duarte",
-        contact: "(11) 99888-2211",
-        ownerId: demoId,
-        createdAt: new Date(Date.now() - 2 * day).toISOString(),
-        status: "published",
-      },
-      {
-        id: uid("pj"),
-        title: "Verso — Design system para produtos B2B",
-        description:
-          "Uma biblioteca de componentes acessíveis e tokens de design pensados para produtos B2B que precisam escalar rápido sem perder consistência visual.",
-        images: [
-          "https://images.unsplash.com/photo-1559028012-481c04fa702d?q=80&w=1200&auto=format&fit=crop",
-        ],
-        categoryId: catByName("Design"),
-        link: "https://example.com/verso",
-        ownerName: "Marina Duarte",
-        contact: "marina@demo.com",
-        ownerId: demoId,
-        createdAt: new Date(Date.now() - 5 * day).toISOString(),
-        status: "published",
-      },
-    ];
-
-    const posts = [
-      {
-        id: uid("post"),
-        authorId: demoId,
-        content:
-          "Pessoal, acabei de publicar o Nimbus por aqui! Feedback de quem trabalha como freelancer é muito bem-vindo 🙌",
-        createdAt: nowISO(),
-        comments: [
-          {
-            id: uid("cm"),
-            authorId: adminId,
-            content: "Parabéns pelo lançamento! A plataforma está de portas abertas para você divulgar mais.",
-            createdAt: nowISO(),
-            replies: [],
-          },
-        ],
-      },
-    ];
-
-    return {
-      users,
-      categories,
-      projects,
-      posts,
-      referrals: [], // { id, referrerId, referredId, createdAt }
-      commissions: [], // { id, referrerId, referredId, amount, status: pending|available|paid, createdAt, planId }
-      withdrawals: [], // { id, userId, amount, status: pending|approved|rejected, createdAt }
-    };
-  }
-
-  let db = loadDB();
+  // estado local — populado pelos listeners do Firebase
+  let db = null;
+  let firebaseUser = null;
+  let authReady = false;
+  let dbReady = false;
 
   /* ---------------------------------------------------------
-     2. SESSÃO
+     SESSÃO
   --------------------------------------------------------- */
-  function getSession() {
-    try {
-      return JSON.parse(localStorage.getItem(SESSION_KEY));
-    } catch (e) {
-      return null;
-    }
-  }
-  function clearSession() {
-    localStorage.removeItem(SESSION_KEY);
-  }
   function currentUser() {
-    const s = getSession();
-    if (!s) return null;
-    return db.users.find((u) => u.id === s.userId) || null;
+    if (!db || !firebaseUser) return null;
+    return db.users.find((u) => u.id === firebaseUser.uid) || null;
+  }
+  function logoutUser() {
+    return signOut(auth);
   }
   function isSubscriptionActive(user) {
     if (!user || !user.subscription || !user.subscription.active) return false;
@@ -207,7 +46,7 @@
   }
 
   /* ---------------------------------------------------------
-     3. UTILITÁRIOS
+     UTILITÁRIOS
   --------------------------------------------------------- */
   function escapeHtml(str) {
     if (str == null) return "";
@@ -227,7 +66,7 @@
     return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   }
   function fmtBRL(v) {
-    return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
   function initials(name) {
     return (name || "?")
@@ -276,9 +115,6 @@
   function sanitizeText(str) {
     return escapeHtml(str).slice(0, 5000);
   }
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
   function isValidUrl(url) {
     try {
       const u = new URL(url);
@@ -289,13 +125,9 @@
   }
 
   /* ---------------------------------------------------------
-     4. AÇÕES DE NEGÓCIO
+     AÇÕES DE NEGÓCIO
      (login e cadastro ficam em auth.js — login.html / register.html)
   --------------------------------------------------------- */
-  function logoutUser() {
-    clearSession();
-  }
-
   function subscribeToPlan(planId) {
     const user = currentUser();
     if (!user) throw new Error("Você precisa entrar na sua conta.");
@@ -402,7 +234,6 @@
       status: "pending",
       createdAt: nowISO(),
     });
-    // marca comissões disponíveis como "em processo" só conceitualmente — mantemos o saldo calculado dinamicamente
     saveDB(db);
   }
 
@@ -426,7 +257,7 @@
     return db.commissions.filter((c) => c.referrerId === userId).reduce((s, c) => s + c.amount, 0);
   }
 
-  // simula "liberação" de comissões pendentes após 24h (para fins de demo, liberamos direto ao assinar)
+  // simula "liberação" de comissões pendentes (para fins de demo, liberamos direto)
   function maturateCommissions() {
     let changed = false;
     db.commissions.forEach((c) => {
@@ -439,7 +270,7 @@
   }
 
   /* ---------------------------------------------------------
-     5. HEADER / ESTADO GLOBAL
+     HEADER / ESTADO GLOBAL
   --------------------------------------------------------- */
   function refreshHeader() {
     const user = currentUser();
@@ -459,7 +290,7 @@
   }
 
   /* ---------------------------------------------------------
-     6. ROTEADOR
+     ROTEADOR
   --------------------------------------------------------- */
   function currentRoute() {
     const hash = location.hash.replace(/^#/, "") || "/";
@@ -480,8 +311,14 @@
   const PROTECTED_ROUTES = ["/painel", "/perfil", "/indicacoes", "/publicar"];
 
   function render() {
+    // ainda carregando dados do Firebase (auth e/ou banco) — mostra um loading simples
+    if (!authReady || !dbReady) {
+      const app = qs("#app");
+      if (app) app.innerHTML = `<div class="section text-center"><div class="container"><p class="muted">Carregando…</p></div></div>`;
+      return;
+    }
+
     maturateCommissions();
-    db = loadDB(); // pega alterações feitas no admin.html em outra aba
     const { path, params } = currentRoute();
     const app = qs("#app");
     const user = currentUser();
@@ -513,7 +350,7 @@
   }
 
   /* ---------------------------------------------------------
-     7. VIEWS (HTML)
+     VIEWS (HTML)
   --------------------------------------------------------- */
   function projectCard(p) {
     const img = p.images && p.images[0];
@@ -628,7 +465,6 @@
   function viewProjectDetail(id) {
     const p = db.projects.find((pj) => pj.id === id);
     if (!p) return view404();
-    const owner = userById(p.ownerId);
     const img = (p.images && p.images[0]) || "";
     return `
     <div class="project-detail container">
@@ -692,7 +528,7 @@
           <div class="field">
             <label>Imagens do projeto</label>
             <input type="file" id="imageInput" accept="image/*" multiple>
-            <div class="field-hint">Envie até 4 imagens (armazenadas localmente nesta demonstração).</div>
+            <div class="field-hint">Envie até 4 imagens (convertidas para base64 e salvas no banco nesta demonstração).</div>
             <div class="upload-preview" id="uploadPreview"></div>
           </div>
           <div class="field-error" id="publishError"></div>
@@ -1008,12 +844,11 @@
   }
 
   /* ---------------------------------------------------------
-     8. EVENTOS POR PÁGINA
+     EVENTOS POR PÁGINA
   --------------------------------------------------------- */
   let pendingImages = [];
 
   function bindPageEvents(path) {
-    // filtros de explorar
     const search = qs("#searchInput");
     const catFilter = qs("#catFilter");
     if (search) {
@@ -1023,7 +858,6 @@
       catFilter.addEventListener("change", () => updateExploreQuery());
     }
 
-    // planos (login e cadastro acontecem em login.html / register.html via auth.js)
     qsa("[data-plan]").forEach((btn) => {
       btn.addEventListener("click", () => {
         if (!currentUser()) {
@@ -1041,7 +875,6 @@
       });
     });
 
-    // publicar
     const publishForm = qs("#publishForm");
     if (publishForm) {
       const imageInput = qs("#imageInput");
@@ -1079,7 +912,6 @@
       });
     }
 
-    // comunidade
     const postSubmit = qs("#postSubmit");
     if (postSubmit) {
       postSubmit.addEventListener("click", () => {
@@ -1131,7 +963,6 @@
       });
     });
 
-    // perfil
     const profileForm = qs("#profileForm");
     if (profileForm) {
       profileForm.addEventListener("submit", (e) => {
@@ -1146,7 +977,6 @@
       });
     }
 
-    // indicações
     const copyBtn = qs("#copyRefLink");
     if (copyBtn) {
       copyBtn.addEventListener("click", () => {
@@ -1207,7 +1037,7 @@
   }
 
   /* ---------------------------------------------------------
-     9. HEADER GLOBAL (menu usuário, hambúrguer)
+     HEADER GLOBAL (menu usuário, hambúrguer)
   --------------------------------------------------------- */
   function bindGlobalUI() {
     const avatarBtn = qs("#avatarBtn");
@@ -1222,8 +1052,8 @@
     ["logoutBtn", "logoutBtnMobile"].forEach((id) => {
       const btn = qs("#" + id);
       if (btn) {
-        btn.addEventListener("click", () => {
-          logoutUser();
+        btn.addEventListener("click", async () => {
+          await logoutUser();
           toast("Você saiu da sua conta.");
           navigate("/");
           render();
@@ -1241,25 +1071,22 @@
   }
 
   /* ---------------------------------------------------------
-     10. TEMPO REAL ENTRE ABAS
-     Sempre que o admin (em admin.html) ou outra aba alterar o
-     "banco de dados" no localStorage, esta página recarrega os
-     dados e re-renderiza automaticamente — sem precisar dar F5.
+     TEMPO REAL — Firebase Auth + Realtime Database
+     Substitui o antigo evento "storage" do localStorage: agora
+     a sincronização funciona entre dispositivos diferentes.
   --------------------------------------------------------- */
-  window.addEventListener("storage", (e) => {
-    if (e.key === DB_KEY) {
-      db = loadDB();
-      render();
-    }
-    if (e.key === SESSION_KEY) {
-      db = loadDB();
-      render();
-    }
+  onAuthStateChanged(auth, (user) => {
+    firebaseUser = user;
+    authReady = true;
+    render();
   });
 
-  /* ---------------------------------------------------------
-     11. INIT
-  --------------------------------------------------------- */
+  onDBChange((newDb) => {
+    db = newDb;
+    dbReady = true;
+    render();
+  });
+
   window.addEventListener("hashchange", render);
   document.addEventListener("DOMContentLoaded", () => {
     bindGlobalUI();
