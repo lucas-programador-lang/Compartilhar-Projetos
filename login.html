@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar — Compartilhar Projetos</title>
+<meta name="description" content="Entre na sua conta Compartilhar Projetos para visualizar, publicar e participar da comunidade.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+    </a>
+    <div class="header-actions">
+      <a href="register.html" class="btn btn-primary btn-sm">Criar conta grátis</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <h2>Entrar na conta</h2>
+      <p class="sub">Acesse para visualizar, publicar e participar da comunidade.</p>
+      <form id="loginForm">
+        <div class="field"><label>E-mail</label><input type="email" name="email" required placeholder="voce@email.com" autocomplete="email"></div>
+        <div class="field"><label>Senha</label><input type="password" name="password" required placeholder="••••••••" autocomplete="current-password"></div>
+        <div class="field-error" id="loginError"></div>
+        <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+      </form>
+      <div class="divider-or">demonstração</div>
+      <p class="field-hint text-center">Usuário: marina@demo.com / demo123<br>Admin: admin@compartilharprojetos.com / admin123</p>
+      <div class="form-foot">Não tem conta? <a href="register.html" class="link" id="goRegister">Cadastre-se grátis</a></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script src="auth.js"></script>
+</body>
+</html>
