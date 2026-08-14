@@ -182,6 +182,10 @@ import { uid, nowISO } from "./seed.js";
   // Pede CPF/CNPJ antes de gerar o Pix, caso o usuário ainda não tenha cadastrado.
   // Salva no perfil (updateUserProfile) para não precisar pedir de novo.
   function showDocumentModal() {
+    // Evita abrir dois modais sobrepostos (ex.: double-tap no mobile disparando dois cliques)
+    const existing = qs(".pix-modal-overlay");
+    if (existing) existing.remove();
+
     return new Promise((resolve, reject) => {
       const overlay = document.createElement("div");
       overlay.className = "pix-modal-overlay";
