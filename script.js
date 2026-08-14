@@ -48,8 +48,10 @@ import { uid, nowISO } from "./seed.js";
   const WORKER_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
   const PLANS = {
+    pTeste: { id: "pTeste", name: "Plano Teste", price: 5, days: 2 },
     p4: { id: "p4", name: "Plano 4 Dias", price: 10, days: 4 },
     p7: { id: "p7", name: "Plano 7 Dias", price: 20, days: 7 },
+    pMensal: { id: "pMensal", name: "Plano Mensal", price: 50, days: 30 },
   };
   const COMMISSION_RATE = 0.3; // 30% para quem indicou
   const MIN_WITHDRAW = 10;
@@ -858,6 +860,17 @@ import { uid, nowISO } from "./seed.js";
       <div class="container">
         <div class="plans-grid">
           <div class="plan-card">
+            <span class="plan-name">Plano Teste</span>
+            <div class="plan-price">R$ 5<span>,00</span></div>
+            <div class="plan-duration">Válido por 2 dias</div>
+            <ul class="plan-features">
+              <li>Permite publicar projetos</li>
+              <li>Acesso à área de publicação</li>
+              <li>Expira automaticamente após 2 dias</li>
+            </ul>
+            <button class="btn btn-ghost btn-block" data-plan="pTeste">Assinar plano teste</button>
+          </div>
+          <div class="plan-card">
             <span class="plan-name">Plano 4 dias</span>
             <div class="plan-price">R$ 10<span>,00</span></div>
             <div class="plan-duration">Publicação ativa por 4 dias</div>
@@ -881,6 +894,17 @@ import { uid, nowISO } from "./seed.js";
               <li>Mais tempo de visibilidade</li>
             </ul>
             <button class="btn btn-gold btn-block" data-plan="p7">Assinar plano 7 dias</button>
+          </div>
+          <div class="plan-card">
+            <span class="plan-name">Plano Mensal</span>
+            <div class="plan-price">R$ 50<span>,00</span></div>
+            <div class="plan-duration">Válido por 30 dias</div>
+            <ul class="plan-features">
+              <li>Permite publicar projetos durante todo o período</li>
+              <li>Acesso completo à área de publicação</li>
+              <li>Expira automaticamente após 30 dias</li>
+            </ul>
+            <button class="btn btn-ghost btn-block" data-plan="pMensal">Assinar plano mensal</button>
           </div>
         </div>
       </div>
