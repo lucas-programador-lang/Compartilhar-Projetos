@@ -25,6 +25,13 @@
    cancelando a navegação antes dos dados corretos chegarem.
    Resetar dbReady força a tela de "Carregando…" nesse intervalo
    em vez de redirecionar precocemente.
+
+   NOTA: o bug de comentários virarem "Usuário removido" / "Invalid
+   Date" (ver histórico) não estava neste arquivo — script.js já
+   usava sempre os IDs de negócio (post.id, comment.id) corretamente.
+   A causa era em db-sync.js (addComment/addReply escrevendo no
+   índice do array em vez da chave real do Firebase). Este arquivo
+   segue sem alterações.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
