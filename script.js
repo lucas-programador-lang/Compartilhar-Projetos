@@ -528,7 +528,7 @@ import { uid, nowISO } from "./seed.js";
           <div class="field">
             <label>Imagens do projeto</label>
             <input type="file" id="imageInput" accept="image/*" multiple>
-            <div class="field-hint">Envie até 4 imagens (convertidas para base64 e salvas no banco nesta demonstração).</div>
+            <div class="field-hint">Envie até 4 imagens do seu projeto.</div>
             <div class="upload-preview" id="uploadPreview"></div>
           </div>
           <div class="field-error" id="publishError"></div>
@@ -626,7 +626,7 @@ import { uid, nowISO } from "./seed.js";
         <p class="muted" style="max-width:520px;margin:12px auto 0">Contas gratuitas podem visualizar todos os projetos. Para publicar, escolha um plano abaixo.</p>
         ${
           user && user.role === "admin"
-            ? `<div class="badge badge-blue mt-2">Administradores podem publicar sem assinatura</div>`
+            ? ""
             : active
             ? `<div class="badge badge-success mt-2">Assinatura ativa até ${fmtDate(user.subscription.expiresAt)}</div>`
             : user
