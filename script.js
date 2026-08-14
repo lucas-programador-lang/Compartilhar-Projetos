@@ -167,6 +167,15 @@ import { uid, nowISO } from "./seed.js";
       return false;
     }
   }
+  // Detecta links em texto livre (posts/comentários/respostas da comunidade).
+  // Cobre: http(s)://, www., domínio.tld (ex.: meusite.com), e variações com
+  // espaços/parênteses em volta do ponto (ex.: "meusite . com", "meusite(.)com"),
+  // que é um contorno comum de filtros simples. Não é infalível — ver aviso
+  // ao usuário sobre reforçar isso no servidor também.
+  const LINK_PATTERN = /(https?:\/\/|www\.)\S+|\b[a-z0-9-]+\s*[(\[]?\s*\.\s*[)\]]?\s*(com|net|org|br|io|me|co|app|dev|xyz|info|shop|site|online|link|click)\b/i;
+  function containsLink(str) {
+    return LINK_PATTERN.test(str || "");
+  }
 
   /* ---------------------------------------------------------
      GERAÇÃO DE QR CODE (no navegador)
@@ -384,6 +393,7 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     if (!user) throw new Error("Entre na sua conta para publicar.");
     if (!content || content.trim().length < 2) throw new Error("Escreva algo antes de publicar.");
+    if (containsLink(content)) throw new Error("Não é permitido incluir links nas publicações da comunidade.");
     const post = { id: uid("post"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), comments: [] };
     return addPost(post);
   }
@@ -392,6 +402,7 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     if (!user) throw new Error("Entre na sua conta para comentar.");
     if (!content || !content.trim()) throw new Error("Escreva um comentário.");
+    if (containsLink(content)) throw new Error("Não é permitido incluir links nos comentários.");
     const post = db.posts.find((p) => p.id === postId);
     if (!post) throw new Error("Publicação não encontrada.");
     const comment = { id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] };
@@ -402,6 +413,7 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     if (!user) throw new Error("Entre na sua conta para responder.");
     if (!content || !content.trim()) throw new Error("Escreva uma resposta.");
+    if (containsLink(content)) throw new Error("Não é permitido incluir links nas respostas.");
     const post = db.posts.find((p) => p.id === postId);
     const comment = post && post.comments.find((c) => c.id === commentId);
     if (!comment) throw new Error("Comentário não encontrado.");
