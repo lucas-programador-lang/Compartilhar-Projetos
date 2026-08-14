@@ -4,6 +4,15 @@
    Autenticação via Firebase Auth. Pagamento de assinatura via
    Pix (VizzionPay), processado por um Cloudflare Worker que
    confirma o pagamento e ativa a assinatura direto no Firebase.
+
+   v2: render() agora distingue NAVEGAÇÃO (troca de rota, login,
+   logout) de ATUALIZAÇÃO DE DADO (qualquer onDBChange vindo do
+   Firebase, que pode disparar a qualquer momento e para qualquer
+   usuário conectado, sem relação com o que ele está fazendo).
+   Só a navegação força scroll ao topo. Atualizações de dado que
+   chegam enquanto o usuário está digitando em um campo dentro de
+   #app são adiadas até ele sair do campo, para não apagar o que
+   está sendo escrito.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -303,7 +312,7 @@ import { uid, nowISO } from "./seed.js";
         Promise.resolve().then(() => {
           if (typeof stopWatching === "function") stopWatching();
         });
-        render();
+        render({ navigation: true }); // assinatura mudou de estado — vale a pena voltar ao topo
       }
     });
     stopWatching = unsubscribe;
@@ -462,13 +471,49 @@ import { uid, nowISO } from "./seed.js";
 
   const PROTECTED_ROUTES = ["/painel", "/perfil", "/indicacoes", "/publicar"];
 
-  function render() {
+  /* ---------------------------------------------------------
+     RENDER
+     -----------------------------------------------------------
+     render({ navigation }) — navigation=true é usado só quando a
+     rota realmente mudou (hashchange) ou quando o estado de auth
+     muda (login/logout). Só esses casos fazem sentido "resetar" a
+     tela para o usuário: forçam scroll ao topo.
+
+     navigation=false (padrão) é usado nas atualizações de dado
+     vindas do Firebase (onDBChange), que podem chegar a qualquer
+     momento e não têm relação com o que o usuário está fazendo —
+     por isso NÃO mexem no scroll. Se o usuário estiver digitando
+     em um campo dentro de #app nesse momento, o render é adiado
+     até ele sair do campo, para não apagar o que foi digitado.
+  --------------------------------------------------------- */
+  let pendingDataRender = false;
+
+  function hasActiveFormField() {
+    const el = document.activeElement;
+    const app = qs("#app");
+    if (!el || !app || !app.contains(el)) return false;
+    const tag = el.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+  }
+
+  function render(opts) {
+    const isNavigation = !!(opts && opts.navigation);
+
     // ainda carregando dados do Firebase (auth e/ou banco) — mostra um loading simples
     if (!authReady || !dbReady) {
       const app = qs("#app");
       if (app) app.innerHTML = `<div class="section text-center"><div class="container"><p class="muted">Carregando…</p></div></div>`;
       return;
     }
+
+    // Atualização de dado chegando enquanto o usuário digita algo dentro
+    // de #app: adia o re-render em vez de apagar o campo. É retomado no
+    // listener de "focusout" logo abaixo, assim que o campo perde o foco.
+    if (!isNavigation && hasActiveFormField()) {
+      pendingDataRender = true;
+      return;
+    }
+    pendingDataRender = false;
 
     const { path, params } = currentRoute();
     const app = qs("#app");
@@ -495,10 +540,23 @@ import { uid, nowISO } from "./seed.js";
     else html = view404();
 
     app.innerHTML = html;
-    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    // Só reseta o scroll quando é de fato uma navegação — atualizações de
+    // dado que chegam em segundo plano não devem mexer na posição da tela.
+    if (isNavigation) {
+      window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    }
     refreshHeader();
     bindPageEvents(path);
   }
+
+  // Retoma um render de dado que ficou pendente assim que o usuário sai
+  // do campo em que estava digitando.
+  document.addEventListener("focusout", () => {
+    if (!pendingDataRender) return;
+    setTimeout(() => {
+      if (!hasActiveFormField()) render({ navigation: false });
+    }, 0);
+  });
 
   /* ---------------------------------------------------------
      VIEWS (HTML)
@@ -1088,7 +1146,6 @@ import { uid, nowISO } from "./seed.js";
           .then(() => createPost(input.value))
           .then(() => {
             navigate("/comunidade");
-            render();
           })
           .catch((err) => toast(err.message, "error"));
       });
@@ -1111,7 +1168,7 @@ import { uid, nowISO } from "./seed.js";
         const input = form.querySelector("input");
         Promise.resolve()
           .then(() => createComment(form.getAttribute("data-post"), input.value))
-          .then(() => render())
+          .then(() => render({ navigation: false }))
           .catch((err) => toast(err.message, "error"));
       });
     });
@@ -1121,7 +1178,7 @@ import { uid, nowISO } from "./seed.js";
         const input = form.querySelector("input");
         Promise.resolve()
           .then(() => createReply(form.getAttribute("data-post"), form.getAttribute("data-comment"), input.value))
-          .then(() => render())
+          .then(() => render({ navigation: false }))
           .catch((err) => toast(err.message, "error"));
       });
     });
@@ -1167,7 +1224,7 @@ import { uid, nowISO } from "./seed.js";
           .then(() => requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey")))
           .then(() => {
             toast("Solicitação de saque enviada!", "success");
-            render();
+            render({ navigation: false });
           })
           .catch((err) => toast(err.message, "error"));
       });
@@ -1196,7 +1253,8 @@ import { uid, nowISO } from "./seed.js";
     if (q) parts.push("q=" + encodeURIComponent(q));
     if (cat) parts.push("cat=" + encodeURIComponent(cat));
     location.hash = hash + parts.join("&");
-    render();
+    // location.hash já dispara 'hashchange' -> render({navigation:true});
+    // nenhuma chamada extra necessária aqui.
   }
 
   function debounce(fn, ms) {
@@ -1227,7 +1285,6 @@ import { uid, nowISO } from "./seed.js";
           await logoutUser();
           toast("Você saiu da sua conta.");
           navigate("/");
-          render();
         });
       }
     });
@@ -1247,18 +1304,22 @@ import { uid, nowISO } from "./seed.js";
   onAuthStateChanged(auth, (user) => {
     firebaseUser = user;
     authReady = true;
-    render();
+    // Mudança de sessão (login/logout) é um evento raro e sempre muda
+    // significativamente o que a tela mostra — trata como navegação.
+    render({ navigation: true });
   });
 
   onDBChange((newDb) => {
     db = newDb;
     dbReady = true;
-    render();
+    // Atualização de dado em segundo plano — nunca força scroll nem
+    // interrompe quem estiver digitando (ver hasActiveFormField acima).
+    render({ navigation: false });
   });
 
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", () => render({ navigation: true }));
   document.addEventListener("DOMContentLoaded", () => {
     bindGlobalUI();
-    render();
+    render({ navigation: true });
   });
 })();
