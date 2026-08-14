@@ -103,6 +103,7 @@ import { getDB, onDBChange } from "./db-sync.js";
       });
     } catch (networkErr) {
       // falha de rede ao chamar o Worker — desfaz a conta criada
+      console.error("Erro de rede ao chamar o Worker (/create-profile):", networkErr);
       await cred.user.delete().catch(() => {});
       throw { message: "Falha de conexão ao criar seu perfil. Tente novamente." };
     }
@@ -110,8 +111,9 @@ import { getDB, onDBChange } from "./db-sync.js";
     if (!resp.ok) {
       // o Worker recusou ou deu erro — desfaz a conta de autenticação
       // pra não deixar um usuário "fantasma" sem perfil no banco
-      await cred.user.delete().catch(() => {});
       const errBody = await resp.json().catch(() => ({}));
+      console.error("Worker recusou criar o perfil:", resp.status, resp.statusText, errBody);
+      await cred.user.delete().catch(() => {});
       throw { message: errBody.message || "Não foi possível criar seu perfil. Tente novamente." };
     }
 
@@ -160,6 +162,7 @@ import { getDB, onDBChange } from "./db-sync.js";
           toast("Bem-vindo(a) de volta!", "success");
           location.href = redirectDestination();
         } catch (err) {
+          console.error("Erro ao fazer login:", err);
           box.textContent = traduzErro(err);
           box.style.display = "block";
         } finally {
@@ -191,6 +194,7 @@ import { getDB, onDBChange } from "./db-sync.js";
           toast("Conta criada com sucesso!", "success");
           location.href = redirectDestination();
         } catch (err) {
+          console.error("Erro ao criar conta:", err);
           box.textContent = traduzErro(err);
           box.style.display = "block";
         } finally {
