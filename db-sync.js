@@ -156,8 +156,36 @@ export function addWithdrawalRequest(withdrawal) {
    Os listeners são recriados sempre que o estado de auth muda,
    pra evitar o problema do onValue() "morrer" depois de um
    permission_denied e nunca mais voltar a escutar sozinho.
+
+   IMPORTANTE: cada um dos 7 nós tem seu próprio listener, e eles
+   resolvem em momentos diferentes — os públicos (categories,
+   projects, posts) costumam responder quase na hora, enquanto
+   users/referrals/commissions/withdrawals dependem do token de
+   auth mais recente e demoram um pouco mais. Se notify() disparasse
+   a cada nó individualmente, o primeiro aviso (ex.: vindo de
+   "categories") já marcaria os dados como "prontos" em quem escuta
+   onDBChange, mesmo com "users" ainda vazio — e isso reintroduz o
+   mesmo problema de redirecionar pro login antes da hora. Por isso
+   agora notify() só é chamado depois que TODOS os 7 nós tiverem
+   respondido (com sucesso OU erro) pelo menos uma vez desde a
+   última mudança de login/logout.
 --------------------------------------------------------- */
+let syncGeneration = 0;
+
 function subscribeAll() {
+  syncGeneration += 1;
+  const gen = syncGeneration;
+  const loadedKeys = new Set();
+  let fullySynced = false;
+
+  function markLoaded(key) {
+    loadedKeys.add(key);
+    if (!fullySynced && loadedKeys.size === TOP_LEVEL_KEYS.length) {
+      fullySynced = true;
+    }
+    if (fullySynced) notify();
+  }
+
   TOP_LEVEL_KEYS.forEach((key) => {
     const nodeRef = ref(rtdb, `${DB_PATH}/${key}`);
 
@@ -168,6 +196,7 @@ function subscribeAll() {
     onValue(
       nodeRef,
       (snapshot) => {
+        if (gen !== syncGeneration) return; // listener de uma geração antiga — ignora
         cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
         if (key === "posts") {
           cache.posts.forEach((p) => {
@@ -177,15 +206,18 @@ function subscribeAll() {
             });
           });
         }
-        notify();
+        markLoaded(key);
       },
       (err) => {
+        if (gen !== syncGeneration) return;
         // Normal enquanto o usuário não está logado: users, referrals,
         // commissions e withdrawals exigem auth != null nas regras.
         // categories/projects/posts são de leitura pública e não devem
         // cair aqui. Quando o usuário logar, subscribeAll() roda de
         // novo via onAuthStateChanged e o listener é recriado.
         console.error(`Erro ao ler ${key} do Firebase:`, err);
+        cache[key] = []; // evita vazar dado de uma sessão anterior
+        markLoaded(key);
       }
     );
   });
