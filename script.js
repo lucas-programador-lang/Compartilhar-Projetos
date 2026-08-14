@@ -13,6 +13,18 @@
    chegam enquanto o usuário está digitando em um campo dentro de
    #app são adiadas até ele sair do campo, para não apagar o que
    está sendo escrito.
+
+   v3: CORREÇÃO — onAuthStateChanged agora reseta dbReady sempre
+   que o estado de login muda. Antes, quando o login acontecia,
+   o render({navigation:true}) disparado pelo onAuthStateChanged
+   podia rodar ANTES do db-sync.js terminar de recarregar os nós
+   protegidos (users, referrals, etc.) para o novo usuário logado
+   — nesse instante db.users ainda estava vazio/desatualizado, o
+   guard de rota concluía (errado) que ninguém estava logado, e
+   redirecionava via location.href para login.html?redirect=... ,
+   cancelando a navegação antes dos dados corretos chegarem.
+   Resetar dbReady força a tela de "Carregando…" nesse intervalo
+   em vez de redirecionar precocemente.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -1304,6 +1316,13 @@ import { uid, nowISO } from "./seed.js";
   onAuthStateChanged(auth, (user) => {
     firebaseUser = user;
     authReady = true;
+    // Ao mudar o estado de login, os nós protegidos (users, referrals,
+    // commissions, withdrawals) são recarregados do zero pelo db-sync.js
+    // — isso é assíncrono. Até esses dados chegarem, "db.users" pode
+    // estar vazio/desatualizado. Resetar dbReady aqui faz o render()
+    // mostrar "Carregando…" nesse intervalo, em vez de concluir (errado)
+    // que o usuário não está logado e redirecionar pro login.
+    dbReady = false;
     // Mudança de sessão (login/logout) é um evento raro e sempre muda
     // significativamente o que a tela mostra — trata como navegação.
     render({ navigation: true });
