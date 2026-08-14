@@ -183,22 +183,22 @@ import { uid, nowISO } from "./seed.js";
   // Salva no perfil (updateUserProfile) para não precisar pedir de novo.
   function showDocumentModal() {
     // Evita abrir dois modais sobrepostos (ex.: double-tap no mobile disparando dois cliques)
-    const existing = qs(".pix-modal-overlay");
+    const existing = qs(".modal-overlay");
     if (existing) existing.remove();
 
     return new Promise((resolve, reject) => {
       const overlay = document.createElement("div");
-      overlay.className = "pix-modal-overlay";
+      overlay.className = "modal-overlay open";
       overlay.innerHTML = `
-        <div class="pix-modal">
-          <h3>Falta só um passo</h3>
-          <p class="muted" style="font-size:13px;margin-bottom:14px">Para gerar seu Pix, precisamos do seu CPF ou CNPJ (exigido pelo meio de pagamento).</p>
+        <div class="modal-box" style="max-width:400px">
+          <button type="button" class="modal-close" id="documentCancelBtn" aria-label="Fechar">×</button>
+          <h2>Falta só um passo</h2>
+          <p class="sub">Para gerar seu Pix, precisamos do seu CPF ou CNPJ (exigido pelo meio de pagamento).</p>
           <form id="documentForm">
             <div class="field"><label>CPF ou CNPJ</label><input name="document" inputmode="numeric" placeholder="Somente números" required></div>
             <div class="field-error" id="documentError" style="display:none"></div>
             <button class="btn btn-primary btn-block" type="submit">Continuar</button>
           </form>
-          <button id="documentCancelBtn" class="btn btn-ghost btn-sm mt-2">Cancelar</button>
         </div>`;
       document.body.appendChild(overlay);
 
@@ -234,15 +234,15 @@ import { uid, nowISO } from "./seed.js";
 
   function showPixModal({ pix }) {
     const overlay = document.createElement("div");
-    overlay.className = "pix-modal-overlay";
+    overlay.className = "modal-overlay open";
     overlay.innerHTML = `
-      <div class="pix-modal">
-        <h3>Pague com Pix para ativar sua assinatura</h3>
+      <div class="modal-box" style="max-width:400px;text-align:center">
+        <button type="button" class="modal-close" id="pixCloseBtn" aria-label="Fechar">×</button>
+        <h2>Pague com Pix para ativar sua assinatura</h2>
         <img src="${pix.image || ""}" alt="QR Code Pix" style="max-width:220px;margin:16px auto;display:block">
         <textarea readonly style="width:100%;font-size:11px;padding:8px" rows="4">${pix.code || ""}</textarea>
         <button id="pixCopyBtn" class="btn btn-primary btn-sm mt-2">Copiar código</button>
         <p class="muted mt-2" style="font-size:13px">Assim que o pagamento for confirmado, sua assinatura ativa automaticamente — não precisa recarregar a página.</p>
-        <button id="pixCloseBtn" class="btn btn-ghost btn-sm mt-2">Fechar</button>
       </div>`;
     document.body.appendChild(overlay);
 
