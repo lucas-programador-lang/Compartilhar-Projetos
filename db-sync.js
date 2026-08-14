@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v4)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v5)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -22,6 +22,21 @@
    assim que o login é confirmado, os nós que exigem auth != null
    (users, referrals, commissions, withdrawals) voltem a ser lidos
    com o token válido.
+
+   v5: CORREÇÃO — onDBChange() chamava cb(cache) imediatamente ao
+   registrar o listener, mesmo com cache ainda vazio (emptyCache()
+   não é null, então a checagem antiga "if (cache) cb(cache)" era
+   sempre verdadeira). Isso fazia quem escuta onDBChange (admin.js)
+   marcar dbReady = true um instante cedo demais, antes do primeiro
+   sync completo dos 7 nós — causando um flash da tela de "acesso
+   negado" antes dos dados reais chegarem. Agora existe um flag
+   `synced`, exportado via isDBSynced(), que só vira true depois que
+   TODOS os 7 nós responderam (sucesso ou erro) pelo menos uma vez
+   na geração de sync atual. onDBChange() só dispara de imediato se
+   `synced` já for true; subscribeAll() reseta `synced` no início de
+   cada nova geração (login/logout), evitando também que o painel
+   mostre por um instante o cache de uma sessão anterior durante um
+   relogin.
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
@@ -32,6 +47,9 @@ const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals",
 
 let cache = emptyCache();
 const listeners = [];
+// true só depois que os 7 nós responderam (sucesso OU erro) pelo menos
+// uma vez desde a última mudança de login/logout. Ver nota v5 acima.
+let synced = false;
 
 function emptyCache() {
   return {
@@ -55,7 +73,10 @@ function notify() {
 
 export function onDBChange(cb) {
   listeners.push(cb);
-  if (cache) cb(cache);
+  // só dispara de imediato se já houve pelo menos um sync completo —
+  // caso contrário quem está ouvindo receberia um cache vazio e
+  // marcaria erroneamente "pronto, mas sem dados" (ver nota v5).
+  if (synced) cb(cache);
   return () => {
     const i = listeners.indexOf(cb);
     if (i >= 0) listeners.splice(i, 1);
@@ -64,6 +85,12 @@ export function onDBChange(cb) {
 
 export function getDB() {
   return cache;
+}
+
+// Permite quem consome o módulo checar o estado de sync sem precisar
+// registrar um listener (ex.: admin.js decidindo mostrar loading).
+export function isDBSynced() {
+  return synced;
 }
 
 /* ---------------------------------------------------------
@@ -168,7 +195,8 @@ export function addWithdrawalRequest(withdrawal) {
    mesmo problema de redirecionar pro login antes da hora. Por isso
    agora notify() só é chamado depois que TODOS os 7 nós tiverem
    respondido (com sucesso OU erro) pelo menos uma vez desde a
-   última mudança de login/logout.
+   última mudança de login/logout. O mesmo critério agora também
+   controla o flag `synced` (ver v5 no cabeçalho do arquivo).
 --------------------------------------------------------- */
 let syncGeneration = 0;
 
@@ -177,11 +205,15 @@ function subscribeAll() {
   const gen = syncGeneration;
   const loadedKeys = new Set();
   let fullySynced = false;
+  // nova geração (login/logout) = precisa sincronizar tudo de novo
+  // antes de considerar o cache confiável outra vez.
+  synced = false;
 
   function markLoaded(key) {
     loadedKeys.add(key);
     if (!fullySynced && loadedKeys.size === TOP_LEVEL_KEYS.length) {
       fullySynced = true;
+      synced = true; // libera onDBChange()/isDBSynced() só a partir daqui
     }
     if (fullySynced) notify();
   }
