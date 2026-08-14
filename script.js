@@ -6,8 +6,7 @@
 
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getDB, saveDB, onDBChange } from "./db-sync.js";
-import { uid, nowISO } from "./seed.js";
+import { getDB, onDBChange, updateUserProfile, addProject, addPost, addComment, addReply, addReferral, addWithdrawalRequest } from "./db-sync.js";import { uid, nowISO } from "./seed.js";
 
 (function () {
   "use strict";
@@ -160,83 +159,75 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function publishProject(data) {
-    const user = currentUser();
-    if (!user) throw new Error("Você precisa entrar na sua conta.");
-    if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
-    if (!data.title || data.title.trim().length < 3) throw new Error("Informe um título para o projeto.");
-    if (!data.description || data.description.trim().length < 10) throw new Error("Descreva melhor o seu projeto.");
-    if (!data.categoryId) throw new Error("Selecione uma categoria.");
-    if (!data.link || !isValidUrl(data.link)) throw new Error("Informe um link válido (começando com http:// ou https://).");
-    if (!data.ownerName) throw new Error("Informe o nome do responsável.");
-    if (!data.contact) throw new Error("Informe uma forma de contato.");
+  const user = currentUser();
+  if (!user) throw new Error("Você precisa entrar na sua conta.");
+  if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
+  if (!data.title || data.title.trim().length < 3) throw new Error("Informe um título para o projeto.");
+  if (!data.description || data.description.trim().length < 10) throw new Error("Descreva melhor o seu projeto.");
+  if (!data.categoryId) throw new Error("Selecione uma categoria.");
+  if (!data.link || !isValidUrl(data.link)) throw new Error("Informe um link válido (começando com http:// ou https://).");
+  if (!data.ownerName) throw new Error("Informe o nome do responsável.");
+  if (!data.contact) throw new Error("Informe uma forma de contato.");
 
-    const project = {
-      id: uid("pj"),
-      title: sanitizeText(data.title.trim()),
-      description: sanitizeText(data.description.trim()),
-      images: (data.images || []).slice(0, 6),
-      categoryId: data.categoryId,
-      link: data.link.trim(),
-      ownerName: sanitizeText(data.ownerName.trim()),
-      contact: sanitizeText(data.contact.trim()),
-      ownerId: user.id,
-      createdAt: nowISO(),
-      status: "published",
-    };
-    db.projects.unshift(project);
-    saveDB(db);
-    return project;
-  }
+  const project = {
+    id: uid("pj"),
+    title: sanitizeText(data.title.trim()),
+    description: sanitizeText(data.description.trim()),
+    images: (data.images || []).slice(0, 6),
+    categoryId: data.categoryId,
+    link: data.link.trim(),
+    ownerName: sanitizeText(data.ownerName.trim()),
+    contact: sanitizeText(data.contact.trim()),
+    ownerId: user.id,
+    createdAt: nowISO(),
+    status: "published",
+  };
+  return addProject(project); // agora é assíncrono — ver item 3 abaixo
+}
 
-  function createPost(content) {
-    const user = currentUser();
-    if (!user) throw new Error("Entre na sua conta para publicar.");
-    if (!content || content.trim().length < 2) throw new Error("Escreva algo antes de publicar.");
-    const post = { id: uid("post"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), comments: [] };
-    db.posts.unshift(post);
-    saveDB(db);
-    return post;
-  }
+ function createPost(content) {
+  const user = currentUser();
+  if (!user) throw new Error("Entre na sua conta para publicar.");
+  if (!content || content.trim().length < 2) throw new Error("Escreva algo antes de publicar.");
+  const post = { id: uid("post"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), comments: [] };
+  return addPost(post);
+}
 
-  function createComment(postId, content) {
-    const user = currentUser();
-    if (!user) throw new Error("Entre na sua conta para comentar.");
-    if (!content || !content.trim()) throw new Error("Escreva um comentário.");
-    const post = db.posts.find((p) => p.id === postId);
-    if (!post) throw new Error("Publicação não encontrada.");
-    post.comments.push({ id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] });
-    saveDB(db);
-  }
+function createComment(postId, content) {
+  const user = currentUser();
+  if (!user) throw new Error("Entre na sua conta para comentar.");
+  if (!content || !content.trim()) throw new Error("Escreva um comentário.");
+  const comment = { id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] };
+  return addComment(postId, comment);
+}
 
-  function createReply(postId, commentId, content) {
-    const user = currentUser();
-    if (!user) throw new Error("Entre na sua conta para responder.");
-    if (!content || !content.trim()) throw new Error("Escreva uma resposta.");
-    const post = db.posts.find((p) => p.id === postId);
-    const comment = post && post.comments.find((c) => c.id === commentId);
-    if (!comment) throw new Error("Comentário não encontrado.");
-    comment.replies.push({ id: uid("rp"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO() });
-    saveDB(db);
-  }
+function createReply(postId, commentId, content) {
+  const user = currentUser();
+  if (!user) throw new Error("Entre na sua conta para responder.");
+  if (!content || !content.trim()) throw new Error("Escreva uma resposta.");
+  const reply = { id: uid("rp"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO() };
+  return createReplyHelper(postId, commentId, reply);
+}
+function createReplyHelper(postId, commentId, reply) {
+  return addReply(postId, commentId, reply);
+}
 
-  function requestWithdrawal(amount, pixKey) {
-    const user = currentUser();
-    if (!user) throw new Error("Entre na sua conta.");
-    const available = availableCommission(user.id);
-    if (!pixKey || !pixKey.trim()) throw new Error("Informe sua chave Pix para receber o saque.");
-    if (amount < MIN_WITHDRAW) throw new Error(`O saque mínimo é ${fmtBRL(MIN_WITHDRAW)}.`);
-    if (amount > available) throw new Error("Valor solicitado maior que o saldo disponível.");
-    db.withdrawals.push({
-      id: uid("wd"),
-      userId: user.id,
-      amount,
-      pixKey: sanitizeText(pixKey.trim()),
-      status: "pending",
-      createdAt: nowISO(),
-    });
-    saveDB(db);
-  }
-
+ function requestWithdrawal(amount, pixKey) {
+  const user = currentUser();
+  if (!user) throw new Error("Entre na sua conta.");
+  const available = availableCommission(user.id);
+  if (!pixKey || !pixKey.trim()) throw new Error("Informe sua chave Pix para receber o saque.");
+  if (amount < MIN_WITHDRAW) throw new Error(`O saque mínimo é ${fmtBRL(MIN_WITHDRAW)}.`);
+  if (amount > available) throw new Error("Valor solicitado maior que o saldo disponível.");
+  return addWithdrawalRequest({
+    id: uid("wd"),
+    userId: user.id,
+    amount,
+    pixKey: sanitizeText(pixKey.trim()),
+    status: "pending",
+    createdAt: nowISO(),
+  });
+}
   function availableCommission(userId) {
     const earned = db.commissions
       .filter((c) => c.referrerId === userId && (c.status === "available" || c.status === "pending"))
@@ -890,27 +881,27 @@ import { uid, nowISO } from "./seed.js";
           renderUploadPreview();
         });
       }
-      publishForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const fd = new FormData(publishForm);
-        try {
-          const project = publishProject({
-            title: fd.get("title"),
-            description: fd.get("description"),
-            categoryId: fd.get("categoryId"),
-            link: fd.get("link"),
-            ownerName: fd.get("ownerName"),
-            contact: fd.get("contact"),
-            images: pendingImages,
-          });
-          toast("Projeto publicado com sucesso!", "success");
-          navigate("/projeto/" + project.id);
-        } catch (err) {
-          qs("#publishError").textContent = err.message;
-          qs("#publishError").style.display = "block";
-        }
-      });
-    }
+     publishForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const fd = new FormData(publishForm);
+  publishProject({
+    title: fd.get("title"),
+    description: fd.get("description"),
+    categoryId: fd.get("categoryId"),
+    link: fd.get("link"),
+    ownerName: fd.get("ownerName"),
+    contact: fd.get("contact"),
+    images: pendingImages,
+  })
+    .then((project) => {
+      toast("Projeto publicado com sucesso!", "success");
+      navigate("/projeto/" + project.id);
+    })
+    .catch((err) => {
+      qs("#publishError").textContent = err.message;
+      qs("#publishError").style.display = "block";
+    });
+});
 
     const postSubmit = qs("#postSubmit");
     if (postSubmit) {
@@ -966,16 +957,17 @@ import { uid, nowISO } from "./seed.js";
     const profileForm = qs("#profileForm");
     if (profileForm) {
       profileForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const fd = new FormData(profileForm);
-        const user = currentUser();
-        user.name = fd.get("name").trim() || user.name;
-        user.bio = sanitizeText(fd.get("bio") || "");
-        saveDB(db);
-        toast("Perfil atualizado!", "success");
-        render();
-      });
-    }
+  e.preventDefault();
+  const fd = new FormData(profileForm);
+  updateUserProfile(currentUser().id, {
+    name: fd.get("name").trim(),
+    bio: sanitizeText(fd.get("bio") || ""),
+  })
+    .then(() => {
+      toast("Perfil atualizado!", "success");
+    })
+    .catch((err) => toast(err.message, "error"));
+});
 
     const copyBtn = qs("#copyRefLink");
     if (copyBtn) {
