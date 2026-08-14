@@ -24,7 +24,7 @@ import { uid, nowISO } from "./seed.js";
   "use strict";
 
   // Troque pela URL real do seu Worker publicado na Cloudflare
-  const WORKER_URL = "https://SEU-WORKER.SEU-USUARIO.workers.dev";
+  const WORKER_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
   const PLANS = {
     p4: { id: "p4", name: "Plano 4 Dias", price: 10, days: 4 },
