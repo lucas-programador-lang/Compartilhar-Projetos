@@ -1,15 +1,23 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS
-   Painel administrativo. Agora sincronizado com o Firebase
-   Realtime Database (mesmo nó usado por script.js).
+   COMPARTILHAR PROJETOS — ADMIN.JS (v2)
+   Painel administrativo. Leitura em tempo real via db-sync.js
+   (Firebase Realtime Database). Toda ESCRITA administrativa
+   passa pelo Worker (/admin/*), que valida a role no servidor
+   com a Service Account — o cliente não tem mais permissão de
+   escrita direta nesses campos (users/subscription, users/role,
+   commissions, etc.), reforçado pelas Regras do Firebase.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getDB, saveDB, onDBChange } from "./db-sync.js";
+import { getDB, onDBChange } from "./db-sync.js";
 
 (function () {
   "use strict";
+
+  // TODO: confirme que esta é a mesma URL base já usada em script.js
+  // para /create-pix e /create-profile (não veio nos arquivos revisados).
+  const WORKER_BASE_URL = "https://SEU-WORKER.workers.dev";
 
   const PLAN_NAMES = { p4: "Plano 4 Dias", p7: "Plano 7 Dias" };
   const MIN_WITHDRAW = 10;
@@ -127,10 +135,52 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
+     WORKER — chamadas administrativas autenticadas
+  --------------------------------------------------------- */
+  async function adminFetch(path, body) {
+    if (!firebaseUser) throw new Error("Sessão expirada. Faça login novamente.");
+    const idToken = await firebaseUser.getIdToken();
+    const res = await fetch(WORKER_BASE_URL + path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + idToken,
+      },
+      body: JSON.stringify(body || {}),
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* corpo vazio ou não-JSON */
+    }
+    if (!res.ok) {
+      throw new Error((data && data.message) || `Falha na requisição (${res.status})`);
+    }
+    return data;
+  }
+
+  // Evita cliques duplos disparando a mesma escrita duas vezes enquanto
+  // a primeira ainda está em voo.
+  async function withButtonLock(btn, fn) {
+    if (btn.dataset.busy === "1") return;
+    btn.dataset.busy = "1";
+    const prevDisabled = btn.disabled;
+    btn.disabled = true;
+    try {
+      await fn();
+    } catch (err) {
+      toast(err.message || "Falha ao processar solicitação.", "error");
+    } finally {
+      btn.dataset.busy = "";
+      btn.disabled = prevDisabled;
+    }
+  }
+
+  /* ---------------------------------------------------------
      GATE — só administradores acessam
   --------------------------------------------------------- */
   function boot() {
-    // ainda não sabemos se está logado / dados ainda não chegaram
     if (!authReady || !dbReady) return;
 
     const user = currentUser();
@@ -148,7 +198,6 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
 
   function bindNav() {
     qsa("#adminNav button").forEach((btn) => {
-      // evita registrar o listener mais de uma vez a cada boot()
       if (btn.dataset.bound) return;
       btn.dataset.bound = "1";
       btn.addEventListener("click", () => {
@@ -253,63 +302,67 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
         .join("") || `<tr><td colspan="6" class="muted text-center">Nenhum usuário encontrado.</td></tr>`;
 
     qsa("[data-suspend]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        const u = userById(btn.getAttribute("data-suspend"));
-        u.suspended = !u.suspended;
-        saveDB(db);
-        toast(u.suspended ? "Usuário suspenso." : "Usuário reativado.", "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const u = userById(btn.getAttribute("data-suspend"));
+          const result = await adminFetch("/admin/toggle-suspend", { targetUserId: u.id });
+          toast(result.suspended ? "Usuário suspenso." : "Usuário reativado.", "success");
+          // db será atualizado pelo listener em tempo real (onDBChange);
+          // renderAll() aqui só evita a UI parada até isso acontecer.
+          renderAll();
+        })
+      )
     );
     qsa("[data-promote]").forEach((btn) =>
-      btn.addEventListener("click", async () => {
-        const u = userById(btn.getAttribute("data-promote"));
-        const ok = await confirmAction(`Tornar "${u.name}" um administrador? Isto dá acesso total ao painel admin.`, {
-          title: "Promover a admin",
-          neutral: true,
-          confirmLabel: "Sim, promover",
-        });
-        if (!ok) return;
-        u.role = "admin";
-        u.isAdmin = true;
-        saveDB(db);
-        toast(`${u.name} agora é administrador.`, "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const u = userById(btn.getAttribute("data-promote"));
+          const ok = await confirmAction(`Tornar "${u.name}" um administrador? Isto dá acesso total ao painel admin.`, {
+            title: "Promover a admin",
+            neutral: true,
+            confirmLabel: "Sim, promover",
+          });
+          if (!ok) return;
+          await adminFetch("/admin/set-role", { targetUserId: u.id, role: "admin" });
+          toast(`${u.name} agora é administrador.`, "success");
+          renderAll();
+        })
+      )
     );
     qsa("[data-demote]").forEach((btn) =>
-      btn.addEventListener("click", async () => {
-        const u = userById(btn.getAttribute("data-demote"));
-        if (u.id === currentUser().id) {
-          toast("Você não pode remover seu próprio acesso de administrador.", "error");
-          return;
-        }
-        const ok = await confirmAction(`Remover o acesso de administrador de "${u.name}"?`, {
-          title: "Remover admin",
-          neutral: true,
-          confirmLabel: "Sim, remover",
-        });
-        if (!ok) return;
-        u.role = "user";
-        u.isAdmin = false;
-        saveDB(db);
-        toast(`Acesso de administrador removido de ${u.name}.`, "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const u = userById(btn.getAttribute("data-demote"));
+          if (u.id === currentUser().id) {
+            toast("Você não pode remover seu próprio acesso de administrador.", "error");
+            return;
+          }
+          const ok = await confirmAction(`Remover o acesso de administrador de "${u.name}"?`, {
+            title: "Remover admin",
+            neutral: true,
+            confirmLabel: "Sim, remover",
+          });
+          if (!ok) return;
+          await adminFetch("/admin/set-role", { targetUserId: u.id, role: "user" });
+          toast(`Acesso de administrador removido de ${u.name}.`, "success");
+          renderAll();
+        })
+      )
     );
     qsa("[data-deluser]").forEach((btn) =>
-      btn.addEventListener("click", async () => {
-        const ok = await confirmAction(
-          "Excluir este usuário permanentemente? Isto remove o perfil do banco de dados — a conta de login (Firebase Authentication) deve ser removida separadamente pelo console do Firebase.",
-          { title: "Excluir usuário" }
-        );
-        if (!ok) return;
-        const id = btn.getAttribute("data-deluser");
-        db.users = db.users.filter((u) => u.id !== id);
-        saveDB(db);
-        toast("Usuário excluído do banco de dados.", "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const ok = await confirmAction(
+            "Excluir este usuário permanentemente? Isto remove o perfil do banco de dados — a conta de login (Firebase Authentication) deve ser removida separadamente pelo console do Firebase.",
+            { title: "Excluir usuário" }
+          );
+          if (!ok) return;
+          const id = btn.getAttribute("data-deluser");
+          await adminFetch("/admin/delete-user", { targetUserId: id });
+          toast("Usuário excluído do banco de dados.", "success");
+          renderAll();
+        })
+      )
     );
   }
 
@@ -358,14 +411,15 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
         .join("") || `<tr><td colspan="5" class="muted text-center">Nenhum projeto encontrado.</td></tr>`;
 
     qsa("[data-delproj]").forEach((btn) =>
-      btn.addEventListener("click", async () => {
-        const ok = await confirmAction("Excluir este projeto? Ele deixará de aparecer para todos os usuários.", { title: "Excluir projeto" });
-        if (!ok) return;
-        db.projects = db.projects.filter((p) => p.id !== btn.getAttribute("data-delproj"));
-        saveDB(db);
-        toast("Projeto excluído.", "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const ok = await confirmAction("Excluir este projeto? Ele deixará de aparecer para todos os usuários.", { title: "Excluir projeto" });
+          if (!ok) return;
+          await adminFetch("/admin/delete-project", { projectId: btn.getAttribute("data-delproj") });
+          toast("Projeto excluído.", "success");
+          renderAll();
+        })
+      )
     );
   }
 
@@ -381,18 +435,19 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
       .join("");
 
     qsa("[data-delcat]").forEach((btn) =>
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-delcat");
-        const inUse = db.projects.some((p) => p.categoryId === id);
-        if (inUse) {
-          const ok = await confirmAction("Existem projetos usando essa categoria. Remover mesmo assim?", { title: "Remover categoria" });
-          if (!ok) return;
-        }
-        db.categories = db.categories.filter((c) => c.id !== id);
-        saveDB(db);
-        toast("Categoria removida.", "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const id = btn.getAttribute("data-delcat");
+          const inUse = db.projects.some((p) => p.categoryId === id);
+          if (inUse) {
+            const ok = await confirmAction("Existem projetos usando essa categoria. Remover mesmo assim?", { title: "Remover categoria" });
+            if (!ok) return;
+          }
+          await adminFetch("/admin/delete-category", { categoryId: id });
+          toast("Categoria removida.", "success");
+          renderAll();
+        })
+      )
     );
   }
 
@@ -415,14 +470,15 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
         .join("") || `<tr><td colspan="5" class="muted text-center">Nenhuma publicação na comunidade.</td></tr>`;
 
     qsa("[data-delpost]").forEach((btn) =>
-      btn.addEventListener("click", async () => {
-        const ok = await confirmAction("Excluir esta publicação e todos os comentários?", { title: "Excluir publicação" });
-        if (!ok) return;
-        db.posts = db.posts.filter((p) => p.id !== btn.getAttribute("data-delpost"));
-        saveDB(db);
-        toast("Publicação removida.", "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const ok = await confirmAction("Excluir esta publicação e todos os comentários?", { title: "Excluir publicação" });
+          if (!ok) return;
+          await adminFetch("/admin/delete-post", { postId: btn.getAttribute("data-delpost") });
+          toast("Publicação removida.", "success");
+          renderAll();
+        })
+      )
     );
   }
 
@@ -478,31 +534,22 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
         .join("") || `<tr><td colspan="6" class="muted text-center">Nenhuma solicitação de saque (mínimo ${fmtBRL(MIN_WITHDRAW)}).</td></tr>`;
 
     qsa("[data-approve]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        const w = db.withdrawals.find((w) => w.id === btn.getAttribute("data-approve"));
-        w.status = "approved";
-        let remaining = w.amount;
-        db.commissions
-          .filter((c) => c.referrerId === w.userId && c.status === "available")
-          .forEach((c) => {
-            if (remaining > 0) {
-              c.status = "paid";
-              remaining -= c.amount;
-            }
-          });
-        saveDB(db);
-        toast("Saque aprovado.", "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          await adminFetch("/admin/withdrawal-decision", { withdrawalId: btn.getAttribute("data-approve"), decision: "approved" });
+          toast("Saque aprovado.", "success");
+          renderAll();
+        })
+      )
     );
     qsa("[data-reject]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        const w = db.withdrawals.find((w) => w.id === btn.getAttribute("data-reject"));
-        w.status = "rejected";
-        saveDB(db);
-        toast("Saque recusado.", "success");
-        renderAll();
-      })
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          await adminFetch("/admin/withdrawal-decision", { withdrawalId: btn.getAttribute("data-reject"), decision: "rejected" });
+          toast("Saque recusado.", "success");
+          renderAll();
+        })
+      )
     );
   }
 
@@ -525,18 +572,20 @@ import { getDB, saveDB, onDBChange } from "./db-sync.js";
       catForm.dataset.bound = "1";
       catForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        const input = qs("#newCatName");
-        const name = input.value.trim();
-        if (!name) return;
-        if (db.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-          toast("Essa categoria já existe.", "error");
-          return;
-        }
-        db.categories.push({ id: "c_" + Math.random().toString(36).slice(2, 9), name });
-        saveDB(db);
-        input.value = "";
-        toast("Categoria adicionada.", "success");
-        renderAll();
+        const submitBtn = catForm.querySelector('button[type="submit"]') || catForm;
+        withButtonLock(submitBtn, async () => {
+          const input = qs("#newCatName");
+          const name = input.value.trim();
+          if (!name) return;
+          if (db.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+            toast("Essa categoria já existe.", "error");
+            return;
+          }
+          await adminFetch("/admin/create-category", { name });
+          input.value = "";
+          toast("Categoria adicionada.", "success");
+          renderAll();
+        });
       });
     }
   }
