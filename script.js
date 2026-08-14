@@ -139,6 +139,45 @@ import { uid, nowISO } from "./seed.js";
   }
 
   /* ---------------------------------------------------------
+     GERAÇÃO DE QR CODE (no navegador)
+     A VizzionPay não garante mais o campo pix.image (é opcional)
+     e pix.base64 está deprecated (sempre retorna vazio agora).
+     O único dado garantido é pix.code (o código copia-e-cola),
+     então geramos o QR Code no próprio navegador a partir dele,
+     usando a lib qrcodejs carregada via CDN.
+  --------------------------------------------------------- */
+  let qrCodeLibPromise = null;
+  function ensureQRCodeLib() {
+    if (window.QRCode) return Promise.resolve();
+    if (qrCodeLibPromise) return qrCodeLibPromise;
+    qrCodeLibPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Falha ao carregar gerador de QR Code"));
+      document.head.appendChild(script);
+    });
+    return qrCodeLibPromise;
+  }
+  function renderQRCode(container, text) {
+    container.innerHTML = "";
+    ensureQRCodeLib()
+      .then(() => {
+        // eslint-disable-next-line no-undef
+        new QRCode(container, {
+          text: text || "",
+          width: 220,
+          height: 220,
+          correctLevel: window.QRCode.CorrectLevel.M,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        container.innerHTML = `<span class="muted" style="font-size:12px;display:block;padding:12px">Não foi possível gerar o QR Code. Use o código copia e cola abaixo.</span>`;
+      });
+  }
+
+  /* ---------------------------------------------------------
      PAGAMENTO — Pix via VizzionPay (processado pelo Worker)
   --------------------------------------------------------- */
   async function startPixPayment(planId, documentOverride) {
@@ -239,12 +278,16 @@ import { uid, nowISO } from "./seed.js";
       <div class="modal-box" style="max-width:400px;text-align:center">
         <button type="button" class="modal-close" id="pixCloseBtn" aria-label="Fechar">×</button>
         <h2>Pague com Pix para ativar sua assinatura</h2>
-        <img src="${pix.image || ""}" alt="QR Code Pix" style="max-width:220px;margin:16px auto;display:block">
+        <div id="pixQrCode" class="pix-qr" style="width:220px;height:220px;margin:16px auto;display:flex;align-items:center;justify-content:center">
+          <span class="muted" style="font-size:12px">Gerando QR Code…</span>
+        </div>
         <textarea readonly style="width:100%;font-size:11px;padding:8px" rows="4">${pix.code || ""}</textarea>
         <button id="pixCopyBtn" class="btn btn-primary btn-sm mt-2">Copiar código</button>
         <p class="muted mt-2" style="font-size:13px">Assim que o pagamento for confirmado, sua assinatura ativa automaticamente — não precisa recarregar a página.</p>
       </div>`;
     document.body.appendChild(overlay);
+
+    renderQRCode(qs("#pixQrCode", overlay), pix.code);
 
     let handled = false;
     let stopWatching = null;
