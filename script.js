@@ -246,24 +246,33 @@ import { uid, nowISO } from "./seed.js";
       </div>`;
     document.body.appendChild(overlay);
 
+    let handled = false;
+    let stopWatching = null;
+    const unsubscribe = onDBChange(() => {
+      const user = currentUser();
+      if (user && isSubscriptionActive(user) && !handled) {
+        handled = true;
+        overlay.remove();
+        toast("Pagamento confirmado — assinatura ativa!", "success");
+        // onDBChange pode disparar este callback de forma síncrona (se a assinatura
+        // já estiver ativa no cache local), antes de "stopWatching" terminar de ser
+        // atribuído. Adiar para o próximo microtask garante que a variável já exista.
+        Promise.resolve().then(() => {
+          if (typeof stopWatching === "function") stopWatching();
+        });
+        render();
+      }
+    });
+    stopWatching = unsubscribe;
+
     qs("#pixCopyBtn", overlay).addEventListener("click", () => {
       navigator.clipboard.writeText(pix.code || "");
       toast("Código copiado!", "success");
     });
     qs("#pixCloseBtn", overlay).addEventListener("click", () => {
       overlay.remove();
-      stopWatching();
-    });
-
-    // Fecha sozinho e mostra sucesso assim que a assinatura ficar ativa em tempo real
-    const stopWatching = onDBChange(() => {
-      const user = currentUser();
-      if (user && isSubscriptionActive(user)) {
-        overlay.remove();
-        toast("Pagamento confirmado — assinatura ativa!", "success");
-        stopWatching();
-        render();
-      }
+      handled = true;
+      if (typeof stopWatching === "function") stopWatching();
     });
   }
 
