@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v3)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v4)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -12,14 +12,25 @@
    têm suas próprias permissões. Por isso agora existe um listener
    por nó de primeiro nível, e o resultado é combinado no mesmo
    objeto `cache` de sempre, pra não quebrar o resto do app.
+
+   v4: CORREÇÃO IMPORTANTE — quando um listener onValue() recebe
+   um erro de permissão (ex.: usuário ainda não logado tentando
+   ler "users"), o Firebase cancela esse listener PARA SEMPRE.
+   Ele não volta a escutar sozinho quando o usuário loga depois.
+   Por isso agora os listeners são recriados sempre que o estado
+   de autenticação muda (onAuthStateChanged), garantindo que,
+   assim que o login é confirmado, os nós que exigem auth != null
+   (users, referrals, commissions, withdrawals) voltem a ser lidos
+   com o token válido.
    ========================================================= */
-import { rtdb } from "./firebase-config.js";
-import { ref, set, update, push, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import { rtdb, auth } from "./firebase-config.js";
+import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const DB_PATH = "database";
 const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals"];
 
-let cache = null;
+let cache = emptyCache();
 const listeners = [];
 
 function emptyCache() {
@@ -141,30 +152,52 @@ export function addWithdrawalRequest(withdrawal) {
    nível, porque o nó raiz "database" não pode ser lido de uma
    vez só (".read": false nas regras). Cada nó filho tem sua
    própria regra de leitura.
---------------------------------------------------------- */
-if (!cache) cache = emptyCache();
 
-TOP_LEVEL_KEYS.forEach((key) => {
-  onValue(
-    ref(rtdb, `${DB_PATH}/${key}`),
-    (snapshot) => {
-      cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
-      if (key === "posts") {
-        cache.posts.forEach((p) => {
-          p.comments = clean(p.comments);
-          p.comments.forEach((c) => {
-            c.replies = clean(c.replies);
+   Os listeners são recriados sempre que o estado de auth muda,
+   pra evitar o problema do onValue() "morrer" depois de um
+   permission_denied e nunca mais voltar a escutar sozinho.
+--------------------------------------------------------- */
+function subscribeAll() {
+  TOP_LEVEL_KEYS.forEach((key) => {
+    const nodeRef = ref(rtdb, `${DB_PATH}/${key}`);
+
+    // remove qualquer listener anterior nesse nó antes de recriar,
+    // pra não acumular listeners duplicados a cada login/logout
+    off(nodeRef);
+
+    onValue(
+      nodeRef,
+      (snapshot) => {
+        cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
+        if (key === "posts") {
+          cache.posts.forEach((p) => {
+            p.comments = clean(p.comments);
+            p.comments.forEach((c) => {
+              c.replies = clean(c.replies);
+            });
           });
-        });
+        }
+        notify();
+      },
+      (err) => {
+        // Normal enquanto o usuário não está logado: users, referrals,
+        // commissions e withdrawals exigem auth != null nas regras.
+        // categories/projects/posts são de leitura pública e não devem
+        // cair aqui. Quando o usuário logar, subscribeAll() roda de
+        // novo via onAuthStateChanged e o listener é recriado.
+        console.error(`Erro ao ler ${key} do Firebase:`, err);
       }
-      notify();
-    },
-    (err) => {
-      // Normal enquanto o usuário não está logado: users, referrals,
-      // commissions e withdrawals exigem auth != null nas regras.
-      // categories/projects/posts são de leitura pública e não devem
-      // cair aqui.
-      console.error(`Erro ao ler ${key} do Firebase:`, err);
-    }
-  );
+    );
+  });
+}
+
+// primeira assinatura (cobre o caso de página já carregar sem auth,
+// ex.: categories/projects/posts, que são públicos)
+subscribeAll();
+
+// reconecta TODOS os listeners sempre que o login muda — é isso que
+// garante que "users" (e os outros nós que exigem auth) voltem a
+// ser lidos assim que o Firebase confirmar o login do usuário
+onAuthStateChanged(auth, () => {
+  subscribeAll();
 });
