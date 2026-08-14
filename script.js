@@ -176,6 +176,17 @@ import { uid, nowISO } from "./seed.js";
   function containsLink(str) {
     return LINK_PATTERN.test(str || "");
   }
+  // Traduz erros crus do SDK do Firebase (ex.: quando a validação do
+  // servidor barra algo que passou pelo filtro do cliente, como um link
+  // com um padrão não coberto pelo regex local) em mensagem legível.
+  // Sem isso, o usuário veria "PERMISSION_DENIED" ou similar no toast.
+  function friendlyError(err, fallbackMsg) {
+    const raw = (err && err.message) || String(err || "");
+    if (/permission_denied/i.test(raw) || /PERMISSION_DENIED/.test(raw)) {
+      return fallbackMsg || "Não foi possível concluir a ação. Verifique se o conteúdo não contém links.";
+    }
+    return raw || fallbackMsg;
+  }
 
   /* ---------------------------------------------------------
      GERAÇÃO DE QR CODE (no navegador)
@@ -1202,7 +1213,7 @@ import { uid, nowISO } from "./seed.js";
           .then(() => {
             navigate("/comunidade");
           })
-          .catch((err) => toast(err.message, "error"));
+          .catch((err) => toast(friendlyError(err, "Não é permitido incluir links nas publicações da comunidade."), "error"));
       });
     }
     qsa(".comment-toggle").forEach((btn) => {
@@ -1224,7 +1235,7 @@ import { uid, nowISO } from "./seed.js";
         Promise.resolve()
           .then(() => createComment(form.getAttribute("data-post"), input.value))
           .then(() => render({ navigation: false }))
-          .catch((err) => toast(err.message, "error"));
+          .catch((err) => toast(friendlyError(err, "Não é permitido incluir links nos comentários."), "error"));
       });
     });
     qsa(".comment-reply-form:not(.comment-new-form)").forEach((form) => {
@@ -1234,7 +1245,7 @@ import { uid, nowISO } from "./seed.js";
         Promise.resolve()
           .then(() => createReply(form.getAttribute("data-post"), form.getAttribute("data-comment"), input.value))
           .then(() => render({ navigation: false }))
-          .catch((err) => toast(err.message, "error"));
+          .catch((err) => toast(friendlyError(err, "Não é permitido incluir links nas respostas."), "error"));
       });
     });
 
