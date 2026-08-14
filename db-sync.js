@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v5)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v6)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -37,6 +37,23 @@
    cada nova geração (login/logout), evitando também que o painel
    mostre por um instante o cache de uma sessão anterior durante um
    relogin.
+
+   v6: CORREÇÃO — addComment()/addReply() escreviam usando o ÍNDICE
+   do array local (cache.posts.findIndex(...)) como se fosse a chave
+   real do nó no Firebase. Como posts são criados com push() (chaves
+   tipo "-NabcXYZ", não índices sequenciais), isso fazia o comentário
+   ser gravado em um caminho totalmente novo e desconectado do post
+   real (ex.: "posts/1/comments/0" em vez de dentro do post
+   verdadeiro). Esse nó novo não tinha authorId/content/createdAt,
+   então voltava para a tela como um "post fantasma" renderizado como
+   "Usuário removido" / "Invalid Date". Correção: o cache agora guarda
+   a chave real do Firebase de cada post/comentário/resposta em
+   "_fbKey" (via cleanKeyed, que substitui clean() só para "posts"),
+   e addComment()/addReply() usam essa chave real — nunca o índice do
+   array — para saber onde escrever. De brinde, comments/replies
+   passaram a usar push() em vez de "length" como próximo índice,
+   eliminando a race condition de duas escritas simultâneas colidirem
+   no mesmo índice.
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
@@ -65,6 +82,23 @@ function emptyCache() {
 
 function clean(val) {
   return Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {}).filter(Boolean);
+}
+
+// Como clean(), mas preserva a chave real do Firebase de cada item em
+// "_fbKey" — necessário para posts (e comments/replies dentro deles),
+// já que são criados com push() e não têm índice sequencial confiável.
+// Sem isso, escrever de volta usando a posição no array aponta para o
+// nó errado no banco (ver nota v6 acima).
+function cleanKeyed(val) {
+  if (val == null) return [];
+  if (Array.isArray(val)) {
+    return val
+      .map((v, i) => (v == null ? null : { ...v, _fbKey: String(i) }))
+      .filter(Boolean);
+  }
+  return Object.entries(val)
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => ({ ...v, _fbKey: k }));
 }
 
 function notify() {
@@ -125,6 +159,10 @@ export function addProject(project) {
 
 /* ---------------------------------------------------------
    COMUNIDADE — posts, comentários, respostas
+
+   addComment()/addReply() usam a chave real do Firebase
+   (post._fbKey / comment._fbKey), nunca o índice do array local —
+   ver nota v6 no cabeçalho do arquivo para o porquê disso importar.
 --------------------------------------------------------- */
 export function addPost(post) {
   const newRef = push(ref(rtdb, `${DB_PATH}/posts`));
@@ -132,26 +170,19 @@ export function addPost(post) {
 }
 
 export function addComment(postId, comment) {
-  const idx = cache.posts.findIndex((p) => p && p.id === postId);
-  if (idx === -1) throw new Error("Publicação não encontrada: " + postId);
-  const comments = cache.posts[idx].comments || [];
-  const newIndex = comments.length;
-  return update(ref(rtdb), {
-    [`${DB_PATH}/posts/${idx}/comments/${newIndex}`]: comment,
-  }).then(() => comment);
+  const post = cache.posts.find((p) => p && p.id === postId);
+  if (!post || !post._fbKey) throw new Error("Publicação não encontrada: " + postId);
+  const newRef = push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments`));
+  return set(newRef, comment).then(() => comment);
 }
 
 export function addReply(postId, commentId, reply) {
-  const postIdx = cache.posts.findIndex((p) => p && p.id === postId);
-  if (postIdx === -1) throw new Error("Publicação não encontrada: " + postId);
-  const comments = cache.posts[postIdx].comments || [];
-  const commentIdx = comments.findIndex((c) => c && c.id === commentId);
-  if (commentIdx === -1) throw new Error("Comentário não encontrado: " + commentId);
-  const replies = comments[commentIdx].replies || [];
-  const newIndex = replies.length;
-  return update(ref(rtdb), {
-    [`${DB_PATH}/posts/${postIdx}/comments/${commentIdx}/replies/${newIndex}`]: reply,
-  }).then(() => reply);
+  const post = cache.posts.find((p) => p && p.id === postId);
+  if (!post || !post._fbKey) throw new Error("Publicação não encontrada: " + postId);
+  const comment = (post.comments || []).find((c) => c && c.id === commentId);
+  if (!comment || !comment._fbKey) throw new Error("Comentário não encontrado: " + commentId);
+  const newRef = push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments/${comment._fbKey}/replies`));
+  return set(newRef, reply).then(() => reply);
 }
 
 /* ---------------------------------------------------------
@@ -229,14 +260,18 @@ function subscribeAll() {
       nodeRef,
       (snapshot) => {
         if (gen !== syncGeneration) return; // listener de uma geração antiga — ignora
-        cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
         if (key === "posts") {
+          // posts (e comments/replies dentro deles) precisam da chave
+          // real do Firebase preservada em "_fbKey" — ver nota v6.
+          cache.posts = cleanKeyed(snapshot.exists() ? snapshot.val() : {});
           cache.posts.forEach((p) => {
-            p.comments = clean(p.comments);
+            p.comments = cleanKeyed(p.comments);
             p.comments.forEach((c) => {
-              c.replies = clean(c.replies);
+              c.replies = cleanKeyed(c.replies);
             });
           });
+        } else {
+          cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
         }
         markLoaded(key);
       },
