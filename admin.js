@@ -6,6 +6,12 @@
    com a Service Account — o cliente não tem mais permissão de
    escrita direta nesses campos (users/subscription, users/role,
    commissions, etc.), reforçado pelas Regras do Firebase.
+
+   v2.1: PLAN_NAMES e estimateRevenue() agora conhecem também os
+   planos "pTeste" (R$ 5, 2 dias) e "pMensal" (R$ 50, 30 dias) —
+   antes só p4/p7 eram reconhecidos, então assinantes desses dois
+   planos apareciam com plano "—" em Assinaturas e contribuíam
+   R$ 0 pra "Receita estimada".
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -17,7 +23,23 @@ import { getDB, onDBChange } from "./db-sync.js";
 
   const WORKER_BASE_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
-  const PLAN_NAMES = { p4: "Plano 4 Dias", p7: "Plano 7 Dias" };
+  // Nomes de exibição — mantidos em sincronia com o objeto PLANS do
+  // worker.js e do script.js. Se adicionar/remover um plano lá, espelhe
+  // a mudança aqui também.
+  const PLAN_NAMES = {
+    pTeste: "Plano Teste",
+    p4: "Plano 4 Dias",
+    p7: "Plano 7 Dias",
+    pMensal: "Plano Mensal",
+  };
+  // Preços — usados só pra "Receita estimada" no painel admin. Mantidos
+  // em sincronia com o objeto PLANS do worker.js e do script.js.
+  const PLAN_PRICES = {
+    pTeste: 5,
+    p4: 10,
+    p7: 20,
+    pMensal: 50,
+  };
   const MIN_WITHDRAW = 10;
 
   let db = null;
@@ -252,10 +274,13 @@ import { getDB, onDBChange } from "./db-sync.js";
         .join("") || `<tr><td colspan="4" class="muted text-center">Nenhum projeto ainda.</td></tr>`;
   }
 
+  // Soma o preço do plano de cada usuário com um plano definido — agora
+  // usando PLAN_PRICES em vez de um if/else fixo em p4/p7, então
+  // qualquer plano novo adicionado a PLAN_PRICES é contado automaticamente.
   function estimateRevenue() {
     return db.users.reduce((sum, u) => {
       if (u.subscription && u.subscription.plan) {
-        const price = u.subscription.plan === "p4" ? 10 : u.subscription.plan === "p7" ? 20 : 0;
+        const price = PLAN_PRICES[u.subscription.plan] || 0;
         return sum + price;
       }
       return sum;
