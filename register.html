@@ -10,7 +10,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <header class="site-header">
   <div class="header-inner container">
     <a href="index.html" class="brand">
@@ -27,27 +26,36 @@
     </div>
   </div>
 </header>
-
 <main>
   <div class="auth-shell">
     <div class="auth-card">
       <h2>Criar conta gratuita</h2>
       <p class="sub">Visualize todos os projetos publicados. Assine um plano quando quiser publicar o seu.</p>
-      <form id="registerForm">
-        <div class="field"><label>Nome completo</label><input name="name" required placeholder="Seu nome" autocomplete="name"></div>
-        <div class="field"><label>E-mail</label><input type="email" name="email" required placeholder="voce@email.com" autocomplete="email"></div>
-        <div class="field"><label>Senha</label><input type="password" name="password" required placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
-        <div class="field"><label>Código de indicação (opcional)</label><input name="refCode" id="refCodeInput" placeholder="Ex.: MARINA7X"></div>
-        <div class="field-error" id="registerError"></div>
+      <form id="registerForm" novalidate>
+        <div class="field">
+          <label for="registerName">Nome completo</label>
+          <input id="registerName" name="name" required placeholder="Seu nome" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="registerEmail">E-mail</label>
+          <input type="email" id="registerEmail" name="email" required placeholder="voce@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="registerPassword">Senha</label>
+          <input type="password" id="registerPassword" name="password" required minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="refCodeInput">Código de indicação (opcional)</label>
+          <input name="refCode" id="refCodeInput" placeholder="Ex.: MARINA7X">
+        </div>
+        <div class="field-error" id="registerError" role="alert"></div>
         <button class="btn btn-primary btn-block" type="submit">Criar conta</button>
       </form>
       <div class="form-foot">Já tem conta? <a href="login.html" class="link" id="goLogin">Entrar</a></div>
     </div>
   </div>
 </main>
-
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
-
 <script type="module" src="auth.js"></script>
 </body>
 </html>
