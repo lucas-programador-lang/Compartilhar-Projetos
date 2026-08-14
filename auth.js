@@ -4,6 +4,11 @@
    register.html. Agora usa Firebase Authentication para
    autenticar e Firebase Realtime Database para guardar o
    perfil (nome, plano, indicações, etc.).
+
+   A criação do perfil no cadastro NÃO é mais feita direto pelo
+   navegador (as regras do banco não permitem isso). O navegador
+   pede pro Worker (que tem acesso total via Service Account)
+   criar o perfil completo.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -11,11 +16,13 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getDB, saveDB, onDBChange } from "./db-sync.js";
-import { uid, nowISO } from "./seed.js";
+import { getDB, onDBChange } from "./db-sync.js";
 
 (function () {
   "use strict";
+
+  // endereço do Worker que cria o perfil completo do usuário no cadastro
+  const WORKER_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
   /* ---------- utilidades ---------- */
   function isValidEmail(email) {
@@ -77,41 +84,39 @@ import { uid, nowISO } from "./seed.js";
 
     // 1. cria a conta de autenticação de verdade no Firebase
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const authUid = cred.user.uid;
 
-    // 2. cria o perfil do usuário dentro do "banco" (Realtime Database)
-    const db = getDB() || { users: [], categories: [], projects: [], posts: [], referrals: [], commissions: [], withdrawals: [] };
-
-    if (db.users.some((u) => u.email === email && u.id !== authUid)) {
-      throw { message: "Este e-mail já está cadastrado." };
+    // 2. pede pro Worker (que tem acesso total ao banco) criar o perfil completo
+    let resp;
+    try {
+      const idToken = await cred.user.getIdToken();
+      resp = await fetch(WORKER_URL + "/create-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + idToken,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email,
+          refCode: refCode ? refCode.trim() : null,
+        }),
+      });
+    } catch (networkErr) {
+      // falha de rede ao chamar o Worker — desfaz a conta criada
+      await cred.user.delete().catch(() => {});
+      throw { message: "Falha de conexão ao criar seu perfil. Tente novamente." };
     }
 
-    let referredBy = null;
-    if (refCode) {
-      const ref = db.users.find((u) => (u.refCode || "").toLowerCase() === refCode.trim().toLowerCase());
-      if (ref) referredBy = ref.id;
+    if (!resp.ok) {
+      // o Worker recusou ou deu erro — desfaz a conta de autenticação
+      // pra não deixar um usuário "fantasma" sem perfil no banco
+      await cred.user.delete().catch(() => {});
+      const errBody = await resp.json().catch(() => ({}));
+      throw { message: errBody.message || "Não foi possível criar seu perfil. Tente novamente." };
     }
 
-    const user = {
-      id: authUid, // o id do perfil É o uid do Firebase Auth
-      name: name.trim(),
-      email,
-      role: "user",
-      isAdmin: false,
-      avatarColor: ["#1d4fc4", "#b8860b", "#0f8a5f", "#8a6410", "#163e8c"][Math.floor(Math.random() * 5)],
-      createdAt: nowISO(),
-      refCode: (name.trim().split(" ")[0] + Math.random().toString(36).slice(2, 6)).toUpperCase(),
-      referredBy,
-      subscription: { active: false, plan: null, expiresAt: null },
-      suspended: false,
-      bio: "",
-    };
-    db.users.push(user);
-    if (referredBy) {
-      db.referrals.push({ id: uid("rf"), referrerId: referredBy, referredId: user.id, createdAt: nowISO() });
-    }
-    await saveDB(db);
-    return user;
+    const data = await resp.json();
+    return data.user;
   }
 
   async function loginUser(email, password) {
