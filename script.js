@@ -1,15 +1,30 @@
 /* =========================================================
    COMPARTILHAR PROJETOS — SCRIPT.JS
-   SPA leve, agora sincronizada com o Firebase Realtime Database
-   em vez de localStorage. Autenticação via Firebase Auth.
+   SPA leve, sincronizada com o Firebase Realtime Database.
+   Autenticação via Firebase Auth. Pagamento de assinatura via
+   Pix (VizzionPay), processado por um Cloudflare Worker que
+   confirma o pagamento e ativa a assinatura direto no Firebase.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getDB, onDBChange, updateUserProfile, addProject, addPost, addComment, addReply, addReferral, addWithdrawalRequest } from "./db-sync.js";import { uid, nowISO } from "./seed.js";
+import {
+  getDB,
+  onDBChange,
+  updateUserProfile,
+  addProject,
+  addPost,
+  addComment,
+  addReply,
+  addWithdrawalRequest,
+} from "./db-sync.js";
+import { uid, nowISO } from "./seed.js";
 
 (function () {
   "use strict";
+
+  // Troque pela URL real do seu Worker publicado na Cloudflare
+  const WORKER_URL = "https://SEU-WORKER.SEU-USUARIO.workers.dev";
 
   const PLANS = {
     p4: { id: "p4", name: "Plano 4 Dias", price: 10, days: 4 },
@@ -124,110 +139,146 @@ import { getDB, onDBChange, updateUserProfile, addProject, addPost, addComment, 
   }
 
   /* ---------------------------------------------------------
-     AÇÕES DE NEGÓCIO
-     (login e cadastro ficam em auth.js — login.html / register.html)
+     PAGAMENTO — Pix via VizzionPay (processado pelo Worker)
   --------------------------------------------------------- */
-  function subscribeToPlan(planId) {
+  async function startPixPayment(planId) {
     const user = currentUser();
     if (!user) throw new Error("Você precisa entrar na sua conta.");
     const plan = PLANS[planId];
     if (!plan) throw new Error("Plano inválido.");
 
-    const now = new Date();
-    const base = isSubscriptionActive(user) ? new Date(user.subscription.expiresAt) : now;
-    const expires = new Date(base.getTime() + plan.days * 24 * 60 * 60 * 1000);
-    user.subscription = { active: true, plan: plan.id, expiresAt: expires.toISOString() };
+    const response = await fetch(`${WORKER_URL}/create-pix`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.id,
+        planId: plan.id,
+        client: {
+          name: user.name,
+          email: user.email,
+          phone: user.phone || "(11) 99999-9999", // ajuste se o cadastro tiver telefone próprio
+          document: user.document || undefined,
+        },
+      }),
+    });
 
-    // comissão de indicação — apenas na primeira assinatura do indicado
-    if (user.referredBy) {
-      const alreadyCommissioned = db.commissions.some((c) => c.referredId === user.id);
-      if (!alreadyCommissioned) {
-        const amount = Math.round(plan.price * COMMISSION_RATE * 100) / 100;
-        db.commissions.push({
-          id: uid("cm2"),
-          referrerId: user.referredBy,
-          referredId: user.id,
-          amount,
-          status: "pending",
-          createdAt: nowISO(),
-          planId: plan.id,
-        });
-      }
-    }
-    saveDB(db);
-    return user;
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Erro ao gerar cobrança Pix");
+    return data; // { transactionId, status, pix: { code, image } }
   }
 
+  function showPixModal({ pix }) {
+    const overlay = document.createElement("div");
+    overlay.className = "pix-modal-overlay";
+    overlay.innerHTML = `
+      <div class="pix-modal">
+        <h3>Pague com Pix para ativar sua assinatura</h3>
+        <img src="${pix.image || ""}" alt="QR Code Pix" style="max-width:220px;margin:16px auto;display:block">
+        <textarea readonly style="width:100%;font-size:11px;padding:8px" rows="4">${pix.code || ""}</textarea>
+        <button id="pixCopyBtn" class="btn btn-primary btn-sm mt-2">Copiar código</button>
+        <p class="muted mt-2" style="font-size:13px">Assim que o pagamento for confirmado, sua assinatura ativa automaticamente — não precisa recarregar a página.</p>
+        <button id="pixCloseBtn" class="btn btn-ghost btn-sm mt-2">Fechar</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    qs("#pixCopyBtn", overlay).addEventListener("click", () => {
+      navigator.clipboard.writeText(pix.code || "");
+      toast("Código copiado!", "success");
+    });
+    qs("#pixCloseBtn", overlay).addEventListener("click", () => {
+      overlay.remove();
+      stopWatching();
+    });
+
+    // Fecha sozinho e mostra sucesso assim que a assinatura ficar ativa em tempo real
+    const stopWatching = onDBChange(() => {
+      const user = currentUser();
+      if (user && isSubscriptionActive(user)) {
+        overlay.remove();
+        toast("Pagamento confirmado — assinatura ativa!", "success");
+        stopWatching();
+        render();
+      }
+    });
+  }
+
+  /* ---------------------------------------------------------
+     AÇÕES DE NEGÓCIO
+     (login e cadastro ficam em auth.js — login.html / register.html)
+  --------------------------------------------------------- */
   function publishProject(data) {
-  const user = currentUser();
-  if (!user) throw new Error("Você precisa entrar na sua conta.");
-  if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
-  if (!data.title || data.title.trim().length < 3) throw new Error("Informe um título para o projeto.");
-  if (!data.description || data.description.trim().length < 10) throw new Error("Descreva melhor o seu projeto.");
-  if (!data.categoryId) throw new Error("Selecione uma categoria.");
-  if (!data.link || !isValidUrl(data.link)) throw new Error("Informe um link válido (começando com http:// ou https://).");
-  if (!data.ownerName) throw new Error("Informe o nome do responsável.");
-  if (!data.contact) throw new Error("Informe uma forma de contato.");
+    const user = currentUser();
+    if (!user) throw new Error("Você precisa entrar na sua conta.");
+    if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
+    if (!data.title || data.title.trim().length < 3) throw new Error("Informe um título para o projeto.");
+    if (!data.description || data.description.trim().length < 10) throw new Error("Descreva melhor o seu projeto.");
+    if (!data.categoryId) throw new Error("Selecione uma categoria.");
+    if (!data.link || !isValidUrl(data.link)) throw new Error("Informe um link válido (começando com http:// ou https://).");
+    if (!data.ownerName) throw new Error("Informe o nome do responsável.");
+    if (!data.contact) throw new Error("Informe uma forma de contato.");
 
-  const project = {
-    id: uid("pj"),
-    title: sanitizeText(data.title.trim()),
-    description: sanitizeText(data.description.trim()),
-    images: (data.images || []).slice(0, 6),
-    categoryId: data.categoryId,
-    link: data.link.trim(),
-    ownerName: sanitizeText(data.ownerName.trim()),
-    contact: sanitizeText(data.contact.trim()),
-    ownerId: user.id,
-    createdAt: nowISO(),
-    status: "published",
-  };
-  return addProject(project); // agora é assíncrono — ver item 3 abaixo
-}
+    const project = {
+      id: uid("pj"),
+      title: sanitizeText(data.title.trim()),
+      description: sanitizeText(data.description.trim()),
+      images: (data.images || []).slice(0, 6),
+      categoryId: data.categoryId,
+      link: data.link.trim(),
+      ownerName: sanitizeText(data.ownerName.trim()),
+      contact: sanitizeText(data.contact.trim()),
+      ownerId: user.id,
+      createdAt: nowISO(),
+      status: "published",
+    };
+    return addProject(project);
+  }
 
- function createPost(content) {
-  const user = currentUser();
-  if (!user) throw new Error("Entre na sua conta para publicar.");
-  if (!content || content.trim().length < 2) throw new Error("Escreva algo antes de publicar.");
-  const post = { id: uid("post"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), comments: [] };
-  return addPost(post);
-}
+  function createPost(content) {
+    const user = currentUser();
+    if (!user) throw new Error("Entre na sua conta para publicar.");
+    if (!content || content.trim().length < 2) throw new Error("Escreva algo antes de publicar.");
+    const post = { id: uid("post"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), comments: [] };
+    return addPost(post);
+  }
 
-function createComment(postId, content) {
-  const user = currentUser();
-  if (!user) throw new Error("Entre na sua conta para comentar.");
-  if (!content || !content.trim()) throw new Error("Escreva um comentário.");
-  const comment = { id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] };
-  return addComment(postId, comment);
-}
+  function createComment(postId, content) {
+    const user = currentUser();
+    if (!user) throw new Error("Entre na sua conta para comentar.");
+    if (!content || !content.trim()) throw new Error("Escreva um comentário.");
+    const post = db.posts.find((p) => p.id === postId);
+    if (!post) throw new Error("Publicação não encontrada.");
+    const comment = { id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] };
+    return addComment(postId, comment);
+  }
 
-function createReply(postId, commentId, content) {
-  const user = currentUser();
-  if (!user) throw new Error("Entre na sua conta para responder.");
-  if (!content || !content.trim()) throw new Error("Escreva uma resposta.");
-  const reply = { id: uid("rp"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO() };
-  return createReplyHelper(postId, commentId, reply);
-}
-function createReplyHelper(postId, commentId, reply) {
-  return addReply(postId, commentId, reply);
-}
+  function createReply(postId, commentId, content) {
+    const user = currentUser();
+    if (!user) throw new Error("Entre na sua conta para responder.");
+    if (!content || !content.trim()) throw new Error("Escreva uma resposta.");
+    const post = db.posts.find((p) => p.id === postId);
+    const comment = post && post.comments.find((c) => c.id === commentId);
+    if (!comment) throw new Error("Comentário não encontrado.");
+    const reply = { id: uid("rp"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO() };
+    return addReply(postId, commentId, reply);
+  }
 
- function requestWithdrawal(amount, pixKey) {
-  const user = currentUser();
-  if (!user) throw new Error("Entre na sua conta.");
-  const available = availableCommission(user.id);
-  if (!pixKey || !pixKey.trim()) throw new Error("Informe sua chave Pix para receber o saque.");
-  if (amount < MIN_WITHDRAW) throw new Error(`O saque mínimo é ${fmtBRL(MIN_WITHDRAW)}.`);
-  if (amount > available) throw new Error("Valor solicitado maior que o saldo disponível.");
-  return addWithdrawalRequest({
-    id: uid("wd"),
-    userId: user.id,
-    amount,
-    pixKey: sanitizeText(pixKey.trim()),
-    status: "pending",
-    createdAt: nowISO(),
-  });
-}
+  function requestWithdrawal(amount, pixKey) {
+    const user = currentUser();
+    if (!user) throw new Error("Entre na sua conta.");
+    const available = availableCommission(user.id);
+    if (!pixKey || !pixKey.trim()) throw new Error("Informe sua chave Pix para receber o saque.");
+    if (amount < MIN_WITHDRAW) throw new Error(`O saque mínimo é ${fmtBRL(MIN_WITHDRAW)}.`);
+    if (amount > available) throw new Error("Valor solicitado maior que o saldo disponível.");
+    return addWithdrawalRequest({
+      id: uid("wd"),
+      userId: user.id,
+      amount,
+      pixKey: sanitizeText(pixKey.trim()),
+      status: "pending",
+      createdAt: nowISO(),
+    });
+  }
+
   function availableCommission(userId) {
     const earned = db.commissions
       .filter((c) => c.referrerId === userId && (c.status === "available" || c.status === "pending"))
@@ -248,17 +299,10 @@ function createReplyHelper(postId, commentId, reply) {
     return db.commissions.filter((c) => c.referrerId === userId).reduce((s, c) => s + c.amount, 0);
   }
 
-  // simula "liberação" de comissões pendentes (para fins de demo, liberamos direto)
-  function maturateCommissions() {
-    let changed = false;
-    db.commissions.forEach((c) => {
-      if (c.status === "pending") {
-        c.status = "available";
-        changed = true;
-      }
-    });
-    if (changed) saveDB(db);
-  }
+  // Observação: a antiga função maturateCommissions() foi removida.
+  // O Worker agora cria a comissão já como "available" no momento em que
+  // confirma o pagamento via webhook, então não há mais etapa de maturação
+  // a ser feita pelo cliente.
 
   /* ---------------------------------------------------------
      HEADER / ESTADO GLOBAL
@@ -309,7 +353,6 @@ function createReplyHelper(postId, commentId, reply) {
       return;
     }
 
-    maturateCommissions();
     const { path, params } = currentRoute();
     const app = qs("#app");
     const user = currentUser();
@@ -849,19 +892,24 @@ function createReplyHelper(postId, commentId, reply) {
       catFilter.addEventListener("change", () => updateExploreQuery());
     }
 
+    // Botões de plano — agora geram cobrança Pix em vez de ativar direto
     qsa("[data-plan]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         if (!currentUser()) {
           location.href = "login.html?redirect=planos";
           return;
         }
+        const originalText = btn.textContent;
         try {
-          const plan = PLANS[btn.getAttribute("data-plan")];
-          subscribeToPlan(plan.id);
-          toast(`Assinatura confirmada — ${plan.name}!`, "success");
-          render();
+          btn.disabled = true;
+          btn.textContent = "Gerando Pix...";
+          const result = await startPixPayment(btn.getAttribute("data-plan"));
+          showPixModal(result);
         } catch (err) {
           toast(err.message, "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
         }
       });
     });
@@ -881,40 +929,44 @@ function createReplyHelper(postId, commentId, reply) {
           renderUploadPreview();
         });
       }
-     publishForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const fd = new FormData(publishForm);
-  publishProject({
-    title: fd.get("title"),
-    description: fd.get("description"),
-    categoryId: fd.get("categoryId"),
-    link: fd.get("link"),
-    ownerName: fd.get("ownerName"),
-    contact: fd.get("contact"),
-    images: pendingImages,
-  })
-    .then((project) => {
-      toast("Projeto publicado com sucesso!", "success");
-      navigate("/projeto/" + project.id);
-    })
-    .catch((err) => {
-      qs("#publishError").textContent = err.message;
-      qs("#publishError").style.display = "block";
-    });
-});
+      publishForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const fd = new FormData(publishForm);
+        qs("#publishError").style.display = "none";
+        Promise.resolve()
+          .then(() =>
+            publishProject({
+              title: fd.get("title"),
+              description: fd.get("description"),
+              categoryId: fd.get("categoryId"),
+              link: fd.get("link"),
+              ownerName: fd.get("ownerName"),
+              contact: fd.get("contact"),
+              images: pendingImages,
+            })
+          )
+          .then((project) => {
+            toast("Projeto publicado com sucesso!", "success");
+            navigate("/projeto/" + project.id);
+          })
+          .catch((err) => {
+            qs("#publishError").textContent = err.message;
+            qs("#publishError").style.display = "block";
+          });
+      });
+    }
 
     const postSubmit = qs("#postSubmit");
     if (postSubmit) {
       postSubmit.addEventListener("click", () => {
         const input = qs("#postInput");
-        try {
-          createPost(input.value);
-          render();
-          navigate("/comunidade");
-          setTimeout(() => render(), 0);
-        } catch (err) {
-          toast(err.message, "error");
-        }
+        Promise.resolve()
+          .then(() => createPost(input.value))
+          .then(() => {
+            navigate("/comunidade");
+            render();
+          })
+          .catch((err) => toast(err.message, "error"));
       });
     }
     qsa(".comment-toggle").forEach((btn) => {
@@ -933,41 +985,37 @@ function createReplyHelper(postId, commentId, reply) {
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const input = form.querySelector("input");
-        try {
-          createComment(form.getAttribute("data-post"), input.value);
-          render();
-        } catch (err) {
-          toast(err.message, "error");
-        }
+        Promise.resolve()
+          .then(() => createComment(form.getAttribute("data-post"), input.value))
+          .then(() => render())
+          .catch((err) => toast(err.message, "error"));
       });
     });
     qsa(".comment-reply-form:not(.comment-new-form)").forEach((form) => {
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const input = form.querySelector("input");
-        try {
-          createReply(form.getAttribute("data-post"), form.getAttribute("data-comment"), input.value);
-          render();
-        } catch (err) {
-          toast(err.message, "error");
-        }
+        Promise.resolve()
+          .then(() => createReply(form.getAttribute("data-post"), form.getAttribute("data-comment"), input.value))
+          .then(() => render())
+          .catch((err) => toast(err.message, "error"));
       });
     });
 
     const profileForm = qs("#profileForm");
     if (profileForm) {
       profileForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const fd = new FormData(profileForm);
-  updateUserProfile(currentUser().id, {
-    name: fd.get("name").trim(),
-    bio: sanitizeText(fd.get("bio") || ""),
-  })
-    .then(() => {
-      toast("Perfil atualizado!", "success");
-    })
-    .catch((err) => toast(err.message, "error"));
-});
+        e.preventDefault();
+        const fd = new FormData(profileForm);
+        const user = currentUser();
+        updateUserProfile(user.id, {
+          name: fd.get("name").trim() || user.name,
+          bio: sanitizeText(fd.get("bio") || ""),
+        })
+          .then(() => toast("Perfil atualizado!", "success"))
+          .catch((err) => toast(err.message, "error"));
+      });
+    }
 
     const copyBtn = qs("#copyRefLink");
     if (copyBtn) {
@@ -984,13 +1032,13 @@ function createReplyHelper(postId, commentId, reply) {
       withdrawForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const fd = new FormData(withdrawForm);
-        try {
-          requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey"));
-          toast("Solicitação de saque enviada!", "success");
-          render();
-        } catch (err) {
-          toast(err.message, "error");
-        }
+        Promise.resolve()
+          .then(() => requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey")))
+          .then(() => {
+            toast("Solicitação de saque enviada!", "success");
+            render();
+          })
+          .catch((err) => toast(err.message, "error"));
       });
     }
   }
@@ -1064,8 +1112,6 @@ function createReplyHelper(postId, commentId, reply) {
 
   /* ---------------------------------------------------------
      TEMPO REAL — Firebase Auth + Realtime Database
-     Substitui o antigo evento "storage" do localStorage: agora
-     a sincronização funciona entre dispositivos diferentes.
   --------------------------------------------------------- */
   onAuthStateChanged(auth, (user) => {
     firebaseUser = user;
