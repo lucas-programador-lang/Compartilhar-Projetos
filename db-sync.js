@@ -40,13 +40,15 @@ function userIndexById(userId) {
 }
 
 /* ---------------------------------------------------------
-   PERFIL — users/$idx/name e users/$idx/bio
+   PERFIL — users/$idx/name, users/$idx/bio e users/$idx/document
+   (document = CPF ou CNPJ, exigido pela VizzionPay para gerar Pix)
 --------------------------------------------------------- */
-export function updateUserProfile(userId, { name, bio }) {
+export function updateUserProfile(userId, { name, bio, document } = {}) {
   const idx = userIndexById(userId);
   const updates = {};
   if (name != null) updates[`${DB_PATH}/users/${idx}/name`] = name;
   if (bio != null) updates[`${DB_PATH}/users/${idx}/bio`] = bio;
+  if (document != null) updates[`${DB_PATH}/users/${idx}/document`] = document;
   return update(ref(rtdb), updates);
 }
 
