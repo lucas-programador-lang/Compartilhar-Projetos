@@ -141,11 +141,14 @@ import { uid, nowISO } from "./seed.js";
   /* ---------------------------------------------------------
      PAGAMENTO — Pix via VizzionPay (processado pelo Worker)
   --------------------------------------------------------- */
-  async function startPixPayment(planId) {
+  async function startPixPayment(planId, documentOverride) {
     const user = currentUser();
     if (!user) throw new Error("Você precisa entrar na sua conta.");
     const plan = PLANS[planId];
     if (!plan) throw new Error("Plano inválido.");
+
+    const document = documentOverride || user.document;
+    if (!document) throw new Error("Informe seu CPF ou CNPJ antes de continuar.");
 
     const response = await fetch(`${WORKER_URL}/create-pix`, {
       method: "POST",
@@ -157,7 +160,7 @@ import { uid, nowISO } from "./seed.js";
           name: user.name,
           email: user.email,
           phone: user.phone || "(11) 99999-9999", // ajuste se o cadastro tiver telefone próprio
-          document: user.document || undefined,
+          document,
         },
       }),
     });
@@ -165,6 +168,64 @@ import { uid, nowISO } from "./seed.js";
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Erro ao gerar cobrança Pix");
     return data; // { transactionId, status, pix: { code, image } }
+  }
+
+  // Remove tudo que não for dígito — CPF (11) ou CNPJ (14)
+  function onlyDigits(str) {
+    return (str || "").replace(/\D/g, "");
+  }
+  function isValidDocument(str) {
+    const digits = onlyDigits(str);
+    return digits.length === 11 || digits.length === 14;
+  }
+
+  // Pede CPF/CNPJ antes de gerar o Pix, caso o usuário ainda não tenha cadastrado.
+  // Salva no perfil (updateUserProfile) para não precisar pedir de novo.
+  function showDocumentModal() {
+    return new Promise((resolve, reject) => {
+      const overlay = document.createElement("div");
+      overlay.className = "pix-modal-overlay";
+      overlay.innerHTML = `
+        <div class="pix-modal">
+          <h3>Falta só um passo</h3>
+          <p class="muted" style="font-size:13px;margin-bottom:14px">Para gerar seu Pix, precisamos do seu CPF ou CNPJ (exigido pelo meio de pagamento).</p>
+          <form id="documentForm">
+            <div class="field"><label>CPF ou CNPJ</label><input name="document" inputmode="numeric" placeholder="Somente números" required></div>
+            <div class="field-error" id="documentError" style="display:none"></div>
+            <button class="btn btn-primary btn-block" type="submit">Continuar</button>
+          </form>
+          <button id="documentCancelBtn" class="btn btn-ghost btn-sm mt-2">Cancelar</button>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const form = qs("#documentForm", overlay);
+      const errorEl = qs("#documentError", overlay);
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const raw = new FormData(form).get("document");
+        const digits = onlyDigits(raw);
+        if (!isValidDocument(digits)) {
+          errorEl.textContent = "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.";
+          errorEl.style.display = "block";
+          return;
+        }
+        const user = currentUser();
+        try {
+          await updateUserProfile(user.id, { document: digits });
+        } catch (err) {
+          // mesmo se falhar salvar no perfil, seguimos com o pagamento usando o valor digitado
+          console.error("Falha ao salvar document no perfil:", err);
+        }
+        overlay.remove();
+        resolve(digits);
+      });
+
+      qs("#documentCancelBtn", overlay).addEventListener("click", () => {
+        overlay.remove();
+        reject(new Error("cancelado"));
+      });
+    });
   }
 
   function showPixModal({ pix }) {
@@ -787,6 +848,7 @@ import { uid, nowISO } from "./seed.js";
           <form id="profileForm">
             <div class="field"><label>Nome completo</label><input name="name" value="${escapeHtml(user.name)}" required></div>
             <div class="field"><label>E-mail</label><input value="${escapeHtml(user.email)}" disabled></div>
+            <div class="field"><label>CPF ou CNPJ</label><input name="document" value="${escapeHtml(user.document || "")}" placeholder="Somente números" inputmode="numeric"></div>
             <div class="field"><label>Sobre você</label><textarea name="bio" rows="3" placeholder="Fale um pouco sobre o que você cria.">${escapeHtml(user.bio || "")}</textarea></div>
             <button class="btn btn-primary" type="submit">Salvar alterações</button>
           </form>
@@ -892,21 +954,27 @@ import { uid, nowISO } from "./seed.js";
       catFilter.addEventListener("change", () => updateExploreQuery());
     }
 
-    // Botões de plano — agora geram cobrança Pix em vez de ativar direto
+    // Botões de plano — geram cobrança Pix. Se o usuário ainda não tem
+    // CPF/CNPJ cadastrado, pedimos antes de chamar o Worker (exigido pela VizzionPay).
     qsa("[data-plan]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!currentUser()) {
           location.href = "login.html?redirect=planos";
           return;
         }
+        const planId = btn.getAttribute("data-plan");
         const originalText = btn.textContent;
         try {
           btn.disabled = true;
+          let doc = currentUser().document;
+          if (!doc) {
+            doc = await showDocumentModal(); // pode rejeitar se o usuário cancelar
+          }
           btn.textContent = "Gerando Pix...";
-          const result = await startPixPayment(btn.getAttribute("data-plan"));
+          const result = await startPixPayment(planId, doc);
           showPixModal(result);
         } catch (err) {
-          toast(err.message, "error");
+          if (err.message !== "cancelado") toast(err.message, "error");
         } finally {
           btn.disabled = false;
           btn.textContent = originalText;
@@ -1008,9 +1076,16 @@ import { uid, nowISO } from "./seed.js";
         e.preventDefault();
         const fd = new FormData(profileForm);
         const user = currentUser();
+        const rawDoc = fd.get("document");
+        const digits = onlyDigits(rawDoc);
+        if (digits && !isValidDocument(digits)) {
+          toast("CPF ou CNPJ inválido. Use 11 ou 14 dígitos.", "error");
+          return;
+        }
         updateUserProfile(user.id, {
           name: fd.get("name").trim() || user.name,
           bio: sanitizeText(fd.get("bio") || ""),
+          document: digits || user.document || "",
         })
           .then(() => toast("Perfil atualizado!", "success"))
           .catch((err) => toast(err.message, "error"));
