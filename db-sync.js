@@ -1,21 +1,46 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v2)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v3)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
    escrita client-side em users/$uid/subscription e users/$uid/role
    — um set() no objeto inteiro seria rejeitado por completo.
 
-   getDB() e onDBChange() continuam iguais (leitura em tempo real).
-   saveDB() genérico foi REMOVIDO. Use as funções específicas abaixo.
+   v3: a leitura também deixou de ser um único listener no nó raiz
+   "database". As regras negam leitura do nó raiz inteiro
+   (".read": false) — só os nós filhos (users, categories, etc.)
+   têm suas próprias permissões. Por isso agora existe um listener
+   por nó de primeiro nível, e o resultado é combinado no mesmo
+   objeto `cache` de sempre, pra não quebrar o resto do app.
    ========================================================= */
 import { rtdb } from "./firebase-config.js";
 import { ref, set, update, push, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
-import { seedDB } from "./seed.js";
 
 const DB_PATH = "database";
+const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals"];
+
 let cache = null;
 const listeners = [];
+
+function emptyCache() {
+  return {
+    users: [],
+    categories: [],
+    projects: [],
+    posts: [],
+    referrals: [],
+    commissions: [],
+    withdrawals: [],
+  };
+}
+
+function clean(val) {
+  return Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {}).filter(Boolean);
+}
+
+function notify() {
+  listeners.forEach((cb) => cb(cache));
+}
 
 export function onDBChange(cb) {
   listeners.push(cb);
@@ -112,34 +137,34 @@ export function addWithdrawalRequest(withdrawal) {
 --------------------------------------------------------- */
 
 /* ---------------------------------------------------------
-   Assinatura em tempo real (igual antes)
+   Assinatura em tempo real — um listener por nó de primeiro
+   nível, porque o nó raiz "database" não pode ser lido de uma
+   vez só (".read": false nas regras). Cada nó filho tem sua
+   própria regra de leitura.
 --------------------------------------------------------- */
-onValue(
-  ref(rtdb, DB_PATH),
-  (snapshot) => {
-    if (snapshot.exists()) {
-      cache = snapshot.val();
-      const clean = (arr) => (Array.isArray(arr) ? arr.filter(Boolean) : Object.values(arr || {}).filter(Boolean));
-      cache.users = clean(cache.users);
-      cache.categories = clean(cache.categories);
-      cache.projects = clean(cache.projects);
-      cache.posts = clean(cache.posts);
-      cache.referrals = clean(cache.referrals);
-      cache.commissions = clean(cache.commissions);
-      cache.withdrawals = clean(cache.withdrawals);
-      cache.posts.forEach((p) => {
-        p.comments = clean(p.comments);
-        p.comments.forEach((c) => {
-          c.replies = clean(c.replies);
+if (!cache) cache = emptyCache();
+
+TOP_LEVEL_KEYS.forEach((key) => {
+  onValue(
+    ref(rtdb, `${DB_PATH}/${key}`),
+    (snapshot) => {
+      cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
+      if (key === "posts") {
+        cache.posts.forEach((p) => {
+          p.comments = clean(p.comments);
+          p.comments.forEach((c) => {
+            c.replies = clean(c.replies);
+          });
         });
-      });
-    } else {
-      cache = seedDB();
-      set(ref(rtdb, DB_PATH), cache);
+      }
+      notify();
+    },
+    (err) => {
+      // Normal enquanto o usuário não está logado: users, referrals,
+      // commissions e withdrawals exigem auth != null nas regras.
+      // categories/projects/posts são de leitura pública e não devem
+      // cair aqui.
+      console.error(`Erro ao ler ${key} do Firebase:`, err);
     }
-    listeners.forEach((cb) => cb(cache));
-  },
-  (err) => {
-    console.error("Erro ao ler do Firebase:", err);
-  }
-);
+  );
+});
