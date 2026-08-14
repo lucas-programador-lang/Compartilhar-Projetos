@@ -15,9 +15,7 @@ import { getDB, onDBChange } from "./db-sync.js";
 (function () {
   "use strict";
 
-  // TODO: confirme que esta é a mesma URL base já usada em script.js
-  // para /create-pix e /create-profile (não veio nos arquivos revisados).
-  const WORKER_BASE_URL = "https://SEU-WORKER.workers.dev";
+  const WORKER_BASE_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
   const PLAN_NAMES = { p4: "Plano 4 Dias", p7: "Plano 7 Dias" };
   const MIN_WITHDRAW = 10;
