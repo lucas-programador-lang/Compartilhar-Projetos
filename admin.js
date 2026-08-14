@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v2)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v3)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
    passa pelo Worker (/admin/*), que valida a role no servidor
@@ -12,11 +12,24 @@
    antes só p4/p7 eram reconhecidos, então assinantes desses dois
    planos apareciam com plano "—" em Assinaturas e contribuíam
    R$ 0 pra "Receita estimada".
+
+   v3: CORREÇÃO — dbReady virava true assim que onDBChange() era
+   registrado, porque o db-sync.js antigo chamava cb(cache)
+   imediatamente com o cache ainda vazio (emptyCache() não é null).
+   Isso fazia boot() cair no ramo "acesso negado" (gateScreen) por
+   uma fração de segundo antes do primeiro sync completo terminar
+   e re-renderizar o painel de verdade — um flash visual incômodo,
+   principalmente perceptível em conexões mais lentas. Agora
+   dbReady só vira true quando isDBSynced() confirma que os 7 nós
+   já responderam pelo menos uma vez, e enquanto isso não acontece
+   (nem authReady) o boot() mostra uma tela de carregamento simples
+   em vez do gate — evitando o usuário ver "acesso negado" quando
+   na real os dados só ainda não chegaram.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getDB, onDBChange } from "./db-sync.js";
+import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
 (function () {
   "use strict";
@@ -198,10 +211,33 @@ import { getDB, onDBChange } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
+     LOADING — mostrado enquanto auth e/ou o primeiro sync do
+     banco ainda não terminaram, pra não mostrar "acesso negado"
+     por engano antes dos dados reais chegarem (ver nota v3).
+  --------------------------------------------------------- */
+  function showLoading(show) {
+    let el = document.getElementById("adminLoadingScreen");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "adminLoadingScreen";
+      el.style.cssText =
+        "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;" +
+        "background:#0b0b0f;color:#fff;font:500 14px system-ui,sans-serif;z-index:9999;";
+      el.textContent = "Carregando painel administrativo…";
+      document.body.appendChild(el);
+    }
+    el.style.display = show ? "flex" : "none";
+  }
+
+  /* ---------------------------------------------------------
      GATE — só administradores acessam
   --------------------------------------------------------- */
   function boot() {
-    if (!authReady || !dbReady) return;
+    if (!authReady || !dbReady) {
+      showLoading(true);
+      return;
+    }
+    showLoading(false);
 
     const user = currentUser();
     if (!db || !user || user.role !== "admin") {
@@ -624,7 +660,9 @@ import { getDB, onDBChange } from "./db-sync.js";
 
   onDBChange((newDb) => {
     db = newDb;
-    dbReady = true;
+    // dbReady só vira true quando o db-sync.js confirma que os 7 nós
+    // já responderam pelo menos uma vez nesta geração (ver nota v3).
+    dbReady = isDBSynced();
     boot();
   });
 
