@@ -10,7 +10,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <header class="site-header">
   <div class="header-inner container">
     <a href="index.html" class="brand">
@@ -27,27 +26,28 @@
     </div>
   </div>
 </header>
-
 <main>
   <div class="auth-shell">
     <div class="auth-card">
       <h2>Entrar na conta</h2>
       <p class="sub">Acesse para visualizar, publicar e participar da comunidade.</p>
-      <form id="loginForm">
-        <div class="field"><label>E-mail</label><input type="email" name="email" required placeholder="voce@email.com" autocomplete="email"></div>
-        <div class="field"><label>Senha</label><input type="password" name="password" required placeholder="••••••••" autocomplete="current-password"></div>
-        <div class="field-error" id="loginError"></div>
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="loginEmail">E-mail</label>
+          <input type="email" id="loginEmail" name="email" required placeholder="voce@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="loginPassword">Senha</label>
+          <input type="password" id="loginPassword" name="password" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div class="field-error" id="loginError" role="alert"></div>
         <button class="btn btn-primary btn-block" type="submit">Entrar</button>
       </form>
-      <div class="divider-or">demonstração</div>
-      <p class="field-hint text-center">Usuário: marina@demo.com / demo123<br>Admin: admin@compartilharprojetos.com / admin123</p>
       <div class="form-foot">Não tem conta? <a href="register.html" class="link" id="goRegister">Cadastre-se grátis</a></div>
     </div>
   </div>
 </main>
-
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
-
 <script type="module" src="auth.js"></script>
 </body>
 </html>
