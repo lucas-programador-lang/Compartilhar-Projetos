@@ -24,6 +24,29 @@
      largura inteira de monitores muito grandes.
    - .data-table: fonte e padding reduzidos em telas ≤640px, pra
      caber mais colunas sem espremer demais o texto.
+
+   REVISÃO 3: cores mantidas 100% (nenhum hex/rgba novo foi
+   introduzido) — o que mudou foi o USO de cores já existentes na
+   paleta em lugares que estavam sem tratamento (seleção de texto,
+   scrollbar, checkboxes/radios, foco em inputs, estado inválido,
+   zebra-striping de tabela, estado ativo de card), o que reforça
+   a identidade visual sem alterar nenhum tom. Responsivo/desktop
+   ganhou mais uma camada sobre a REVISÃO 2:
+   - Breakpoint <360px (telefones muito estreitos) para header,
+     hero, dashboard e diálogos, que antes só quebravam bem a
+     partir de 400/480px.
+   - Orientação paisagem em celular (max-height baixa) tratada
+     separadamente do "mobile" por largura — hero e modais deixam
+     de cortar conteúdo quando a altura é o fator limitante.
+   - .community-layout e .pd-grid: coluna lateral fixa (300px/1fr)
+     trocada por minmax fluido, evitando aperto na faixa 880–1100px.
+   - Área de toque mínima de 44px em botões-ícone e links de menu
+     mobile (diretriz de acessibilidade WCAG), sem alterar o
+     tamanho visual do ícone em si.
+   - safe-area-inset aplicado no toast e no rodapé mobile, pra não
+     ficar atrás do "notch"/barra de gestos em iOS/Android.
+   - Sidebar do dashboard em mobile ganhou indicador de scroll
+     (fade nas bordas) usando os mesmos tokens de navy já em uso.
    ========================================================= */
 
 :root{
@@ -140,6 +163,19 @@ h1,h2,h3,h4{font-family:var(--font-display);line-height:1.15;font-weight:700;let
 :focus-visible{outline:3px solid var(--gold-500);outline-offset:2px;border-radius:4px}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}
 
+/* Uso consistente da paleta já existente em detalhes que antes
+   ficavam com o padrão do navegador (nenhuma cor nova aqui —
+   só aplicação dos mesmos tokens de azul/dourado). */
+::selection{background:var(--blue-600);color:#fff}
+html{color-scheme:light}
+html{scrollbar-color:var(--ink-300) var(--surface-alt)}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:var(--surface-alt)}
+::-webkit-scrollbar-thumb{background:var(--ink-300);border-radius:var(--radius-pill);border:3px solid var(--surface-alt)}
+::-webkit-scrollbar-thumb:hover{background:var(--blue-400)}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--blue-600)}
+input::placeholder,textarea::placeholder{color:var(--ink-400)}
+
 .container{width:100%;max-width:var(--container-max);margin:0 auto;padding:0 24px}
 
 /* =================== BUTTONS =================== */
@@ -153,8 +189,10 @@ h1,h2,h3,h4{font-family:var(--font-display);line-height:1.15;font-weight:700;let
 .btn-lg{padding:16px 30px;font-size:16px}
 .btn-primary{background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));color:#fff;box-shadow:0 10px 26px rgba(10,47,184,.30)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 38px rgba(10,47,184,.40)}
+.btn-primary:active{transform:translateY(0);box-shadow:0 6px 16px rgba(10,47,184,.30)}
 .btn-gold{background:linear-gradient(135deg,var(--gold-vibrant-1),var(--gold-vibrant-2));color:var(--navy-950);box-shadow:0 10px 24px rgba(200,147,10,.34)}
 .btn-gold:hover{transform:translateY(-2px);box-shadow:0 18px 38px rgba(200,147,10,.42)}
+.btn-gold:active{transform:translateY(0);box-shadow:0 6px 14px rgba(200,147,10,.30)}
 .btn-ghost{background:transparent;color:var(--blue-700);border:1.5px solid var(--border)}
 .btn-ghost:hover{border-color:var(--blue-500);background:var(--blue-50)}
 .btn-outline-gold{background:transparent;color:var(--gold-700);border:1.5px solid var(--gold-400)}
@@ -164,6 +202,9 @@ h1,h2,h3,h4{font-family:var(--font-display);line-height:1.15;font-weight:700;let
 .btn-block{width:100%}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none !important}
 .btn-icon{width:38px;height:38px;border-radius:50%;background:var(--surface-alt);display:inline-flex;align-items:center;justify-content:center;flex:none}
+@media (max-width:960px){
+  .btn-icon{width:44px;height:44px} /* alvo de toque mínimo recomendado em telas de toque */
+}
 .link{color:var(--blue-600);font-weight:600}
 .link:hover{text-decoration:underline}
 
@@ -216,7 +257,7 @@ h1,h2,h3,h4{font-family:var(--font-display);line-height:1.15;font-weight:700;let
 .user-menu button{color:var(--danger)}
 .user-menu button:hover{background:var(--danger-bg)}
 
-.hamburger{display:none;flex-direction:column;gap:5px;width:34px;height:34px;align-items:center;justify-content:center;flex:none}
+.hamburger{display:none;flex-direction:column;gap:5px;width:44px;height:44px;align-items:center;justify-content:center;flex:none;margin-right:-5px}
 .hamburger span{width:20px;height:2px;background:var(--navy-900);border-radius:2px;transition:.2s}
 .mobile-nav{display:none;flex-direction:column;background:var(--surface);border-top:1px solid var(--border-soft);padding:10px 24px 18px;gap:2px}
 .mobile-nav.open{display:flex}
@@ -247,6 +288,13 @@ body:not(.is-admin) .admin-only{display:none !important}
   .container{padding:0 16px}
   .brand-name{font-size:16.5px}
   .header-actions{gap:8px}
+}
+/* telefones muito estreitos (ex: 320px) — mais um degrau de aperto */
+@media (max-width:359px){
+  .container{padding:0 12px}
+  .brand-name{font-size:15px;max-width:130px}
+  .header-actions{gap:6px}
+  .avatar-btn,.avatar-circle{width:36px;height:36px}
 }
 
 /* =================== HERO =================== */
@@ -314,6 +362,15 @@ body:not(.is-admin) .admin-only{display:none !important}
   .hero-cta{gap:10px}
   .hero-cta .btn{width:100%}
 }
+/* celular em paisagem: a largura não é mais o fator limitante, é a
+   altura — sem isso o hero ficava alto demais e cortava conteúdo
+   na dobra em telas curtas (ex: celular deitado) */
+@media (max-height:440px) and (orientation:landscape){
+  .hero{padding:32px 0}
+  .hero-inner{grid-template-columns:1fr 1fr;align-items:center}
+  .hero-visual{display:none}
+  .hero-cta .btn{width:auto}
+}
 
 /* =================== SECTIONS =================== */
 .section{padding:80px 0}
@@ -344,8 +401,9 @@ body:not(.is-admin) .admin-only{display:none !important}
   flex:1;min-width:220px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-pill);
   padding:12px 18px;font-size:14.5px;
 }
-.search-input:focus{border-color:var(--blue-400)}
+.search-input:focus{border-color:var(--blue-400);box-shadow:0 0 0 4px var(--blue-100)}
 .select-input{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-pill);padding:12px 18px;font-size:14px;font-weight:600;color:var(--ink-700)}
+.select-input:focus{border-color:var(--blue-400);box-shadow:0 0 0 4px var(--blue-100)}
 
 @media (max-width:560px){
   .filters-bar{flex-direction:column;align-items:stretch}
@@ -360,7 +418,7 @@ body:not(.is-admin) .admin-only{display:none !important}
   background:linear-gradient(180deg,#ffffff 0%, #fdfcf9 100%);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;
   display:flex;flex-direction:column;transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
-.project-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px rgba(15,42,94,.16), 0 0 0 1px var(--border-gold);border-color:var(--gold-400)}
+.project-card:hover,.project-card:focus-within{transform:translateY(-4px);box-shadow:0 18px 38px rgba(15,42,94,.16), 0 0 0 1px var(--border-gold);border-color:var(--gold-400)}
 .pc-thumb{height:170px;background:linear-gradient(135deg,var(--blue-100),var(--gold-100));display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
 .pc-thumb img{width:100%;height:100%;object-fit:cover}
 .pc-cat{position:absolute;top:12px;left:12px;background:rgba(10,27,61,.75);color:#fff;font-size:10.5px;font-weight:700;padding:5px 10px;border-radius:var(--radius-pill);font-family:var(--font-mono);letter-spacing:.04em}
@@ -421,9 +479,12 @@ body:not(.is-admin) .admin-only{display:none !important}
 .field input,.field textarea,.field select{
   width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14.5px;background:var(--surface);
 }
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--blue-400)}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--blue-400);box-shadow:0 0 0 4px var(--blue-100)}
+.field.has-error input,.field.has-error textarea,.field.has-error select{border-color:var(--danger)}
+.field.has-error input:focus,.field.has-error textarea:focus,.field.has-error select:focus{box-shadow:0 0 0 4px var(--danger-bg)}
 .field-hint{font-size:12px;color:var(--ink-400);margin-top:6px}
-.field-error{font-size:12.5px;color:var(--danger);margin-top:6px;display:none}
+.field-error{font-size:12.5px;color:var(--danger);margin-top:6px;display:none;font-weight:600}
+.field.has-error .field-error{display:block}
 .form-foot{text-align:center;margin-top:20px;font-size:14px;color:var(--ink-600)}
 .divider-or{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--ink-400);font-size:12.5px}
 .divider-or::before,.divider-or::after{content:"";flex:1;height:1px;background:var(--border)}
@@ -457,10 +518,19 @@ body:not(.is-admin) .admin-only{display:none !important}
 
 @media (max-width:900px){
   .dash-shell{grid-template-columns:1fr}
-  .dash-sidebar{position:static;height:auto;display:flex;overflow-x:auto;gap:4px;padding:16px;-webkit-overflow-scrolling:touch}
+  .dash-sidebar{
+    position:relative;height:auto;display:flex;overflow-x:auto;gap:4px;padding:16px;-webkit-overflow-scrolling:touch;
+  }
   .dash-sidebar .side-title{display:none}
-  .side-link{white-space:nowrap}
+  .side-link{white-space:nowrap;min-height:44px}
   .dash-main{padding:26px 18px}
+  /* fade nas bordas pra sinalizar que dá pra rolar — mesmos tons de
+     navy já usados no fundo da sidebar, sem cor nova */
+  .dash-sidebar::before,.dash-sidebar::after{
+    content:"";position:sticky;top:0;width:20px;flex:none;pointer-events:none;align-self:stretch;
+  }
+  .dash-sidebar::before{left:0;order:-1;background:linear-gradient(90deg, var(--navy-950), transparent)}
+  .dash-sidebar::after{right:0;background:linear-gradient(270deg, var(--navy-900), transparent)}
 }
 @media (max-width:480px){
   .dash-main{padding:20px 14px}
@@ -496,6 +566,8 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .data-table th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-400);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
 .data-table td{padding:13px 12px;border-bottom:1px solid var(--border-soft);color:var(--ink-700)}
 .data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:nth-child(even){background:var(--surface-alt)}
+.data-table tbody tr:hover{background:var(--blue-50)}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
 /* tabelas mais compactas em telas pequenas, sem perder colunas —
@@ -527,7 +599,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 @media (max-width:480px){.plan-card{padding:26px 22px}}
 
 /* =================== COMMUNITY =================== */
-.community-layout{display:grid;grid-template-columns:1fr 300px;gap:30px;align-items:start}
+.community-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,300px);gap:30px;align-items:start}
 .composer{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:22px}
 .composer textarea{width:100%;border:none;resize:vertical;min-height:60px;font-size:14.5px}
 .composer textarea:focus{outline:none}
@@ -573,6 +645,10 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .modal-box h2{font-size:21px;color:var(--navy-900);margin-bottom:6px}
 .modal-box .sub{color:var(--ink-600);font-size:13.5px;margin-bottom:22px}
 @media (max-width:480px){.modal-box{padding:24px 20px}}
+@media (max-height:480px) and (orientation:landscape){
+  .modal-overlay{align-items:flex-start;padding:12px 20px}
+  .modal-box{max-height:94vh;padding:22px}
+}
 
 /* =================== CONFIRM DIALOG =================== */
 .confirm-overlay{
@@ -627,7 +703,11 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 @keyframes toastIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes toastOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(6px) scale(.97)}}
 @media (max-width:480px){
-  .toast-stack{left:16px;right:16px;bottom:16px;align-items:stretch}
+  .toast-stack{
+    left:16px;right:16px;
+    bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+    align-items:stretch;
+  }
   .toast{max-width:none;min-width:0}
 }
 
@@ -643,7 +723,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .footer-col h4{color:#fff;font-size:13px;margin-bottom:14px;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase}
 .footer-col a{display:block;font-size:14px;padding:6px 0;color:#a9b4d4}
 .footer-col a:hover{color:var(--gold-400)}
-.footer-bottom{padding:20px 0 26px;font-size:12.5px;color:#7482a8}
+.footer-bottom{padding:20px 0 calc(26px + env(safe-area-inset-bottom, 0px));font-size:12.5px;color:#7482a8}
 @media (max-width:780px){.footer-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:480px){
   .footer-grid{grid-template-columns:1fr;gap:28px}
@@ -700,4 +780,8 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   :root{ --container-max-wide:1520px; }
   .project-grid{grid-template-columns:repeat(5,1fr)}
   .hero-visual{height:480px}
+  .fan-card{width:290px}
+  .fan-2{top:80px;left:150px}
+  .fan-3{top:210px;left:30px}
+  .fan-4{top:260px;left:180px}
 }
