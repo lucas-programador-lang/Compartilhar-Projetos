@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v3)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v4)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
    passa pelo Worker (/admin/*), que valida a role no servidor
@@ -25,6 +25,28 @@
    (nem authReady) o boot() mostra uma tela de carregamento simples
    em vez do gate — evitando o usuário ver "acesso negado" quando
    na real os dados só ainda não chegaram.
+
+   v4: DUAS CORREÇÕES —
+
+   1) O card "Comissões pendentes de saque" na Visão geral somava
+      db.withdrawals com status "pending" (solicitações de saque
+      aguardando decisão do admin), mas o rótulo dava a entender
+      que era sobre comissões ainda não maturadas (commissions com
+      status "pending" — que segundo o worker.js nem chegam a
+      existir mais, toda comissão já nasce "available"). São
+      conceitos diferentes. Renomeado para "Saques aguardando
+      aprovação", que é o que o número de fato representa.
+
+   2) renderUsers(filter) e renderProjects(filter) perdiam o filtro
+      digitado sempre que renderAll() rodava por conta de QUALQUER
+      mudança em onDBChange — inclusive mudanças sem relação (ex.:
+      alguém comentando na comunidade enquanto o admin busca um
+      usuário específico). O texto continuava no campo de busca,
+      mas a tabela voltava a mostrar a lista completa sem filtro,
+      até o próximo keystroke. Agora o filtro atual é guardado em
+      currentUserFilter/currentProjectFilter e renderAll() sempre
+      repassa esse valor, então um sync em tempo real nunca reseta
+      visualmente uma busca em andamento.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -59,6 +81,12 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   let firebaseUser = null;
   let authReady = false;
   let dbReady = false;
+
+  // Guardam o texto atualmente digitado nas buscas, para que um
+  // re-render automático disparado por onDBChange (ver nota v4 acima)
+  // não "esqueça" o filtro em andamento.
+  let currentUserFilter = "";
+  let currentProjectFilter = "";
 
   function currentUser() {
     if (!db || !firebaseUser) return null;
@@ -276,12 +304,14 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
   /* ---------------------------------------------------------
      RENDER ALL
+     Reaplica sempre os filtros de busca atuais (currentUserFilter /
+     currentProjectFilter) — ver nota v4 no cabeçalho do arquivo.
   --------------------------------------------------------- */
   function renderAll() {
     renderOverview();
-    renderUsers();
+    renderUsers(currentUserFilter);
     renderSubscriptions();
-    renderProjects();
+    renderProjects(currentProjectFilter);
     renderCategories();
     renderCommunity();
     renderReferrals();
@@ -291,13 +321,18 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   function renderOverview() {
     const activeSubs = db.users.filter(isSubActive).length;
     const totalRevenueEstimate = estimateRevenue();
+    const pendingWithdrawals = db.withdrawals.filter((w) => w.status === "pending").reduce((s, w) => s + w.amount, 0);
     qs("#statGrid").innerHTML = [
       stat("Usuários cadastrados", db.users.length),
       stat("Assinaturas ativas", activeSubs),
       stat("Projetos publicados", db.projects.length),
       stat("Publicações na comunidade", db.posts.length),
       stat("Receita estimada", fmtBRL(totalRevenueEstimate), true),
-      stat("Comissões pendentes de saque", fmtBRL(db.withdrawals.filter((w) => w.status === "pending").reduce((s, w) => s + w.amount, 0)), true),
+      // Antes rotulado "Comissões pendentes de saque" — mas o valor é a
+      // soma de SOLICITAÇÕES DE SAQUE com status "pending" (aguardando
+      // aprovação do admin), não de comissões ainda não maturadas. Ver
+      // nota v4 acima.
+      stat("Saques aguardando aprovação", fmtBRL(pendingWithdrawals), true),
     ].join("");
 
     const recent = db.projects.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 8);
@@ -614,17 +649,26 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
   /* ---------------------------------------------------------
      FORMULÁRIOS (busca, nova categoria)
+     Os handlers de input atualizam currentUserFilter /
+     currentProjectFilter (ver nota v4) para que um re-render
+     automático vindo de onDBChange preserve o que está digitado.
   --------------------------------------------------------- */
   function bindForms() {
     const userSearch = qs("#userSearch");
     if (userSearch && !userSearch.dataset.bound) {
       userSearch.dataset.bound = "1";
-      userSearch.addEventListener("input", (e) => renderUsers(e.target.value));
+      userSearch.addEventListener("input", (e) => {
+        currentUserFilter = e.target.value;
+        renderUsers(currentUserFilter);
+      });
     }
     const projectSearch = qs("#projectSearch");
     if (projectSearch && !projectSearch.dataset.bound) {
       projectSearch.dataset.bound = "1";
-      projectSearch.addEventListener("input", (e) => renderProjects(e.target.value));
+      projectSearch.addEventListener("input", (e) => {
+        currentProjectFilter = e.target.value;
+        renderProjects(currentProjectFilter);
+      });
     }
     const catForm = qs("#catForm");
     if (catForm && !catForm.dataset.bound) {
