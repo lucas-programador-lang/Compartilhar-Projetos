@@ -8,6 +8,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
+  /* REVISÃO: melhorias de responsivo/desktop — nenhuma cor alterada.
+     - .admin-main ganhou max-width em telas ultrawide (>=1440px),
+       pra tabelas e cards não esticarem a largura inteira do monitor.
+     - Novo breakpoint intermediário em 1100px estreitando a sidebar
+       de 250px pra 210px antes do colapso total em 900px (evita
+       espremer o conteúdo na faixa de tablet).
+     - .toolbar agora empilha em telas muito estreitas (<=480px),
+       porque .search-input tem min-width:220px herdado do
+       style.css e podia estourar a largura em aparelhos pequenos.
+     - Scrollbar horizontal do menu admin (mobile) com estilo mais
+       discreto, já que virou uma barra de rolagem visível nessa
+       faixa de tela. */
   body{background:var(--bg)}
   .admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
   .admin-sidebar{background:var(--navy-950);color:#dfe6f6;padding:26px 18px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
@@ -29,12 +41,38 @@
   .section-block.active{display:block}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
   .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+
+  /* desktop grande / ultrawide: trava a largura do conteúdo pra não
+     esticar tabelas e cards a ponto de ficarem ilegíveis */
+  @media (min-width:1440px){
+    .admin-main{max-width:1400px;margin:0 auto}
+  }
+
+  /* tablet: sidebar um pouco mais estreita antes do colapso total
+     em 900px — evita espremer tabelas na faixa 900–1100px */
+  @media (max-width:1100px){
+    .admin-shell{grid-template-columns:210px 1fr}
+    .admin-main{padding:30px 28px}
+  }
+
   @media (max-width:900px){
     .admin-shell{grid-template-columns:1fr}
     .admin-sidebar{position:static;height:auto}
     .admin-nav{flex-direction:row;overflow-x:auto}
     .admin-nav button{white-space:nowrap}
     .admin-main{padding:24px 18px}
+  }
+
+  /* barra de rolagem horizontal do menu (modo mobile) mais discreta */
+  .admin-nav::-webkit-scrollbar{height:4px}
+  .admin-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
+
+  /* toolbar (busca) empilhada em telas muito estreitas — .search-input
+     tem min-width:220px herdado do style.css e podia estourar a
+     largura em aparelhos pequenos */
+  @media (max-width:480px){
+    .toolbar{flex-direction:column;align-items:stretch}
+    .toolbar .search-input{width:100%;min-width:0}
   }
 </style>
 </head>
