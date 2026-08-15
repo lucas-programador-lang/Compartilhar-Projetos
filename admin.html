@@ -8,44 +8,111 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  /* REVISÃO: melhorias de responsivo/desktop — nenhuma cor alterada.
-     - .admin-main ganhou max-width em telas ultrawide (>=1440px),
-       pra tabelas e cards não esticarem a largura inteira do monitor.
-     - Novo breakpoint intermediário em 1100px estreitando a sidebar
-       de 250px pra 210px antes do colapso total em 900px (evita
-       espremer o conteúdo na faixa de tablet).
-     - .toolbar agora empilha em telas muito estreitas (<=480px),
-       porque .search-input tem min-width:220px herdado do
-       style.css e podia estourar a largura em aparelhos pequenos.
-     - Scrollbar horizontal do menu admin (mobile) com estilo mais
-       discreto, já que virou uma barra de rolagem visível nessa
-       faixa de tela. */
-  body{background:var(--bg)}
+  /* =========================================================
+     REVISÃO 2 — cores mais ricas (mesma paleta azul royal +
+     dourado do design system, só que usada com mais intenção
+     e contraste — sem inventar matizes fora dela) + responsivo
+     e desktop reforçados.
+
+     COR:
+     - body: removida a sobrescrita `background:var(--bg)`, que
+       zerava o background-image (o fundo com gradientes radiais
+       azul/dourado do style.css) — o admin ficava "chapado" sem
+       necessidade; agora herda o mesmo fundo de marca do site.
+     - .admin-sidebar: de navy-950 sólido para gradiente
+       navy-950→navy-900 com borda direita levemente dourada
+       (mesmo tratamento de .dash-sidebar no style.css), trazendo
+       mais profundidade e consistência entre painel admin e
+       dashboard do usuário.
+     - .admin-brand: linha de destaque azul→dourado sob o logo,
+       reforçando a identidade "royal + gold" logo na entrada do
+       painel.
+     - .admin-nav button.active: trocado o gradiente azul plano
+       (blue-600→blue-700) pelo azul "vibrante" (blue-vibrant-1/2)
+       já usado em .side-link.active no style.css, com sombra e uma
+       barra dourada à esquerda — fica mais alinhado ao resto do
+       produto e destaca melhor o item atual.
+     - .admin-back: "Sair da conta" ganhou um tom de alerta (mesmo
+       vermelho já usado no ícone de toast de erro, pensado para
+       contraste em fundo escuro) pra diferenciar de "Voltar ao
+       site", que ganhou hover dourado.
+     - .gate: fundo com o mesmo tratamento radial azul/dourado do
+       hero, deixando a tela de acesso restrito mais "premium" em
+       vez de uma tela cinza genérica.
+
+     RESPONSIVO/DESKTOP:
+     - Paridade com .dash-shell em telas ultrawide (sidebar 270px
+       a partir de 1440px, como no restante do site).
+     - Novo degrau <360px pra telefones muito estreitos.
+     - Alvo de toque mínimo de 44px nos botões do menu quando ele
+       vira uma barra horizontal no mobile, com indicador de fade
+       nas bordas (mesma técnica já usada em .dash-sidebar).
+     - .gate tratado também em paisagem de altura baixa, pra não
+       cortar o cartão de acesso restrito.
+     - Troca de conteúdo entre seções (.section-block.active) com
+       uma transição suave em vez de aparecer seco.
+     ========================================================= */
+
   .admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
-  .admin-sidebar{background:var(--navy-950);color:#dfe6f6;padding:26px 18px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
-  .admin-brand{display:flex;align-items:center;gap:10px;padding:0 10px 26px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:18px}
+  .admin-sidebar{
+    background:linear-gradient(180deg,var(--navy-950), var(--navy-900) 75%);
+    color:#dfe6f6;padding:26px 18px;
+    position:sticky;top:0;height:100vh;height:100dvh;
+    display:flex;flex-direction:column;
+    border-right:1px solid rgba(220,174,44,.14);
+    box-shadow:6px 0 24px rgba(3,7,15,.18);
+  }
+  .admin-brand{
+    display:flex;align-items:center;gap:10px;padding:0 10px 22px;margin-bottom:18px;
+    position:relative;
+  }
+  .admin-brand::after{
+    content:"";position:absolute;left:10px;right:10px;bottom:0;height:1px;
+    background:linear-gradient(90deg, var(--blue-vibrant-1), var(--gold-vibrant-1), transparent);
+    opacity:.55;
+  }
   .admin-brand strong{font-family:var(--font-display);font-size:16px;color:#fff}
-  .admin-brand span{display:block;font-size:11px;color:var(--gold-300,#f0d97a);font-family:var(--font-mono)}
+  .admin-brand span{display:block;font-size:11px;color:var(--gold-300);font-family:var(--font-mono);letter-spacing:.04em}
   .admin-nav{display:flex;flex-direction:column;gap:2px;flex:1}
-  .admin-nav button{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;font-weight:600;font-size:14px;color:#c3cdea;text-align:left}
-  .admin-nav button:hover{background:rgba(255,255,255,.06);color:#fff}
-  .admin-nav button.active{background:linear-gradient(135deg,var(--blue-600),var(--blue-700));color:#fff}
+  .admin-nav button{
+    display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;
+    font-weight:600;font-size:14px;color:#c3cdea;text-align:left;
+    border-left:2.5px solid transparent;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .admin-nav button:hover{background:rgba(255,255,255,.07);color:#fff}
+  .admin-nav button.active{
+    background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));
+    color:#fff;border-left-color:var(--gold-vibrant-1);
+    box-shadow:0 6px 16px rgba(10,47,184,.32);
+  }
   .admin-back{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
-  .admin-back a{display:block;padding:10px 12px;font-size:13.5px;color:#a9b4d4;font-weight:600}
-  .admin-back a:hover{color:#fff}
+  .admin-back a{display:block;padding:10px 12px;font-size:13.5px;color:#a9b4d4;font-weight:600;border-radius:8px;transition:background .15s ease, color .15s ease}
+  .admin-back a:hover{color:var(--gold-300);background:rgba(255,255,255,.05)}
+  .admin-back a#adminLogout{color:#ffb3ac}
+  .admin-back a#adminLogout:hover{color:#ff9186;background:rgba(207,53,39,.12)}
   .admin-main{padding:36px 42px}
-  .admin-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;gap:16px;flex-wrap:wrap}
+  .admin-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;gap:16px;flex-wrap:wrap;padding-bottom:20px;border-bottom:1px solid var(--border-soft)}
   .admin-head h1{font-size:25px;color:var(--navy-900)}
   .admin-head p{color:var(--ink-600);margin-top:6px;font-size:14px}
   .section-block{display:none}
-  .section-block.active{display:block}
+  .section-block.active{display:block;animation:sectionIn .28s ease}
+  @keyframes sectionIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
-  .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .gate{
+    min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:
+      radial-gradient(900px 460px at 85% -10%, rgba(220,174,44,.14), transparent 55%),
+      radial-gradient(760px 420px at 10% 105%, rgba(49,99,234,.14), transparent 55%);
+  }
+  .gate .auth-card{border-top:3px solid var(--gold-500)}
 
   /* desktop grande / ultrawide: trava a largura do conteúdo pra não
-     esticar tabelas e cards a ponto de ficarem ilegíveis */
+     esticar tabelas e cards a ponto de ficarem ilegíveis, e alarga
+     a sidebar em paridade com .dash-shell do restante do site */
   @media (min-width:1440px){
-    .admin-main{max-width:1400px;margin:0 auto}
+    .admin-shell{grid-template-columns:270px 1fr}
+    .admin-main{padding:44px 52px;max-width:1400px;margin:0 auto}
   }
 
   /* tablet: sidebar um pouco mais estreita antes do colapso total
@@ -57,15 +124,30 @@
 
   @media (max-width:900px){
     .admin-shell{grid-template-columns:1fr}
-    .admin-sidebar{position:static;height:auto}
-    .admin-nav{flex-direction:row;overflow-x:auto}
-    .admin-nav button{white-space:nowrap}
+    .admin-sidebar{position:static;height:auto;box-shadow:none;border-right:none;border-bottom:1px solid rgba(220,174,44,.14)}
+    .admin-nav{flex-direction:row;overflow-x:auto;position:relative}
+    .admin-nav button{white-space:nowrap;min-height:44px}
     .admin-main{padding:24px 18px}
   }
 
-  /* barra de rolagem horizontal do menu (modo mobile) mais discreta */
+  /* telas muito estreitas (~320px) — mais um degrau de aperto */
+  @media (max-width:359px){
+    .admin-main{padding:18px 14px}
+    .admin-head h1{font-size:21px}
+    .admin-brand strong{font-size:14.5px}
+  }
+
+  /* celular em paisagem: altura curta é o problema, não a largura —
+     sem isso o cartão de acesso restrito cortava na dobra */
+  @media (max-height:480px) and (orientation:landscape){
+    .gate{align-items:flex-start;padding-top:24px}
+  }
+
+  /* barra de rolagem horizontal do menu (modo mobile) mais discreta,
+     com um leve tom dourado no hover pra reforçar a marca */
   .admin-nav::-webkit-scrollbar{height:4px}
   .admin-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
+  .admin-nav::-webkit-scrollbar-thumb:hover{background:rgba(220,174,44,.45)}
 
   /* toolbar (busca) empilhada em telas muito estreitas — .search-input
      tem min-width:220px herdado do style.css e podia estourar a
