@@ -5,6 +5,25 @@
    Revisão: tons ajustados dentro da mesma paleta (mais contraste
    e hierarquia), responsivo mobile reforçado, breakpoints desktop
    largo/ultrawide adicionados.
+
+   REVISÃO 2: melhorias de responsivo/desktop para admin e index —
+   NENHUM VALOR DE COR FOI ALTERADO (mantido azul + dourado como
+   estava). Mudanças, todas de layout:
+   - .stat-grid: trocado de repeat(4,1fr) fixo + breakpoints por
+     viewport para repeat(auto-fit,minmax(190px,1fr)). Isso reflui
+     conforme a largura REAL disponível (importa porque dashboard/
+     admin têm sidebar lateral consumindo espaço — em telas entre
+     900–1100px a área útil já é menor que o viewport, então um
+     grid fixo de 4 colunas ficava espremido antes do breakpoint
+     antigo de 900px disparar).
+   - .dash-shell: novo breakpoint intermediário em 1100px estreitando
+     a sidebar de 250px para 210px, evitando que o conteúdo fique
+     espremido em telas de tablet antes do colapso total em 900px.
+   - .dash-main: em telas ultrawide (min-width:1440px) ganhou
+     max-width + margin:auto, para tabelas/cards não esticarem a
+     largura inteira de monitores muito grandes.
+   - .data-table: fonte e padding reduzidos em telas ≤640px, pra
+     caber mais colunas sem espremer demais o texto.
    ========================================================= */
 
 :root{
@@ -430,6 +449,12 @@ body:not(.is-admin) .admin-only{display:none !important}
 .dash-head h1{font-size:26px;color:var(--navy-900)}
 .dash-head p{color:var(--ink-600);margin-top:6px;font-size:14.5px}
 
+/* tablet: sidebar um pouco mais estreita antes do colapso total em
+   900px, pra não espremer o conteúdo nessa faixa intermediária */
+@media (max-width:1100px){
+  .dash-shell{grid-template-columns:210px 1fr}
+}
+
 @media (max-width:900px){
   .dash-shell{grid-template-columns:1fr}
   .dash-sidebar{position:static;height:auto;display:flex;overflow-x:auto;gap:4px;padding:16px;-webkit-overflow-scrolling:touch}
@@ -442,15 +467,16 @@ body:not(.is-admin) .admin-only{display:none !important}
   .dash-head h1{font-size:22px}
 }
 
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:34px}
+/* Fluido em vez de breakpoints fixos: reflui conforme a largura
+   REAL disponível (importa em telas com sidebar lateral, onde a
+   área útil já é menor que o viewport inteiro) */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;margin-bottom:34px}
 .stat-card{background:linear-gradient(165deg,#ffffff, #f7f9fe);border:1px solid var(--border);border-radius:var(--radius-md);padding:22px;transition:box-shadow .18s ease, border-color .18s ease}
 .stat-card:hover{box-shadow:var(--shadow-sm);border-color:var(--blue-100)}
 .stat-card .stat-label{font-size:12.5px;color:var(--ink-500);font-weight:600;margin-bottom:8px}
 .stat-card .stat-value{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--navy-900)}
 .stat-card.gold{background:linear-gradient(165deg,#fffdf7, var(--gold-100))}
 .stat-card.gold .stat-value{color:var(--gold-700)}
-@media (max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:500px){.stat-grid{grid-template-columns:1fr}}
 
 .panel{background:linear-gradient(180deg,#ffffff, #fdfdfc);border:1px solid var(--border);border-radius:var(--radius-lg);padding:26px}
 .panel + .panel{margin-top:22px}
@@ -471,6 +497,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .data-table td{padding:13px 12px;border-bottom:1px solid var(--border-soft);color:var(--ink-700)}
 .data-table tr:last-child td{border-bottom:none}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* tabelas mais compactas em telas pequenas, sem perder colunas —
+   cabe mais informação antes de precisar rolar horizontalmente */
+@media (max-width:640px){
+  .data-table{font-size:13px}
+  .data-table th,.data-table td{padding:10px 8px}
+}
 
 /* =================== PLANS =================== */
 .plans-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:26px;max-width:800px;margin:0 auto}
@@ -654,9 +687,12 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   .hero{padding:104px 0 128px}
   .hero-inner{gap:72px}
   .project-grid{grid-template-columns:repeat(4,1fr);gap:28px}
-  .stat-grid{grid-template-columns:repeat(4,1fr);gap:22px}
+  .stat-grid{gap:22px}
   .dash-shell{grid-template-columns:270px 1fr}
-  .dash-main{padding:44px 52px}
+  /* max-width + centralização: sem isso, tabelas e cards do
+     painel esticavam a largura inteira em monitores ultrawide,
+     ficando ilegíveis */
+  .dash-main{padding:44px 52px;max-width:1400px;margin:0 auto}
   .footer-grid{grid-template-columns:1.8fr 1fr 1fr 1fr;gap:44px}
 }
 
