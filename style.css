@@ -568,7 +568,43 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .data-table tr:last-child td{border-bottom:none}
 .data-table tbody tr:nth-child(even){background:var(--surface-alt)}
 .data-table tbody tr:hover{background:var(--blue-50)}
-.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
+
+/* Affordance de overflow horizontal: sinaliza com um fade nas bordas
+   quando a tabela continua além da área visível — problema comum em
+   telas estreitas onde a tabela "corta" sem aviso. As classes
+   is-scrollable-left/right são alternadas por um pequeno script na
+   página (ver nota abaixo); sem o script, o fade simplesmente não
+   aparece e a tabela funciona como antes. */
+.table-wrap::before,
+.table-wrap::after{
+  content:"";position:absolute;top:0;bottom:0;width:18px;pointer-events:none;
+  opacity:0;transition:opacity .18s ease;z-index:2;
+}
+.table-wrap::before{left:0;background:linear-gradient(90deg, rgba(255,255,255,.9), transparent)}
+.table-wrap::after{right:0;background:linear-gradient(270deg, rgba(255,255,255,.9), transparent)}
+.table-wrap.is-scrollable-left::before{opacity:1}
+.table-wrap.is-scrollable-right::after{opacity:1}
+/* Script de referência (adicionar em qualquer página com .table-wrap):
+   document.querySelectorAll('.table-wrap').forEach(function(wrap){
+     function update(){
+       wrap.classList.toggle('is-scrollable-left', wrap.scrollLeft > 4);
+       wrap.classList.toggle('is-scrollable-right', wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 4);
+     }
+     update();
+     wrap.addEventListener('scroll', update, {passive:true});
+     window.addEventListener('resize', update);
+   }); */
+
+/* Utilitário opcional para tabelas com muitas colunas: fixa a 1ª
+   coluna (geralmente o identificador — nome/usuário) durante o
+   scroll horizontal em telas estreitas. Aplicar a classe direto na
+   <table>, ex: <table class="data-table data-table--sticky-first"> */
+.data-table--sticky-first td:first-child,
+.data-table--sticky-first th:first-child{
+  position:sticky;left:0;background:#fff;z-index:1;
+}
+.data-table--sticky-first tbody tr:nth-child(even) td:first-child{background:var(--surface-alt)}
 
 /* tabelas mais compactas em telas pequenas, sem perder colunas —
    cabe mais informação antes de precisar rolar horizontalmente */
