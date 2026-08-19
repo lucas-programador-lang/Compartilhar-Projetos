@@ -827,44 +827,50 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================
-   CORES PERSONALIZADAS PARA OS BOTÕES DOS PLANOS (DISTINTAS)
+   CORES DOS PLANOS (PADRÃO DOURADO, MAS COLORIDOS)
    ========================================= */
 
-/* Plano Teste - Verde Esmeralda */
+/* Plano Teste - Verde Vibrante */
 .btn-teste {
-  background: linear-gradient(135deg, #10b981, #059669); 
-  color: #fff;
-  border: none;
-  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.30);
-  transition: transform .15s ease, box-shadow .15s ease;
+  background: linear-gradient(135deg, #34d399, #059669);
+  color: var(--navy-950);
+  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.34);
 }
 .btn-teste:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 38px rgba(5, 150, 105, 0.42);
 }
+.btn-teste:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 14px rgba(5, 150, 105, 0.30);
+}
 
-/* Plano 4 Dias - Azul Vibrante da sua paleta */
+/* Plano 4 Dias - Azul Claro / Ciano */
 .btn-4dias {
-  background: linear-gradient(135deg, var(--blue-vibrant-1), var(--blue-vibrant-2));
-  color: #fff;
-  border: none;
-  box-shadow: 0 10px 24px rgba(10, 47, 184, 0.30);
-  transition: transform .15s ease, box-shadow .15s ease;
+  background: linear-gradient(135deg, #7dd3fc, #0284c7);
+  color: var(--navy-950);
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.34);
 }
 .btn-4dias:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(10, 47, 184, 0.40);
+  box-shadow: 0 18px 38px rgba(2, 132, 199, 0.42);
+}
+.btn-4dias:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 14px rgba(2, 132, 199, 0.30);
 }
 
-/* Plano Mensal - Dark Premium (Azul super escuro) */
+/* Plano Mensal - Roxo Premium */
 .btn-mensal {
-  background: linear-gradient(135deg, var(--navy-800), var(--navy-950));
-  color: #fff;
-  border: none;
-  box-shadow: 0 10px 24px rgba(3, 7, 15, 0.35);
-  transition: transform .15s ease, box-shadow .15s ease;
+  background: linear-gradient(135deg, #c084fc, #7e22ce);
+  color: #fff; /* Texto branco porque o roxo é mais escuro */
+  box-shadow: 0 10px 24px rgba(126, 34, 206, 0.34);
 }
 .btn-mensal:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(3, 7, 15, 0.45);
+  box-shadow: 0 18px 38px rgba(126, 34, 206, 0.42);
+}
+.btn-mensal:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 14px rgba(126, 34, 206, 0.30);
 }
