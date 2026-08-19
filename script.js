@@ -167,19 +167,10 @@ import { uid, nowISO } from "./seed.js";
       return false;
     }
   }
-  // Detecta links em texto livre (posts/comentários/respostas da comunidade).
-  // Cobre: http(s)://, www., domínio.tld (ex.: meusite.com), e variações com
-  // espaços/parênteses em volta do ponto (ex.: "meusite . com", "meusite(.)com"),
-  // que é um contorno comum de filtros simples. Não é infalível — ver aviso
-  // ao usuário sobre reforçar isso no servidor também.
   const LINK_PATTERN = /(https?:\/\/|www\.)\S+|\b[a-z0-9-]+\s*[(\[]?\s*\.\s*[)\]]?\s*(com|net|org|br|io|me|co|app|dev|xyz|info|shop|site|online|link|click)\b/i;
   function containsLink(str) {
     return LINK_PATTERN.test(str || "");
   }
-  // Traduz erros crus do SDK do Firebase (ex.: quando a validação do
-  // servidor barra algo que passou pelo filtro do cliente, como um link
-  // com um padrão não coberto pelo regex local) em mensagem legível.
-  // Sem isso, o usuário veria "PERMISSION_DENIED" ou similar no toast.
   function friendlyError(err, fallbackMsg) {
     const raw = (err && err.message) || String(err || "");
     if (/permission_denied/i.test(raw) || /PERMISSION_DENIED/.test(raw)) {
@@ -190,11 +181,6 @@ import { uid, nowISO } from "./seed.js";
 
   /* ---------------------------------------------------------
      GERAÇÃO DE QR CODE (no navegador)
-     A VizzionPay não garante mais o campo pix.image (é opcional)
-     e pix.base64 está deprecated (sempre retorna vazio agora).
-     O único dado garantido é pix.code (o código copia-e-cola),
-     então geramos o QR Code no próprio navegador a partir dele,
-     usando a lib qrcodejs carregada via CDN.
   --------------------------------------------------------- */
   let qrCodeLibPromise = null;
   function ensureQRCodeLib() {
@@ -248,7 +234,7 @@ import { uid, nowISO } from "./seed.js";
         client: {
           name: user.name,
           email: user.email,
-          phone: user.phone || "(11) 99999-9999", // ajuste se o cadastro tiver telefone próprio
+          phone: user.phone || "(11) 99999-9999",
           document,
         },
       }),
@@ -256,10 +242,9 @@ import { uid, nowISO } from "./seed.js";
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Erro ao gerar cobrança Pix");
-    return data; // { transactionId, status, pix: { code, image } }
+    return data;
   }
 
-  // Remove tudo que não for dígito — CPF (11) ou CNPJ (14)
   function onlyDigits(str) {
     return (str || "").replace(/\D/g, "");
   }
@@ -268,10 +253,7 @@ import { uid, nowISO } from "./seed.js";
     return digits.length === 11 || digits.length === 14;
   }
 
-  // Pede CPF/CNPJ antes de gerar o Pix, caso o usuário ainda não tenha cadastrado.
-  // Salva no perfil (updateUserProfile) para não precisar pedir de novo.
   function showDocumentModal() {
-    // Evita abrir dois modais sobrepostos (ex.: double-tap no mobile disparando dois cliques)
     const existing = qs(".modal-overlay");
     if (existing) existing.remove();
 
@@ -307,7 +289,6 @@ import { uid, nowISO } from "./seed.js";
         try {
           await updateUserProfile(user.id, { document: digits });
         } catch (err) {
-          // mesmo se falhar salvar no perfil, seguimos com o pagamento usando o valor digitado
           console.error("Falha ao salvar document no perfil:", err);
         }
         overlay.remove();
@@ -347,13 +328,10 @@ import { uid, nowISO } from "./seed.js";
         handled = true;
         overlay.remove();
         toast("Pagamento confirmado — assinatura ativa!", "success");
-        // onDBChange pode disparar este callback de forma síncrona (se a assinatura
-        // já estiver ativa no cache local), antes de "stopWatching" terminar de ser
-        // atribuído. Adiar para o próximo microtask garante que a variável já exista.
         Promise.resolve().then(() => {
           if (typeof stopWatching === "function") stopWatching();
         });
-        render({ navigation: true }); // assinatura mudou de estado — vale a pena voltar ao topo
+        render({ navigation: true });
       }
     });
     stopWatching = unsubscribe;
@@ -370,8 +348,7 @@ import { uid, nowISO } from "./seed.js";
   }
 
   /* ---------------------------------------------------------
-     AÇÕES DE NEGÓCIO
-     (login e cadastro ficam em auth.js — login.html / register.html)
+     AÇÕES DE NEGÓCIO E CHATBOT
   --------------------------------------------------------- */
   function publishProject(data) {
     const user = currentUser();
@@ -398,6 +375,39 @@ import { uid, nowISO } from "./seed.js";
       status: "pendente", // O post agora vai para revisão em vez de ir direto pra vitrine
     };
     return addProject(project);
+  }
+
+  // --- Função para o Modal do Chatbot ---
+  function showChatbotModal(project) {
+    const existing = qs(".modal-overlay");
+    if (existing) existing.remove();
+
+    // Define o motivo dinamicamente com base na resposta do Worker
+    let motivo = "A categoria selecionada está incorreta ou os dados de contato informados são inválidos.";
+    if (project.rejectReason === "categoria") motivo = "A categoria selecionada está incorreta.";
+    if (project.rejectReason === "contato") motivo = "Os dados de contato informados são inválidos.";
+
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay open";
+    overlay.innerHTML = `
+      <div class="modal-box" style="max-width:400px; text-align:center;">
+        <button type="button" class="modal-close" id="chatCloseBtn" aria-label="Fechar">×</button>
+        <div style="font-size: 40px; margin-bottom: 10px;">🤖</div>
+        <h2 style="margin-bottom: 12px;">Mensagem do Moderador</h2>
+        <div style="background: rgba(207,53,39,.1); padding: 16px; border-radius: 8px; text-align: left; font-size: 14px; line-height: 1.5; color: #333;">
+          <p><strong>⚠️ ATENÇÃO</strong></p>
+          <p style="margin-top: 8px;">Seu post <strong>"${escapeHtml(project.title)}"</strong> não foi aprovado porque <strong>${motivo}</strong>.</p>
+          <p style="margin-top: 8px;">📌 Todas as postagens passam por revisão antes de serem aprovadas.</p>
+          <p style="margin-top: 8px;">Caso tenha cometido algum erro, por favor, exclua esse projeto pendente e reenvie um novo post com as informações corrigidas.</p>
+          <p style="margin-top: 8px;">Obrigado pela compreensão! ✅</p>
+        </div>
+        <button class="btn btn-primary btn-block mt-3" id="chatOkBtn">Entendi</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const closeFn = () => overlay.remove();
+    qs("#chatCloseBtn", overlay).addEventListener("click", closeFn);
+    qs("#chatOkBtn", overlay).addEventListener("click", closeFn);
   }
 
   function createPost(content) {
@@ -469,11 +479,6 @@ import { uid, nowISO } from "./seed.js";
     return db.commissions.filter((c) => c.referrerId === userId).reduce((s, c) => s + c.amount, 0);
   }
 
-  // Observação: a antiga função maturateCommissions() foi removida.
-  // O Worker agora cria a comissão já como "available" no momento em que
-  // confirma o pagamento via webhook, então não há mais etapa de maturação
-  // a ser feita pelo cliente.
-
   /* ---------------------------------------------------------
      HEADER / ESTADO GLOBAL
   --------------------------------------------------------- */
@@ -517,18 +522,6 @@ import { uid, nowISO } from "./seed.js";
 
   /* ---------------------------------------------------------
      RENDER
-     -----------------------------------------------------------
-     render({ navigation }) — navigation=true é usado só quando a
-     rota realmente mudou (hashchange) ou quando o estado de auth
-     muda (login/logout). Só esses casos fazem sentido "resetar" a
-     tela para o usuário: forçam scroll ao topo.
-
-     navigation=false (padrão) é usado nas atualizações de dado
-     vindas do Firebase (onDBChange), que podem chegar a qualquer
-     momento e não têm relação com o que o usuário está fazendo —
-     por isso NÃO mexem no scroll. Se o usuário estiver digitando
-     em um campo dentro de #app nesse momento, o render é adiado
-     até ele sair do campo, para não apagar o que foi digitado.
   --------------------------------------------------------- */
   let pendingDataRender = false;
 
@@ -543,16 +536,12 @@ import { uid, nowISO } from "./seed.js";
   function render(opts) {
     const isNavigation = !!(opts && opts.navigation);
 
-    // ainda carregando dados do Firebase (auth e/ou banco) — mostra um loading simples
     if (!authReady || !dbReady) {
       const app = qs("#app");
       if (app) app.innerHTML = `<div class="section text-center"><div class="container"><p class="muted">Carregando…</p></div></div>`;
       return;
     }
 
-    // Atualização de dado chegando enquanto o usuário digita algo dentro
-    // de #app: adia o re-render em vez de apagar o campo. É retomado no
-    // listener de "focusout" logo abaixo, assim que o campo perde o foco.
     if (!isNavigation && hasActiveFormField()) {
       pendingDataRender = true;
       return;
@@ -584,8 +573,6 @@ import { uid, nowISO } from "./seed.js";
     else html = view404();
 
     app.innerHTML = html;
-    // Só reseta o scroll quando é de fato uma navegação — atualizações de
-    // dado que chegam em segundo plano não devem mexer na posição da tela.
     if (isNavigation) {
       window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
     }
@@ -593,8 +580,6 @@ import { uid, nowISO } from "./seed.js";
     bindPageEvents(path);
   }
 
-  // Retoma um render de dado que ficou pendente assim que o usuário sai
-  // do campo em que estava digitando.
   document.addEventListener("focusout", () => {
     if (!pendingDataRender) return;
     setTimeout(() => {
@@ -625,7 +610,6 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function viewHome() {
-    // Filtra apenas projetos aprovados ("published") para exibir na Home
     const featured = db.projects.filter(p => p.status === "published").slice(0, 4);
     return `
     <section class="hero">
@@ -692,11 +676,9 @@ import { uid, nowISO } from "./seed.js";
   function viewExplore(params) {
     const search = (params.q || "").toLowerCase();
     
-    // Filtra apenas projetos aprovados ("published")
     let list = db.projects.filter((p) => p.status === "published");
     if (search) list = list.filter((p) => p.title.toLowerCase().includes(search) || p.description.toLowerCase().includes(search));
 
-    // Agrupar os projetos pelas categorias existentes
     const grouped = {};
     db.categories.forEach(c => grouped[c.id] = { name: c.name, projects: [] });
     grouped["geral"] = { name: "Geral", projects: [] };
@@ -706,7 +688,6 @@ import { uid, nowISO } from "./seed.js";
        if(grouped[cId]) grouped[cId].projects.push(p);
     });
 
-    // Gerar o HTML das seções de cada categoria
     const categoriesHtml = Object.values(grouped)
       .filter(g => g.projects.length > 0)
       .map(g => `
@@ -1008,21 +989,29 @@ import { uid, nowISO } from "./seed.js";
           <div class="panel-head"><h3>Seus projetos</h3><a href="#/publicar" class="link">Publicar novo →</a></div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Projeto</th><th>Categoria</th><th>Status</th><th>Link</th></tr></thead>
+              <thead><tr><th>Projeto</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead>
               <tbody>
                 ${
                   myProjects
                     .map((p) => {
                       let badge = '';
-                      if (p.status === 'published') badge = '<span class="badge badge-success">Aprovado</span>';
-                      else if (p.status === 'rejeitado') badge = '<span class="badge badge-danger" title="Verifique suas mensagens">Rejeitado</span>';
-                      else badge = '<span class="badge badge-warning">Em Revisão</span>';
+                      let action = `<a href="#/projeto/${p.id}" class="link">Acessar ↗</a>`;
+
+                      if (p.status === 'published') {
+                        badge = '<span class="badge badge-success">Aprovado</span>';
+                      } else if (p.status === 'rejeitado') {
+                        badge = '<span class="badge badge-danger">Rejeitado</span>';
+                        action = `<button class="btn btn-sm btn-ghost" data-chatbot-msg="${p.id}" style="color: #cf3527; border: 1px solid #cf3527; padding: 4px 8px;">Ver Mensagem 💬</button>`;
+                      } else {
+                        badge = '<span class="badge badge-warning">Em Revisão</span>';
+                        action = `<span class="muted">Aguardando aprovação...</span>`;
+                      }
                       
                       return `<tr>
-                    <td><a href="#/projeto/${p.id}" class="link">${escapeHtml(p.title)}</a></td>
+                    <td><strong>${escapeHtml(p.title)}</strong></td>
                     <td>${escapeHtml(categoryName(p.categoryId))}</td>
                     <td>${badge}</td>
-                    <td><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener" class="link">Acessar ↗</a></td>
+                    <td>${action}</td>
                   </tr>`;
                     })
                     .join("") || `<tr><td colspan="4" class="muted text-center">Você ainda não publicou nenhum projeto.</td></tr>`
@@ -1149,6 +1138,18 @@ import { uid, nowISO } from "./seed.js";
   let pendingImages = [];
 
   function bindPageEvents(path) {
+
+    // Adiciona o evento de clique para o botão "Ver Mensagem" do Chatbot
+    qsa("[data-chatbot-msg]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const projectId = btn.getAttribute("data-chatbot-msg");
+        const project = db.projects.find((p) => p.id === projectId);
+        if (project) {
+          showChatbotModal(project);
+        }
+      });
+    });
+
     const search = qs("#searchInput");
     const catFilter = qs("#catFilter");
     if (search) {
@@ -1158,8 +1159,6 @@ import { uid, nowISO } from "./seed.js";
       catFilter.addEventListener("change", () => updateExploreQuery());
     }
 
-    // Botões de plano — geram cobrança Pix. Se o usuário ainda não tem
-    // CPF/CNPJ cadastrado, pedimos antes de chamar o Worker (exigido pela VizzionPay).
     qsa("[data-plan]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!currentUser()) {
@@ -1172,7 +1171,7 @@ import { uid, nowISO } from "./seed.js";
           btn.disabled = true;
           let doc = currentUser().document;
           if (!doc) {
-            doc = await showDocumentModal(); // pode rejeitar se o usuário cancelar
+            doc = await showDocumentModal(); 
           }
           btn.textContent = "Gerando Pix...";
           const result = await startPixPayment(planId, doc);
@@ -1219,7 +1218,7 @@ import { uid, nowISO } from "./seed.js";
           )
           .then((project) => {
             toast("Projeto enviado para revisão com sucesso!", "success");
-            navigate("/painel"); // Redireciona pro painel para ver o status pendente em vez de ir direto pro post inexistente
+            navigate("/painel"); 
           })
           .catch((err) => {
             qs("#publishError").textContent = err.message;
@@ -1343,8 +1342,6 @@ import { uid, nowISO } from "./seed.js";
     if (q) parts.push("q=" + encodeURIComponent(q));
     if (cat) parts.push("cat=" + encodeURIComponent(cat));
     location.hash = hash + parts.join("&");
-    // location.hash já dispara 'hashchange' -> render({navigation:true});
-    // nenhuma chamada extra necessária aqui.
   }
 
   function debounce(fn, ms) {
@@ -1394,23 +1391,13 @@ import { uid, nowISO } from "./seed.js";
   onAuthStateChanged(auth, (user) => {
     firebaseUser = user;
     authReady = true;
-    // Ao mudar o estado de login, os nós protegidos (users, referrals,
-    // commissions, withdrawals) são recarregados do zero pelo db-sync.js
-    // — isso é assíncrono. Até esses dados chegarem, "db.users" pode
-    // estar vazio/desatualizado. Resetar dbReady aqui faz o render()
-    // mostrar "Carregando…" nesse intervalo, em vez de concluir (errado)
-    // que o usuário não está logado e redirecionar pro login.
     dbReady = false;
-    // Mudança de sessão (login/logout) é um evento raro e sempre muda
-    // significativamente o que a tela mostra — trata como navegação.
     render({ navigation: true });
   });
 
   onDBChange((newDb) => {
     db = newDb;
     dbReady = true;
-    // Atualização de dado em segundo plano — nunca força scroll nem
-    // interrompe quem estiver digitando (ver hasActiveFormField acima).
     render({ navigation: false });
   });
 
