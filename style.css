@@ -827,65 +827,68 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================
-   ESTILO COMPLETO DOS PLANOS (CARDS + BOTÕES)
+   ESTILO COMPLETO DOS PLANOS (CORES PREMIUM)
    ========================================= */
 
-/* --- PLANO TESTE (VERDE) --- */
+/* --- PLANO TESTE (MINT / VERDE ÁGUA) --- */
 .plan-card.card-teste {
-  background: linear-gradient(165deg, #ffffff, #dcfce7 130%);
-  border-color: #10b981;
-  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.25);
+  background: linear-gradient(165deg, #ffffff, #ecfdf5 130%);
+  border-color: #34d399;
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.15);
 }
 .btn-teste {
   background: linear-gradient(135deg, #34d399, #059669);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.34);
+  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.25);
+  transition: transform .15s ease, box-shadow .15s ease;
 }
 .btn-teste:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(5, 150, 105, 0.42);
+  box-shadow: 0 18px 38px rgba(5, 150, 105, 0.35);
 }
 .btn-teste:active {
   transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(5, 150, 105, 0.30);
+  box-shadow: 0 6px 14px rgba(5, 150, 105, 0.20);
 }
 
-/* --- PLANO 4 DIAS (AZUL) --- */
+/* --- PLANO 4 DIAS (OCEAN BLUE / AZUL PROFUNDO) --- */
 .plan-card.card-4dias {
-  background: linear-gradient(165deg, #ffffff, #e0f2fe 130%);
-  border-color: #0ea5e9;
-  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.25);
+  background: linear-gradient(165deg, #ffffff, #eff6ff 130%);
+  border-color: #3b82f6;
+  box-shadow: 0 12px 28px rgba(59, 130, 246, 0.18);
 }
 .btn-4dias {
-  background: linear-gradient(135deg, #60a5fa, #0284c7);
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.34);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+  transition: transform .15s ease, box-shadow .15s ease;
 }
 .btn-4dias:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(2, 132, 199, 0.42);
+  box-shadow: 0 18px 38px rgba(37, 99, 235, 0.35);
 }
 .btn-4dias:active {
   transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(2, 132, 199, 0.30);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.20);
 }
 
-/* --- PLANO MENSAL (ROXO) --- */
+/* --- PLANO MENSAL (COSMIC PURPLE / ROXO CÓSMICO) --- */
 .plan-card.card-mensal {
-  background: linear-gradient(165deg, #ffffff, #f3e8ff 130%);
-  border-color: #a855f7;
-  box-shadow: 0 12px 28px rgba(168, 85, 247, 0.25);
+  background: linear-gradient(165deg, #ffffff, #f5f3ff 130%);
+  border-color: #8b5cf6;
+  box-shadow: 0 12px 28px rgba(139, 92, 246, 0.18);
 }
 .btn-mensal {
-  background: linear-gradient(135deg, #c084fc, #7e22ce);
+  background: linear-gradient(135deg, #a78bfa, #6d28d9);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(126, 34, 206, 0.34);
+  box-shadow: 0 10px 24px rgba(109, 40, 217, 0.25);
+  transition: transform .15s ease, box-shadow .15s ease;
 }
 .btn-mensal:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(126, 34, 206, 0.42);
+  box-shadow: 0 18px 38px rgba(109, 40, 217, 0.35);
 }
 .btn-mensal:active {
   transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(126, 34, 206, 0.30);
+  box-shadow: 0 6px 14px rgba(109, 40, 217, 0.20);
 }
