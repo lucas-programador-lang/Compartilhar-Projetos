@@ -362,6 +362,38 @@
   </div>
 </div>
 
+<!-- Modal de Rejeição com aviso do Chatbot -->
+<div class="confirm-overlay" id="rejectModal" style="display: none;">
+  <div class="confirm-box" style="max-width: 450px; text-align: center;">
+    <div class="confirm-icon" style="background: rgba(207,53,39,.12); color: #cf3527;">!</div>
+    <h3>Reprovar Projeto</h3>
+    <p class="muted" style="margin-bottom: 16px;">Escolha o motivo. O usuário receberá uma notificação automática.</p>
+    
+    <form id="rejectForm" style="text-align: left;">
+      <input type="hidden" id="rejectProjectId">
+      
+      <div style="margin-bottom: 12px; padding: 12px; border: 1px solid var(--border-soft, #e2e8f0); border-radius: 8px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+          <input type="radio" name="rejectReason" value="categoria" checked>
+          A categoria selecionada está incorreta
+        </label>
+      </div>
+      
+      <div style="margin-bottom: 24px; padding: 12px; border: 1px solid var(--border-soft, #e2e8f0); border-radius: 8px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+          <input type="radio" name="rejectReason" value="contato">
+          Os dados de contato informados são inválidos
+        </label>
+      </div>
+
+      <div class="confirm-actions">
+        <button class="btn btn-ghost btn-block" id="rejectCancelBtn" type="button">Cancelar</button>
+        <button class="btn btn-danger btn-block" type="submit">Reprovar e Avisar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script type="module" src="admin.js"></script>
 <script>
   // Ativa/desativa as classes is-scrollable-left/right (definidas no
