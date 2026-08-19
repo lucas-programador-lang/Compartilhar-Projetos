@@ -827,13 +827,18 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================
-   CORES DOS PLANOS (PADRÃO DOURADO, MAS COLORIDOS)
+   ESTILO COMPLETO DOS PLANOS (CARDS + BOTÕES)
    ========================================= */
 
-/* Plano Teste - Verde Vibrante */
+/* --- PLANO TESTE (VERDE) --- */
+.plan-card.card-teste {
+  background: linear-gradient(165deg, #ffffff, #dcfce7 130%);
+  border-color: #10b981;
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.25);
+}
 .btn-teste {
   background: linear-gradient(135deg, #34d399, #059669);
-  color: var(--navy-950);
+  color: #ffffff;
   box-shadow: 0 10px 24px rgba(5, 150, 105, 0.34);
 }
 .btn-teste:hover {
@@ -845,10 +850,15 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   box-shadow: 0 6px 14px rgba(5, 150, 105, 0.30);
 }
 
-/* Plano 4 Dias - Azul Claro / Ciano */
+/* --- PLANO 4 DIAS (AZUL) --- */
+.plan-card.card-4dias {
+  background: linear-gradient(165deg, #ffffff, #e0f2fe 130%);
+  border-color: #0ea5e9;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.25);
+}
 .btn-4dias {
-  background: linear-gradient(135deg, #7dd3fc, #0284c7);
-  color: var(--navy-950);
+  background: linear-gradient(135deg, #60a5fa, #0284c7);
+  color: #ffffff;
   box-shadow: 0 10px 24px rgba(2, 132, 199, 0.34);
 }
 .btn-4dias:hover {
@@ -860,10 +870,15 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   box-shadow: 0 6px 14px rgba(2, 132, 199, 0.30);
 }
 
-/* Plano Mensal - Roxo Premium */
+/* --- PLANO MENSAL (ROXO) --- */
+.plan-card.card-mensal {
+  background: linear-gradient(165deg, #ffffff, #f3e8ff 130%);
+  border-color: #a855f7;
+  box-shadow: 0 12px 28px rgba(168, 85, 247, 0.25);
+}
 .btn-mensal {
   background: linear-gradient(135deg, #c084fc, #7e22ce);
-  color: #fff; /* Texto branco porque o roxo é mais escuro */
+  color: #ffffff;
   box-shadow: 0 10px 24px rgba(126, 34, 206, 0.34);
 }
 .btn-mensal:hover {
