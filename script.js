@@ -155,7 +155,6 @@ import { uid, nowISO } from "./seed.js";
       reader.readAsDataURL(file);
     });
   }
-  // sanitiza texto de publicações (proteção básica contra conteúdo malicioso / HTML injetado)
   function sanitizeText(str) {
     return escapeHtml(str).slice(0, 5000);
   }
@@ -372,34 +371,31 @@ import { uid, nowISO } from "./seed.js";
       contact: sanitizeText(data.contact.trim()),
       ownerId: user.id,
       createdAt: nowISO(),
-      status: "pendente", // O post agora vai para revisão em vez de ir direto pra vitrine
+      status: "pendente", 
     };
     return addProject(project);
   }
 
-  // --- Função para o Modal do Chatbot ---
+  // --- Função para o Modal de Aviso Limpo ---
   function showChatbotModal(project) {
     const existing = qs(".modal-overlay");
     if (existing) existing.remove();
 
-    // Define o motivo dinamicamente com base na resposta do Worker
-    let motivo = "A categoria selecionada está incorreta ou os dados de contato informados são inválidos.";
-    if (project.rejectReason === "categoria") motivo = "A categoria selecionada está incorreta.";
-    if (project.rejectReason === "contato") motivo = "Os dados de contato informados são inválidos.";
+    // Define o motivo dinamicamente com letras minúsculas para encaixar na frase
+    let motivo = "a categoria selecionada está incorreta ou os dados de contato informados são inválidos";
+    if (project.rejectReason === "categoria") motivo = "a categoria selecionada está incorreta";
+    if (project.rejectReason === "contato") motivo = "os dados de contato informados são inválidos";
 
     const overlay = document.createElement("div");
     overlay.className = "modal-overlay open";
     overlay.innerHTML = `
       <div class="modal-box" style="max-width:400px; text-align:center;">
         <button type="button" class="modal-close" id="chatCloseBtn" aria-label="Fechar">×</button>
-        <div style="font-size: 40px; margin-bottom: 10px;">🤖</div>
-        <h2 style="margin-bottom: 12px;">Mensagem do Moderador</h2>
-        <div style="background: rgba(207,53,39,.1); padding: 16px; border-radius: 8px; text-align: left; font-size: 14px; line-height: 1.5; color: #333;">
-          <p><strong>⚠️ ATENÇÃO</strong></p>
-          <p style="margin-top: 8px;">Seu post <strong>"${escapeHtml(project.title)}"</strong> não foi aprovado porque <strong>${motivo}</strong>.</p>
-          <p style="margin-top: 8px;">📌 Todas as postagens passam por revisão antes de serem aprovadas.</p>
-          <p style="margin-top: 8px;">Caso tenha cometido algum erro, por favor, exclua esse projeto pendente e reenvie um novo post com as informações corrigidas.</p>
-          <p style="margin-top: 8px;">Obrigado pela compreensão! ✅</p>
+        <h2 style="margin-bottom: 16px; color: var(--navy-900);">Aviso da Moderação</h2>
+        <div style="background: rgba(207,53,39,.08); border: 1px solid rgba(207,53,39,.2); padding: 16px; border-radius: 8px; text-align: left; font-size: 14px; line-height: 1.6; color: #333;">
+          <p><strong>Atenção:</strong> O seu projeto <strong>"${escapeHtml(project.title)}"</strong> não foi aprovado na revisão porque <strong>${motivo}</strong>.</p>
+          <p style="margin-top: 12px;">Lembramos que todas as postagens passam por uma análise de qualidade antes de serem exibidas na vitrine da plataforma.</p>
+          <p style="margin-top: 12px;">Para resolver isso, por favor, exclua este projeto pendente e faça um novo envio com as informações corrigidas. Agradecemos a compreensão.</p>
         </div>
         <button class="btn btn-primary btn-block mt-3" id="chatOkBtn">Entendi</button>
       </div>`;
@@ -969,7 +965,7 @@ import { uid, nowISO } from "./seed.js";
       <nav class="dash-sidebar">${sideNav("/painel")}</nav>
       <div class="dash-main">
         <div class="dash-head">
-          <div><h1>Olá, ${escapeHtml(user.name.split(" ")[0])} 👋</h1><p>Aqui está um resumo da sua conta em Compartilhar Projetos.</p></div>
+          <div><h1>Olá, ${escapeHtml(user.name.split(" ")[0])}</h1><p>Aqui está um resumo da sua conta em Compartilhar Projetos.</p></div>
           <a href="#/publicar" class="btn btn-gold">+ Publicar projeto</a>
         </div>
         <div class="stat-grid">
@@ -1001,7 +997,8 @@ import { uid, nowISO } from "./seed.js";
                         badge = '<span class="badge badge-success">Aprovado</span>';
                       } else if (p.status === 'rejeitado') {
                         badge = '<span class="badge badge-danger">Rejeitado</span>';
-                        action = `<button class="btn btn-sm btn-ghost" data-chatbot-msg="${p.id}" style="color: #cf3527; border: 1px solid #cf3527; padding: 4px 8px;">Ver Mensagem 💬</button>`;
+                        // Botão limpo e sem emojis
+                        action = `<button class="btn btn-sm btn-ghost" data-chatbot-msg="${p.id}" style="color: #cf3527; border: 1px solid #cf3527; padding: 4px 8px;">Ver Mensagem</button>`;
                       } else {
                         badge = '<span class="badge badge-warning">Em Revisão</span>';
                         action = `<span class="muted">Aguardando aprovação...</span>`;
@@ -1139,7 +1136,7 @@ import { uid, nowISO } from "./seed.js";
 
   function bindPageEvents(path) {
 
-    // Adiciona o evento de clique para o botão "Ver Mensagem" do Chatbot
+    // Adiciona o evento de clique para o botão "Ver Mensagem"
     qsa("[data-chatbot-msg]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const projectId = btn.getAttribute("data-chatbot-msg");
