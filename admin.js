@@ -485,29 +485,79 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     PROJETOS
+     PROJETOS (Moderação e Gerenciamento)
   --------------------------------------------------------- */
   function renderProjects(filter) {
     filter = (filter || "").toLowerCase();
-    const list = db.projects.filter((p) => !filter || p.title.toLowerCase().includes(filter));
+    
+    // Ordenar: Pendentes primeiro, depois por data mais recente
+    const list = db.projects
+      .filter((p) => !filter || p.title.toLowerCase().includes(filter))
+      .sort((a, b) => {
+        if (a.status === 'pendente' && b.status !== 'pendente') return -1;
+        if (b.status === 'pendente' && a.status !== 'pendente') return 1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
     qs("#projectsTable tbody").innerHTML =
       list
         .map((p) => {
           const owner = userById(p.ownerId);
+
+          // Definir o badge de status (agora agrupado com a Data para não quebrar a tabela HTML)
+          let statusBadge = '';
+          if (p.status === 'published') statusBadge = '<span class="badge badge-success mt-1">Aprovado</span>';
+          else if (p.status === 'rejeitado') statusBadge = '<span class="badge badge-danger mt-1">Rejeitado</span>';
+          else statusBadge = '<span class="badge badge-warning mt-1">Pendente</span>';
+
+          // Definir os botões de ação baseados no status
+          let actionBtns = '';
+          if (p.status === 'pendente') {
+            actionBtns = `
+              <button class="btn btn-sm btn-primary" style="width: 100%" data-approve-proj="${p.id}">Aprovar</button>
+              <button class="btn btn-sm btn-danger" style="width: 100%" data-reject-proj="${p.id}">Reprovar</button>
+            `;
+          } else {
+            actionBtns = `<button class="btn btn-sm btn-danger" style="width: 100%" data-delproj="${p.id}">Excluir</button>`;
+          }
+
           return `<tr>
           <td><a href="index.html#/projeto/${p.id}" target="_blank" class="link">${escapeHtml(p.title)}</a></td>
           <td>${escapeHtml(owner ? owner.name : "—")}</td>
           <td>${escapeHtml(catName(p.categoryId))}</td>
-          <td>${fmtDate(p.createdAt)}</td>
-          <td><button class="btn btn-sm btn-danger" data-delproj="${p.id}">Excluir</button></td>
+          <td>${fmtDate(p.createdAt)}<br>${statusBadge}</td>
+          <td class="flex gap-1" style="flex-direction: column;">${actionBtns}</td>
         </tr>`;
         })
         .join("") || `<tr><td colspan="5" class="muted text-center">Nenhum projeto encontrado.</td></tr>`;
 
+    // AÇÕES DE APROVAR
+    qsa("[data-approve-proj]").forEach((btn) =>
+      btn.addEventListener("click", () =>
+        withButtonLock(btn, async () => {
+          const ok = await confirmAction("Aprovar este projeto? Ele ficará visível na vitrine para todos.", { title: "Aprovar projeto", confirmLabel: "Sim, aprovar", neutral: true });
+          if (!ok) return;
+          // Chama o endpoint de moderação (você precisa criar essa rota no seu Worker)
+          await adminFetch("/admin/moderate-project", { projectId: btn.getAttribute("data-approve-proj"), status: "published" });
+          toast("Projeto aprovado e na vitrine!", "success");
+          renderAll();
+        })
+      )
+    );
+
+    // AÇÕES DE REPROVAR (Abre o modal)
+    qsa("[data-reject-proj]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        const projectId = btn.getAttribute("data-reject-proj");
+        openRejectModal(projectId);
+      })
+    );
+
+    // AÇÕES DE EXCLUIR
     qsa("[data-delproj]").forEach((btn) =>
       btn.addEventListener("click", () =>
         withButtonLock(btn, async () => {
-          const ok = await confirmAction("Excluir este projeto? Ele deixará de aparecer para todos os usuários.", { title: "Excluir projeto" });
+          const ok = await confirmAction("Excluir este projeto permanentemente?", { title: "Excluir projeto" });
           if (!ok) return;
           await adminFetch("/admin/delete-project", { projectId: btn.getAttribute("data-delproj") });
           toast("Projeto excluído.", "success");
@@ -515,6 +565,49 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         })
       )
     );
+  }
+
+  /* ---------------------------------------------------------
+     MODAL DE REPROVAÇÃO (Chatbot)
+  --------------------------------------------------------- */
+  function bindRejectModal() {
+    const modal = qs("#rejectModal");
+    if (!modal || modal.dataset.bound) return;
+    modal.dataset.bound = "1";
+
+    const cancelBtn = qs("#rejectCancelBtn", modal);
+    const form = qs("#rejectForm", modal);
+
+    cancelBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const projectId = qs("#rejectProjectId", modal).value;
+      const reason = form.querySelector('input[name="rejectReason"]:checked').value;
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      withButtonLock(submitBtn, async () => {
+        // Envia para o Worker atualizar o status e disparar a mensagem
+        await adminFetch("/admin/moderate-project", {
+          projectId: projectId,
+          status: "rejeitado",
+          rejectReason: reason
+        });
+        
+        toast("Projeto reprovado e usuário notificado.", "success");
+        modal.style.display = "none";
+        renderAll();
+      });
+    });
+  }
+
+  function openRejectModal(projectId) {
+    const modal = qs("#rejectModal");
+    if (!modal) return;
+    qs("#rejectProjectId", modal).value = projectId;
+    modal.style.display = "flex";
   }
 
   /* ---------------------------------------------------------
@@ -654,6 +747,8 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
      automático vindo de onDBChange preserve o que está digitado.
   --------------------------------------------------------- */
   function bindForms() {
+    bindRejectModal(); // <--- O modal do chatbot foi ativado aqui!
+    
     const userSearch = qs("#userSearch");
     if (userSearch && !userSearch.dataset.bound) {
       userSearch.dataset.bound = "1";
