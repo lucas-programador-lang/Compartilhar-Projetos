@@ -827,68 +827,71 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================
-   ESTILO COMPLETO DOS PLANOS (CORES PREMIUM)
+   ESTILO COMPLETO DOS PLANOS (CORES 100% DISTINTAS)
    ========================================= */
 
-/* --- PLANO TESTE (MINT / VERDE ÁGUA) --- */
+/* --- PLANO TESTE (CORAL / ROSA AVERMELHADO) --- */
 .plan-card.card-teste {
-  background: linear-gradient(165deg, #ffffff, #ecfdf5 130%);
-  border-color: #34d399;
-  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.15);
+  background: linear-gradient(165deg, #ffffff, #fff1f2 130%);
+  border-color: #f43f5e;
+  box-shadow: 0 12px 28px rgba(244, 63, 94, 0.15);
 }
+.card-teste .plan-name { color: #e11d48; } /* Muda a cor do título */
 .btn-teste {
-  background: linear-gradient(135deg, #34d399, #059669);
+  background: linear-gradient(135deg, #fb7185, #e11d48);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.25);
+  box-shadow: 0 10px 24px rgba(225, 29, 72, 0.25);
   transition: transform .15s ease, box-shadow .15s ease;
 }
 .btn-teste:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(5, 150, 105, 0.35);
+  box-shadow: 0 18px 38px rgba(225, 29, 72, 0.35);
 }
 .btn-teste:active {
   transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(5, 150, 105, 0.20);
+  box-shadow: 0 6px 14px rgba(225, 29, 72, 0.20);
 }
 
-/* --- PLANO 4 DIAS (OCEAN BLUE / AZUL PROFUNDO) --- */
+/* --- PLANO 4 DIAS (TURQUESA / CIANO) --- */
 .plan-card.card-4dias {
-  background: linear-gradient(165deg, #ffffff, #eff6ff 130%);
-  border-color: #3b82f6;
-  box-shadow: 0 12px 28px rgba(59, 130, 246, 0.18);
+  background: linear-gradient(165deg, #ffffff, #ecfeff 130%);
+  border-color: #06b6d4;
+  box-shadow: 0 12px 28px rgba(6, 182, 212, 0.15);
 }
+.card-4dias .plan-name { color: #0369a1; } /* Muda a cor do título */
 .btn-4dias {
-  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  background: linear-gradient(135deg, #22d3ee, #0284c7);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.25);
   transition: transform .15s ease, box-shadow .15s ease;
 }
 .btn-4dias:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 18px 38px rgba(2, 132, 199, 0.35);
 }
 .btn-4dias:active {
   transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.20);
+  box-shadow: 0 6px 14px rgba(2, 132, 199, 0.20);
 }
 
-/* --- PLANO MENSAL (COSMIC PURPLE / ROXO CÓSMICO) --- */
+/* --- PLANO MENSAL (ROXO NEON) --- */
 .plan-card.card-mensal {
-  background: linear-gradient(165deg, #ffffff, #f5f3ff 130%);
-  border-color: #8b5cf6;
-  box-shadow: 0 12px 28px rgba(139, 92, 246, 0.18);
+  background: linear-gradient(165deg, #ffffff, #faf5ff 130%);
+  border-color: #d946ef;
+  box-shadow: 0 12px 28px rgba(217, 70, 239, 0.15);
 }
+.card-mensal .plan-name { color: #a21caf; } /* Muda a cor do título */
 .btn-mensal {
-  background: linear-gradient(135deg, #a78bfa, #6d28d9);
+  background: linear-gradient(135deg, #e879f9, #9333ea);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(109, 40, 217, 0.25);
+  box-shadow: 0 10px 24px rgba(147, 51, 234, 0.25);
   transition: transform .15s ease, box-shadow .15s ease;
 }
 .btn-mensal:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(109, 40, 217, 0.35);
+  box-shadow: 0 18px 38px rgba(147, 51, 234, 0.35);
 }
 .btn-mensal:active {
   transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(109, 40, 217, 0.20);
+  box-shadow: 0 6px 14px rgba(147, 51, 234, 0.20);
 }
