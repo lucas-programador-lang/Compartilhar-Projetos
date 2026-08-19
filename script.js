@@ -885,7 +885,9 @@ import { uid, nowISO } from "./seed.js";
       </div>
       <div class="container">
         <div class="plans-grid">
-          <div class="plan-card">
+          
+          <!-- PLANO TESTE -->
+          <div class="plan-card card-teste">
             <span class="plan-name">Plano Teste</span>
             <div class="plan-price">R$ 5<span>,00</span></div>
             <div class="plan-duration">Válido por 2 dias</div>
@@ -896,7 +898,9 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-teste btn-block" data-plan="pTeste">Assinar plano teste</button>
           </div>
-          <div class="plan-card">
+          
+          <!-- PLANO 4 DIAS -->
+          <div class="plan-card card-4dias">
             <span class="plan-name">Plano 4 dias</span>
             <div class="plan-price">R$ 10<span>,00</span></div>
             <div class="plan-duration">Publicação ativa por 4 dias</div>
@@ -908,6 +912,8 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-4dias btn-block" data-plan="p4">Assinar plano 4 dias</button>
           </div>
+          
+          <!-- PLANO 7 DIAS (Dourado / Original) -->
           <div class="plan-card featured">
             <span class="plan-name">Plano 7 dias</span>
             <div class="plan-price">R$ 20<span>,00</span></div>
@@ -921,7 +927,9 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-gold btn-block" data-plan="p7">Assinar plano 7 dias</button>
           </div>
-          <div class="plan-card">
+          
+          <!-- PLANO MENSAL -->
+          <div class="plan-card card-mensal">
             <span class="plan-name">Plano Mensal</span>
             <div class="plan-price">R$ 50<span>,00</span></div>
             <div class="plan-duration">Válido por 30 dias</div>
@@ -932,6 +940,7 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-mensal btn-block" data-plan="pMensal">Assinar plano mensal</button>
           </div>
+          
         </div>
       </div>
     </section>`;
