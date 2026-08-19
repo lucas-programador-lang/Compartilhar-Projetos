@@ -827,43 +827,42 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================
-   CORES PERSONALIZADAS PARA OS BOTÕES DOS PLANOS
+   CORES PERSONALIZADAS PARA OS BOTÕES DOS PLANOS (PREENCHIDOS)
    ========================================= */
 
-/* Plano Teste - Fundo transparente, borda e texto azuis */
+/* Plano Teste - Tom de Grafite/Azulado Escuro */
 .btn-teste {
-  background-color: transparent;
-  color: var(--blue-700);
-  border: 1.5px solid var(--border);
-  transition: all 0.2s ease;
+  background: var(--ink-600);
+  color: #fff;
+  border: none;
+  box-shadow: 0 10px 24px rgba(72, 85, 122, 0.30);
 }
 .btn-teste:hover {
-  border-color: var(--blue-500);
-  background-color: var(--blue-50);
+  background: var(--ink-700);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(72, 85, 122, 0.40);
 }
 
-/* Plano 4 Dias - Fundo transparente, borda azul, texto azul */
+/* Plano 4 Dias - Degradê Azul Marinho (Navy) */
 .btn-4dias {
-  background-color: transparent;
-  color: var(--blue-700);
-  border: 1.5px solid var(--border);
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, var(--navy-700), var(--navy-900));
+  color: #fff;
+  border: none;
+  box-shadow: 0 10px 24px rgba(8, 23, 54, 0.30);
 }
 .btn-4dias:hover {
-  border-color: var(--blue-500);
-  background-color: var(--blue-50);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(8, 23, 54, 0.40);
 }
 
-/* Plano Mensal - Fundo transparente, borda e texto mais escuros */
+/* Plano Mensal - Degradê Azul Vibrante (Premium) */
 .btn-mensal {
-  background-color: transparent;
-  color: var(--navy-900);
-  border: 1.5px solid var(--border);
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, var(--blue-vibrant-1), var(--blue-vibrant-2));
+  color: #fff;
+  border: none;
+  box-shadow: 0 10px 24px rgba(10, 47, 184, 0.30);
 }
 .btn-mensal:hover {
-  border-color: var(--navy-700);
-  background-color: var(--surface-alt);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(10, 47, 184, 0.40);
 }
-
-/* O Plano 7 dias continuará usando a classe padrão .btn-gold que já existe no seu CSS */
