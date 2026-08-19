@@ -395,7 +395,7 @@ import { uid, nowISO } from "./seed.js";
       contact: sanitizeText(data.contact.trim()),
       ownerId: user.id,
       createdAt: nowISO(),
-      status: "published",
+      status: "pendente", // O post agora vai para revisão em vez de ir direto pra vitrine
     };
     return addProject(project);
   }
@@ -625,7 +625,8 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function viewHome() {
-    const featured = db.projects.slice(0, 4);
+    // Filtra apenas projetos aprovados ("published") para exibir na Home
+    const featured = db.projects.filter(p => p.status === "published").slice(0, 4);
     return `
     <section class="hero">
       <div class="container hero-inner">
@@ -690,10 +691,34 @@ import { uid, nowISO } from "./seed.js";
 
   function viewExplore(params) {
     const search = (params.q || "").toLowerCase();
-    const cat = params.cat || "";
+    
+    // Filtra apenas projetos aprovados ("published")
     let list = db.projects.filter((p) => p.status === "published");
     if (search) list = list.filter((p) => p.title.toLowerCase().includes(search) || p.description.toLowerCase().includes(search));
-    if (cat) list = list.filter((p) => p.categoryId === cat);
+
+    // Agrupar os projetos pelas categorias existentes
+    const grouped = {};
+    db.categories.forEach(c => grouped[c.id] = { name: c.name, projects: [] });
+    grouped["geral"] = { name: "Geral", projects: [] };
+
+    list.forEach(p => {
+       const cId = p.categoryId || "geral";
+       if(grouped[cId]) grouped[cId].projects.push(p);
+    });
+
+    // Gerar o HTML das seções de cada categoria
+    const categoriesHtml = Object.values(grouped)
+      .filter(g => g.projects.length > 0)
+      .map(g => `
+        <div class="category-section" style="margin-bottom: 48px;">
+          <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--gold-500, #d4af37); padding-bottom: 8px; display: inline-block;">
+            ${escapeHtml(g.name)}
+          </h3>
+          <div class="project-grid">
+            ${g.projects.map(projectCard).join("")}
+          </div>
+        </div>
+      `).join("");
 
     return `
     <section class="section" style="padding-top:44px">
@@ -701,16 +726,10 @@ import { uid, nowISO } from "./seed.js";
         <div class="section-head">
           <div><span class="tag-label">Catálogo</span><h2>Explorar projetos</h2><p>Descubra o que criadores de todo o Brasil estão construindo agora.</p></div>
         </div>
-        <div class="filters-bar">
+        <div class="filters-bar" style="margin-bottom: 32px;">
           <input id="searchInput" class="search-input" type="search" placeholder="Buscar projetos por nome ou descrição…" value="${escapeHtml(params.q || "")}">
-          <select id="catFilter" class="select-input">
-            <option value="">Todas as categorias</option>
-            ${db.categories.map((c) => `<option value="${c.id}" ${c.id === cat ? "selected" : ""}>${escapeHtml(c.name)}</option>`).join("")}
-          </select>
         </div>
-        <div class="project-grid">
-          ${list.map(projectCard).join("") || emptyState("Nenhum projeto encontrado", "Tente ajustar a busca ou explorar outra categoria.")}
-        </div>
+        ${categoriesHtml || emptyState("Nenhum projeto encontrado", "Tente ajustar a busca.")}
       </div>
     </section>`;
   }
@@ -989,18 +1008,23 @@ import { uid, nowISO } from "./seed.js";
           <div class="panel-head"><h3>Seus projetos</h3><a href="#/publicar" class="link">Publicar novo →</a></div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Projeto</th><th>Categoria</th><th>Publicado em</th><th>Link</th></tr></thead>
+              <thead><tr><th>Projeto</th><th>Categoria</th><th>Status</th><th>Link</th></tr></thead>
               <tbody>
                 ${
                   myProjects
-                    .map(
-                      (p) => `<tr>
+                    .map((p) => {
+                      let badge = '';
+                      if (p.status === 'published') badge = '<span class="badge badge-success">Aprovado</span>';
+                      else if (p.status === 'rejeitado') badge = '<span class="badge badge-danger" title="Verifique suas mensagens">Rejeitado</span>';
+                      else badge = '<span class="badge badge-warning">Em Revisão</span>';
+                      
+                      return `<tr>
                     <td><a href="#/projeto/${p.id}" class="link">${escapeHtml(p.title)}</a></td>
                     <td>${escapeHtml(categoryName(p.categoryId))}</td>
-                    <td>${fmtDate(p.createdAt)}</td>
+                    <td>${badge}</td>
                     <td><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener" class="link">Acessar ↗</a></td>
-                  </tr>`
-                    )
+                  </tr>`;
+                    })
                     .join("") || `<tr><td colspan="4" class="muted text-center">Você ainda não publicou nenhum projeto.</td></tr>`
                 }
               </tbody>
@@ -1194,8 +1218,8 @@ import { uid, nowISO } from "./seed.js";
             })
           )
           .then((project) => {
-            toast("Projeto publicado com sucesso!", "success");
-            navigate("/projeto/" + project.id);
+            toast("Projeto enviado para revisão com sucesso!", "success");
+            navigate("/painel"); // Redireciona pro painel para ver o status pendente em vez de ir direto pro post inexistente
           })
           .catch((err) => {
             qs("#publishError").textContent = err.message;
