@@ -894,7 +894,7 @@ import { uid, nowISO } from "./seed.js";
               <li>Acesso à área de publicação</li>
               <li>Expira automaticamente após 2 dias</li>
             </ul>
-            <button class="btn btn-ghost btn-block" data-plan="pTeste">Assinar plano teste</button>
+            <button class="btn btn-teste btn-block" data-plan="pTeste">Assinar plano teste</button>
           </div>
           <div class="plan-card">
             <span class="plan-name">Plano 4 dias</span>
@@ -906,7 +906,7 @@ import { uid, nowISO } from "./seed.js";
               <li>Participação na comunidade</li>
               <li>Programa de indicação incluso</li>
             </ul>
-            <button class="btn btn-ghost btn-block" data-plan="p4">Assinar plano 4 dias</button>
+            <button class="btn btn-4dias btn-block" data-plan="p4">Assinar plano 4 dias</button>
           </div>
           <div class="plan-card featured">
             <span class="plan-name">Plano 7 dias</span>
@@ -930,7 +930,7 @@ import { uid, nowISO } from "./seed.js";
               <li>Acesso completo à área de publicação</li>
               <li>Expira automaticamente após 30 dias</li>
             </ul>
-            <button class="btn btn-ghost btn-block" data-plan="pMensal">Assinar plano mensal</button>
+            <button class="btn btn-mensal btn-block" data-plan="pMensal">Assinar plano mensal</button>
           </div>
         </div>
       </div>
