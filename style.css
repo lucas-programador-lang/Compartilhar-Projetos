@@ -825,3 +825,45 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   .fan-3{top:210px;left:30px}
   .fan-4{top:260px;left:180px}
 }
+
+/* =========================================
+   CORES PERSONALIZADAS PARA OS BOTÕES DOS PLANOS
+   ========================================= */
+
+/* Plano Teste - Fundo transparente, borda e texto azuis */
+.btn-teste {
+  background-color: transparent;
+  color: var(--blue-700);
+  border: 1.5px solid var(--border);
+  transition: all 0.2s ease;
+}
+.btn-teste:hover {
+  border-color: var(--blue-500);
+  background-color: var(--blue-50);
+}
+
+/* Plano 4 Dias - Fundo transparente, borda azul, texto azul */
+.btn-4dias {
+  background-color: transparent;
+  color: var(--blue-700);
+  border: 1.5px solid var(--border);
+  transition: all 0.2s ease;
+}
+.btn-4dias:hover {
+  border-color: var(--blue-500);
+  background-color: var(--blue-50);
+}
+
+/* Plano Mensal - Fundo transparente, borda e texto mais escuros */
+.btn-mensal {
+  background-color: transparent;
+  color: var(--navy-900);
+  border: 1.5px solid var(--border);
+  transition: all 0.2s ease;
+}
+.btn-mensal:hover {
+  border-color: var(--navy-700);
+  background-color: var(--surface-alt);
+}
+
+/* O Plano 7 dias continuará usando a classe padrão .btn-gold que já existe no seu CSS */
