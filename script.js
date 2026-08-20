@@ -5,22 +5,33 @@
    Pix (VizzionPay), processado por um Cloudflare Worker que
    confirma o pagamento e ativa a assinatura direto no Firebase.
 
-   v4: MODERAÇÃO AUTOMÁTICA DE PROJETOS + CHATBOT DE AVISO.
-   publishProject roda moderateProject() antes de gravar: detecta
-   termos proibidos (cassino/apostas etc.) no título/descrição e
-   valida se o contato parece um e-mail ou telefone plausível. Se
-   algo falhar, o projeto nasce com status "rejected" e um
-   rejectReason (categoria|contato) explicando o motivo — visível
-   no dashboard via showChatbotModal, um modal simples que lê esse
-   motivo e monta a frase pro usuário. Se passar no filtro, nasce
-   "pending", aguardando aprovação manual no painel admin (a seção
-   de aprovação em si ainda não existe no admin.js — próximo passo).
-   viewHome e viewExplore filtram por status "published" para a
-   vitrine pública nunca vazar pendentes/rejeitados.
+   v4: MODERAÇÃO AUTOMÁTICA DE PROJETOS. publishProject roda
+   moderateProject() antes de gravar: detecta termos proibidos
+   (cassino/apostas etc.) no título/descrição e valida se o contato
+   parece um e-mail ou telefone plausível. Se algo falhar, o projeto
+   nasce com status "rejected". Se passar no filtro, nasce "pending",
+   aguardando aprovação manual no painel admin. viewHome e
+   viewExplore filtram por status "published" para a vitrine pública
+   nunca vazar pendentes/rejeitados. Valores de status padronizados
+   em inglês (pending/published/rejected) para bater com admin.js e
+   worker.js.
 
-   Valores de status padronizados em inglês (pending/published/
-   rejected) para bater com admin.js e worker.js, que já usam esse
-   padrão em outras entidades (withdrawals, commissions).
+   v5: NOTIFICAÇÕES. O antigo showChatbotModal (motivo de rejeição
+   lido de project.rejectReason, mostrado num modal isolado) foi
+   substituído por um sistema real de notificações, lido de
+   db.notifications (novo nó sincronizado por db-sync.js). Quando a
+   moderação automática rejeita um projeto na hora da publicação,
+   publishProject chama o Worker (/notify-auto-rejection) para criar
+   a notificação — o cliente nunca escreve o CONTEÚDO da notificação
+   diretamente, só marca como lida (markNotificationRead), mantendo
+   o mesmo padrão de segurança usado em subscription/role/commissions
+   (só a Service Account do Worker decide o que é "verdade"). Quando
+   um admin rejeita manualmente pelo painel, a notificação nasce
+   direto em handleModerateProject (worker.js), sem essa chamada
+   extra. Notificações aparecem em dois lugares: um sino no header
+   (criado dinamicamente, já que index.html não foi tocado aqui) com
+   contador de não lidas, e uma seção "Notificações" no topo de
+   /painel.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -34,13 +45,14 @@ import {
   addComment,
   addReply,
   addWithdrawalRequest,
+  markNotificationRead,
 } from "./db-sync.js";
 import { uid, nowISO } from "./seed.js";
 
 (function () {
   "use strict";
 
-  const WORKER_URL = "https://api.compartilhar-projetos.com.br";
+  const WORKER_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
   const PLANS = {
     pTeste: { id: "pTeste", name: "Plano Teste", price: 5, days: 2 },
@@ -373,9 +385,28 @@ import { uid, nowISO } from "./seed.js";
   }
 
   /* ---------------------------------------------------------
-     AÇÕES DE NEGÓCIO E CHATBOT
+     AÇÕES DE NEGÓCIO
+
+     publishProject é async: quando a moderação automática rejeita
+     na hora (moderateProject retorna "rejected"), o projeto ainda
+     é gravado normalmente via addProject() (o cliente sempre pode
+     gravar seu próprio projeto), mas a NOTIFICAÇÃO explicando o
+     motivo é criada pelo Worker, via /notify-auto-rejection — não
+     é o cliente que escreve em /database/notifications diretamente.
+     Isso mantém notifications como um nó onde só a Service Account
+     grava conteúdo (o mesmo padrão de subscription/role/commissions),
+     mesmo quando quem "decide" a rejeição é o filtro automático e
+     não um admin olhando o painel. Ver handleNotifyAutoRejection no
+     worker.js — ele confirma que quem chama é o dono do projeto e
+     que o projeto já está mesmo "rejected" antes de criar a
+     notificação, então essa chamada não pode ser usada para forjar
+     avisos em projetos de terceiros ou ainda pendentes.
+
+     A notificação de rejeição MANUAL (quando um admin reprova pelo
+     painel) já é criada pelo Worker dentro de handleModerateProject
+     — nada muda ali.
   --------------------------------------------------------- */
-  function publishProject(data) {
+  async function publishProject(data) {
     const user = currentUser();
     if (!user) throw new Error("Você precisa entrar na sua conta.");
     if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
@@ -400,39 +431,27 @@ import { uid, nowISO } from "./seed.js";
       ownerId: user.id,
       createdAt: nowISO(),
       status: moderation.status,
-      rejectReason: moderation.rejectReason,
     };
-    return addProject(project);
-  }
+    const saved = await addProject(project);
 
-  // Modal de aviso — lê project.rejectReason ("categoria" | "contato")
-  // e monta a frase correspondente. Mantido como no arquivo enviado.
-  function showChatbotModal(project) {
-    const existing = qs(".modal-overlay");
-    if (existing) existing.remove();
+    if (moderation.status === "rejected") {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        await fetch(`${WORKER_URL}/notify-auto-rejection`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+          body: JSON.stringify({ projectId: project.id, rejectReason: moderation.rejectReason }),
+        });
+      } catch (err) {
+        // O projeto já foi gravado como "rejected" — se a notificação
+        // falhar (rede, worker fora do ar), o usuário ainda vê o status
+        // "Não aprovado" no painel, só sem o motivo detalhado. Não
+        // interrompe o fluxo de publicação por causa disso.
+        console.error("Falha ao registrar notificação de rejeição automática:", err);
+      }
+    }
 
-    let motivo = "a categoria selecionada está incorreta ou os dados de contato informados são inválidos";
-    if (project.rejectReason === "categoria") motivo = "a categoria selecionada está incorreta";
-    if (project.rejectReason === "contato") motivo = "os dados de contato informados são inválidos";
-
-    const overlay = document.createElement("div");
-    overlay.className = "modal-overlay open";
-    overlay.innerHTML = `
-      <div class="modal-box" style="max-width:400px; text-align:center;">
-        <button type="button" class="modal-close" id="chatCloseBtn" aria-label="Fechar">×</button>
-        <h2 style="margin-bottom: 16px; color: var(--navy-900);">Aviso da Moderação</h2>
-        <div style="background: rgba(207,53,39,.08); border: 1px solid rgba(207,53,39,.2); padding: 16px; border-radius: 8px; text-align: left; font-size: 14px; line-height: 1.6; color: #333;">
-          <p><strong>Atenção:</strong> O seu projeto <strong>"${escapeHtml(project.title)}"</strong> não foi aprovado na revisão porque <strong>${motivo}</strong>.</p>
-          <p style="margin-top: 12px;">Lembramos que todas as postagens passam por uma análise de qualidade antes de serem exibidas na vitrine da plataforma.</p>
-          <p style="margin-top: 12px;">Para resolver isso, por favor, exclua este projeto pendente e faça um novo envio com as informações corrigidas. Agradecemos a compreensão.</p>
-        </div>
-        <button class="btn btn-primary btn-block mt-3" id="chatOkBtn">Entendi</button>
-      </div>`;
-    document.body.appendChild(overlay);
-
-    const closeFn = () => overlay.remove();
-    qs("#chatCloseBtn", overlay).addEventListener("click", closeFn);
-    qs("#chatOkBtn", overlay).addEventListener("click", closeFn);
+    return saved;
   }
 
   function createPost(content) {
@@ -504,6 +523,20 @@ import { uid, nowISO } from "./seed.js";
     return db.commissions.filter((c) => c.referrerId === userId).reduce((s, c) => s + c.amount, 0);
   }
 
+  /* ---------------------------------------------------------
+     NOTIFICAÇÕES — avisos de moderação (rejeição de projeto,
+     automática ou manual pelo admin). Gravadas pelo Worker em
+     /database/notifications; o cliente só marca como lida.
+  --------------------------------------------------------- */
+  function myNotifications(userId) {
+    return db.notifications
+      .filter((n) => n.userId === userId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+  function unreadNotificationsCount(userId) {
+    return myNotifications(userId).filter((n) => !n.read).length;
+  }
+
   function refreshHeader() {
     const user = currentUser();
     document.body.classList.toggle("is-guest", !user);
@@ -519,6 +552,69 @@ import { uid, nowISO } from "./seed.js";
     qsa(".main-nav a, .mobile-nav a").forEach((a) => {
       a.classList.toggle("active", a.getAttribute("href") === "#" + currentRoute().path);
     });
+    refreshNotificationBell(user);
+  }
+
+  /* ---------------------------------------------------------
+     SINO DE NOTIFICAÇÕES — criado dinamicamente dentro de
+     .header-user-actions (index.html não faz parte dos arquivos
+     tocados aqui, então em vez de exigir um <button> novo no HTML,
+     o elemento é criado uma única vez por JS e só atualizado depois).
+     Some completamente para visitantes não logados.
+  --------------------------------------------------------- */
+  let notifBellBound = false;
+  function ensureNotificationBell() {
+    let btn = document.getElementById("notifBellBtn");
+    if (btn) return btn;
+    const host = qs(".header-user-actions");
+    if (!host) return null;
+    btn = document.createElement("button");
+    btn.id = "notifBellBtn";
+    btn.type = "button";
+    btn.className = "btn-icon";
+    btn.setAttribute("aria-label", "Notificações");
+    btn.style.position = "relative";
+    btn.innerHTML = `
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span id="notifBellCount" class="badge badge-danger" style="display:none;position:absolute;top:-4px;right:-4px;padding:1px 5px;font-size:10px;min-width:16px;text-align:center"></span>`;
+    // Insere antes do avatar, se existir, senão no fim do host.
+    const avatarBtn = qs("#avatarBtn", host);
+    if (avatarBtn) host.insertBefore(btn, avatarBtn);
+    else host.appendChild(btn);
+    return btn;
+  }
+
+  function refreshNotificationBell(user) {
+    const btn = ensureNotificationBell();
+    if (!btn) return;
+    if (!user) {
+      btn.style.display = "none";
+      return;
+    }
+    btn.style.display = "";
+    const count = unreadNotificationsCount(user.id);
+    const countEl = qs("#notifBellCount", btn);
+    if (countEl) {
+      countEl.textContent = count > 9 ? "9+" : String(count);
+      countEl.style.display = count > 0 ? "inline-block" : "none";
+    }
+    if (!notifBellBound) {
+      notifBellBound = true;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        navigate("/painel");
+        // Dá tempo do render acontecer antes de rolar até a seção —
+        // painel muda de conteúdo via hashchange, que roda de forma
+        // assíncrona (listener separado), não imediatamente aqui.
+        setTimeout(() => {
+          const section = document.getElementById("notificationsSection");
+          if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 60);
+      });
+    }
   }
 
   function currentRoute() {
@@ -980,10 +1076,22 @@ import { uid, nowISO } from "./seed.js";
       .join("")}`;
   }
 
+  function notificationCard(n) {
+    return `
+    <div class="panel" data-notification="${n.id}" style="${n.read ? "" : "border-color:var(--gold-400)"};padding:16px 18px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <p style="font-size:13.5px;color:var(--ink-700);flex:1">${escapeHtml(n.message)}</p>
+        ${n.read ? "" : `<button class="btn btn-sm btn-ghost" data-mark-read="${n.id}" style="flex:none">Marcar como lida</button>`}
+      </div>
+      <span class="muted" style="font-size:12px;display:block;margin-top:8px">${fmtDateTime(n.createdAt)}</span>
+    </div>`;
+  }
+
   function viewDashboard() {
     const user = currentUser();
     const myProjects = db.projects.filter((p) => p.ownerId === user.id);
     const active = isSubscriptionActive(user);
+    const notifications = myNotifications(user.id);
     return `
     <div class="dash-shell">
       <nav class="dash-sidebar">${sideNav("/painel")}</nav>
@@ -992,6 +1100,18 @@ import { uid, nowISO } from "./seed.js";
           <div><h1>Olá, ${escapeHtml(user.name.split(" ")[0])}</h1><p>Aqui está um resumo da sua conta em Compartilhar Projetos.</p></div>
           <a href="#/publicar" class="btn btn-gold">+ Publicar projeto</a>
         </div>
+
+        ${
+          notifications.length
+            ? `<div class="panel" id="notificationsSection">
+                <div class="panel-head"><h3>Notificações</h3>${
+                  unreadNotificationsCount(user.id) > 0 ? `<span class="badge badge-danger">${unreadNotificationsCount(user.id)} não lida(s)</span>` : ""
+                }</div>
+                ${notifications.map(notificationCard).join("")}
+              </div>`
+            : ""
+        }
+
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-label">Status da assinatura</div><div class="stat-value" style="font-size:16px">${
             user.role === "admin"
@@ -1021,7 +1141,10 @@ import { uid, nowISO } from "./seed.js";
                         badge = '<span class="badge badge-success">Aprovado</span>';
                       } else if (p.status === 'rejected') {
                         badge = '<span class="badge badge-danger">Rejeitado</span>';
-                        action = `<button class="btn btn-sm btn-ghost" data-chatbot-msg="${p.id}" style="color: #cf3527; border: 1px solid #cf3527; padding: 4px 8px;">Ver Mensagem</button>`;
+                        // O motivo detalhado chega como notificação (sino no
+                        // header / seção "Notificações" abaixo), não mais
+                        // por um modal disparado a partir desta linha.
+                        action = `<span class="muted">Veja o motivo em Notificações</span>`;
                       } else {
                         badge = '<span class="badge badge-warning">Em Revisão</span>';
                         action = `<span class="muted">Aguardando aprovação...</span>`;
@@ -1156,13 +1279,17 @@ import { uid, nowISO } from "./seed.js";
 
   function bindPageEvents(path) {
 
-    qsa("[data-chatbot-msg]").forEach((btn) => {
+    qsa("[data-mark-read]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const projectId = btn.getAttribute("data-chatbot-msg");
-        const project = db.projects.find((p) => p.id === projectId);
-        if (project) {
-          showChatbotModal(project);
-        }
+        const id = btn.getAttribute("data-mark-read");
+        btn.disabled = true;
+        markNotificationRead(id).catch((err) => {
+          toast(err.message || "Não foi possível marcar como lida.", "error");
+          btn.disabled = false;
+        });
+        // Sem re-render manual aqui: onDBChange já dispara um
+        // render({navigation:false}) assim que o Firebase confirmar a
+        // escrita, atualizando o card e o contador do sino sozinho.
       });
     });
 
