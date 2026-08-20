@@ -56,7 +56,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 (function () {
   "use strict";
 
-  const WORKER_BASE_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
+  const WORKER_BASE_URL = "https://api.compartilhar-projetos.com.br";
 
   // Nomes de exibição — mantidos em sincronia com o objeto PLANS do
   // worker.js e do script.js. Se adicionar/remover um plano lá, espelhe
