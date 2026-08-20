@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v4)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v6)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
    passa pelo Worker (/admin/*), que valida a role no servidor
@@ -20,8 +20,8 @@
    uma fração de segundo antes do primeiro sync completo terminar
    e re-renderizar o painel de verdade — um flash visual incômodo,
    principalmente perceptível em conexões mais lentas. Agora
-   dbReady só vira true quando isDBSynced() confirma que os 7 nós
-   já responderam pelo menos uma vez, e enquanto isso não acontece
+   dbReady só vira true quando isDBSynced() confirma que os nós já
+   responderam pelo menos uma vez, e enquanto isso não acontece
    (nem authReady) o boot() mostra uma tela de carregamento simples
    em vez do gate — evitando o usuário ver "acesso negado" quando
    na real os dados só ainda não chegaram.
@@ -47,6 +47,29 @@
       currentUserFilter/currentProjectFilter e renderAll() sempre
       repassa esse valor, então um sync em tempo real nunca reseta
       visualmente uma busca em andamento.
+
+   v5: MODERAÇÃO DE PROJETOS. renderProjects() ganhou fila de
+   aprovação: pendentes ordenados primeiro, botões Aprovar/Reprovar
+   chamando /admin/moderate-project no Worker (handleModerateProject
+   em worker.js), e um modal (#rejectModal, em admin.html) para
+   escolher o motivo da reprovação, que dispara uma notificação para
+   o usuário (lida via db.notifications no script.js — sino no
+   header + seção no painel).
+
+   v6: CORREÇÃO — a integração inicial com script.js/worker.js usava
+   os valores de status em PORTUGUÊS ("pendente", "rejeitado") nas
+   comparações de renderProjects() e no payload enviado por
+   bindRejectModal(). O resto do sistema (script.js ao publicar um
+   projeto, worker.js ao processar a moderação) sempre trabalhou com
+   os valores em INGLÊS ("pending", "rejected", "published") — esse
+   descompasso fazia todo projeto pendente cair no branch genérico
+   "Pendente" (nunca reconhecido como tal por comparação exata) e
+   os botões Aprovar/Reprovar nunca aparecerem de verdade. Projetos
+   reprovados também nunca eram reconhecidos como "rejected" pelo
+   dashboard do usuário (script.js), então a notificação existia no
+   banco mas o botão de ver a mensagem nunca renderizava. Corrigido
+   para usar "pending"/"rejected"/"published" em todo lugar, batendo
+   com script.js e worker.js.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -56,7 +79,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 (function () {
   "use strict";
 
-  const WORKER_BASE_URL = "https://api.compartilhar-projetos.com.br";
+  const WORKER_BASE_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
   // Nomes de exibição — mantidos em sincronia com o objeto PLANS do
   // worker.js e do script.js. Se adicionar/remover um plano lá, espelhe
@@ -322,10 +345,16 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     const activeSubs = db.users.filter(isSubActive).length;
     const totalRevenueEstimate = estimateRevenue();
     const pendingWithdrawals = db.withdrawals.filter((w) => w.status === "pending").reduce((s, w) => s + w.amount, 0);
+    // "Projetos publicados" aqui significa aprovados de verdade (status
+    // "published") — projetos pendentes/rejeitados não contam nesse
+    // número, senão ele infla e não representa o que está na vitrine.
+    const publishedCount = db.projects.filter((p) => p.status === "published").length;
+    const pendingModerationCount = db.projects.filter((p) => p.status === "pending").length;
     qs("#statGrid").innerHTML = [
       stat("Usuários cadastrados", db.users.length),
       stat("Assinaturas ativas", activeSubs),
-      stat("Projetos publicados", db.projects.length),
+      stat("Projetos publicados", publishedCount),
+      stat("Projetos aguardando moderação", pendingModerationCount, pendingModerationCount > 0),
       stat("Publicações na comunidade", db.posts.length),
       stat("Receita estimada", fmtBRL(totalRevenueEstimate), true),
       // Antes rotulado "Comissões pendentes de saque" — mas o valor é a
@@ -486,16 +515,20 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
   /* ---------------------------------------------------------
      PROJETOS (Moderação e Gerenciamento)
+
+     Ordena pendentes primeiro (a fila de moderação real é o que
+     importa ver de imediato), depois por data mais recente. Status
+     comparado sempre em inglês ("pending"/"published"/"rejected")
+     — ver nota v6 no cabeçalho do arquivo.
   --------------------------------------------------------- */
   function renderProjects(filter) {
     filter = (filter || "").toLowerCase();
-    
-    // Ordenar: Pendentes primeiro, depois por data mais recente
+
     const list = db.projects
       .filter((p) => !filter || p.title.toLowerCase().includes(filter))
       .sort((a, b) => {
-        if (a.status === 'pendente' && b.status !== 'pendente') return -1;
-        if (b.status === 'pendente' && a.status !== 'pendente') return 1;
+        if (a.status === "pending" && b.status !== "pending") return -1;
+        if (b.status === "pending" && a.status !== "pending") return 1;
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
 
@@ -504,15 +537,13 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         .map((p) => {
           const owner = userById(p.ownerId);
 
-          // Definir o badge de status (agora agrupado com a Data para não quebrar a tabela HTML)
-          let statusBadge = '';
-          if (p.status === 'published') statusBadge = '<span class="badge badge-success mt-1">Aprovado</span>';
-          else if (p.status === 'rejeitado') statusBadge = '<span class="badge badge-danger mt-1">Rejeitado</span>';
+          let statusBadge = "";
+          if (p.status === "published") statusBadge = '<span class="badge badge-success mt-1">Aprovado</span>';
+          else if (p.status === "rejected") statusBadge = '<span class="badge badge-danger mt-1">Rejeitado</span>';
           else statusBadge = '<span class="badge badge-warning mt-1">Pendente</span>';
 
-          // Definir os botões de ação baseados no status
-          let actionBtns = '';
-          if (p.status === 'pendente') {
+          let actionBtns = "";
+          if (p.status === "pending") {
             actionBtns = `
               <button class="btn btn-sm btn-primary" style="width: 100%" data-approve-proj="${p.id}">Aprovar</button>
               <button class="btn btn-sm btn-danger" style="width: 100%" data-reject-proj="${p.id}">Reprovar</button>
@@ -531,13 +562,11 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         })
         .join("") || `<tr><td colspan="5" class="muted text-center">Nenhum projeto encontrado.</td></tr>`;
 
-    // AÇÕES DE APROVAR
     qsa("[data-approve-proj]").forEach((btn) =>
       btn.addEventListener("click", () =>
         withButtonLock(btn, async () => {
           const ok = await confirmAction("Aprovar este projeto? Ele ficará visível na vitrine para todos.", { title: "Aprovar projeto", confirmLabel: "Sim, aprovar", neutral: true });
           if (!ok) return;
-          // Chama o endpoint de moderação (você precisa criar essa rota no seu Worker)
           await adminFetch("/admin/moderate-project", { projectId: btn.getAttribute("data-approve-proj"), status: "published" });
           toast("Projeto aprovado e na vitrine!", "success");
           renderAll();
@@ -545,7 +574,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
       )
     );
 
-    // AÇÕES DE REPROVAR (Abre o modal)
     qsa("[data-reject-proj]").forEach((btn) =>
       btn.addEventListener("click", () => {
         const projectId = btn.getAttribute("data-reject-proj");
@@ -553,7 +581,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
       })
     );
 
-    // AÇÕES DE EXCLUIR
     qsa("[data-delproj]").forEach((btn) =>
       btn.addEventListener("click", () =>
         withButtonLock(btn, async () => {
@@ -568,7 +595,9 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     MODAL DE REPROVAÇÃO (Chatbot)
+     MODAL DE REPROVAÇÃO — status enviado ao Worker em inglês
+     ("rejected"), batendo com handleModerateProject e com o que
+     script.js espera ler no dashboard do usuário.
   --------------------------------------------------------- */
   function bindRejectModal() {
     const modal = qs("#rejectModal");
@@ -589,13 +618,12 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
       const submitBtn = form.querySelector('button[type="submit"]');
 
       withButtonLock(submitBtn, async () => {
-        // Envia para o Worker atualizar o status e disparar a mensagem
         await adminFetch("/admin/moderate-project", {
           projectId: projectId,
-          status: "rejeitado",
-          rejectReason: reason
+          status: "rejected",
+          rejectReason: reason,
         });
-        
+
         toast("Projeto reprovado e usuário notificado.", "success");
         modal.style.display = "none";
         renderAll();
@@ -747,8 +775,8 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
      automático vindo de onDBChange preserve o que está digitado.
   --------------------------------------------------------- */
   function bindForms() {
-    bindRejectModal(); // <--- O modal do chatbot foi ativado aqui!
-    
+    bindRejectModal();
+
     const userSearch = qs("#userSearch");
     if (userSearch && !userSearch.dataset.bound) {
       userSearch.dataset.bound = "1";
@@ -799,7 +827,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
   onDBChange((newDb) => {
     db = newDb;
-    // dbReady só vira true quando o db-sync.js confirma que os 7 nós
+    // dbReady só vira true quando o db-sync.js confirma que os nós
     // já responderam pelo menos uma vez nesta geração (ver nota v3).
     dbReady = isDBSynced();
     boot();
