@@ -40,7 +40,7 @@ import { uid, nowISO } from "./seed.js";
 (function () {
   "use strict";
 
-  const WORKER_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
+  const WORKER_URL = "https://api.compartilhar-projetos.com.br";
 
   const PLANS = {
     pTeste: { id: "pTeste", name: "Plano Teste", price: 5, days: 2 },
