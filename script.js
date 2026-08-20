@@ -1041,33 +1041,32 @@ import { uid, nowISO } from "./seed.js";
       .join("")}`;
   }
 
-  // UX UPGRADE: Card de Notificação mais moderno com cores e ação rápida
+ // UX UPGRADE: Card de Notificação mais moderno com cores e ação rápida (SEM EMOJI)
   function notificationCard(n) {
-    let icon = "🔔";
     let color = "var(--ink-700)";
     let border = n.read ? "1px solid var(--ink-200)" : "1px solid var(--gold-400)";
     let title = "Notificação";
 
-    // Identificação visual de gravidade
+    // Identificação visual de gravidade (Apenas cores, sem emojis)
     if (n.message.includes("aprovado") || n.message.includes("sucesso") || n.message.includes("disponível")) {
-       icon = "✅"; color = "var(--green-700)"; title = "Aprovado";
+       color = "var(--green-700)"; title = "Aprovado";
     } else if (n.message.includes("reprovado") || n.message.includes("não foi aprovado") || n.message.includes("ATENÇÃO")) {
-       icon = "⚠️"; color = "var(--red-600)"; title = "Ação Necessária";
+       color = "var(--red-600)"; title = "Ação Necessária";
     }
 
     let msgHtml = escapeHtml(n.message);
     let actionBtn = "";
     
-    // Identifica se é um projeto rejeitado para injetar o botão Salva-Vidas
+    // Identifica se é um projeto rejeitado para injetar o botão Salva-Vidas (Sem emoji)
     if (n.projectId && (n.message.includes("ATENÇÃO") || n.message.includes("reprovado"))) {
-       actionBtn = `<a href="#/publicar?edit=${n.projectId}" class="btn btn-sm btn-primary mt-2" style="display:inline-block">✏️ Editar e reenviar projeto</a>`;
+       actionBtn = `<a href="#/publicar?edit=${n.projectId}" class="btn btn-sm btn-primary mt-2" style="display:inline-block">Editar e reenviar projeto</a>`;
     }
 
     return `
     <div class="panel" data-notification="${n.id}" style="border:${border};padding:16px 18px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
         <div style="flex:1">
-          <div style="font-weight:600;font-size:13px;color:${color};margin-bottom:4px">${icon} ${title}</div>
+          <div style="font-weight:600;font-size:13px;color:${color};margin-bottom:4px">${title}</div>
           <p style="font-size:13.5px;color:var(--ink-700);line-height:1.4">${msgHtml}</p>
           ${actionBtn}
         </div>
@@ -1076,7 +1075,6 @@ import { uid, nowISO } from "./seed.js";
       <span class="muted" style="font-size:12px;display:block;margin-top:10px" title="${fmtDateTime(n.createdAt)}">${timeAgo(n.createdAt)}</span>
     </div>`;
   }
-
   function viewDashboard() {
     const user = currentUser();
     const myProjects = db.projects.filter((p) => p.ownerId === user.id);
