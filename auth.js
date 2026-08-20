@@ -22,7 +22,7 @@ import { getDB, onDBChange } from "./db-sync.js";
   "use strict";
 
   // endereço do Worker que cria o perfil completo do usuário no cadastro
-  const WORKER_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
+  const WORKER_URL = "https://api.compartilhar-projetos.com.br";
 
   /* ---------- utilidades ---------- */
   function isValidEmail(email) {
