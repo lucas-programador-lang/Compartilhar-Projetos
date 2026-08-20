@@ -5,33 +5,22 @@
    Pix (VizzionPay), processado por um Cloudflare Worker que
    confirma o pagamento e ativa a assinatura direto no Firebase.
 
-   v2: render() agora distingue NAVEGAÇÃO (troca de rota, login,
-   logout) de ATUALIZAÇÃO DE DADO (qualquer onDBChange vindo do
-   Firebase, que pode disparar a qualquer momento e para qualquer
-   usuário conectado, sem relação com o que ele está fazendo).
-   Só a navegação força scroll ao topo. Atualizações de dado que
-   chegam enquanto o usuário está digitando em um campo dentro de
-   #app são adiadas até ele sair do campo, para não apagar o que
-   está sendo escrito.
+   v4: MODERAÇÃO AUTOMÁTICA DE PROJETOS + CHATBOT DE AVISO.
+   publishProject roda moderateProject() antes de gravar: detecta
+   termos proibidos (cassino/apostas etc.) no título/descrição e
+   valida se o contato parece um e-mail ou telefone plausível. Se
+   algo falhar, o projeto nasce com status "rejected" e um
+   rejectReason (categoria|contato) explicando o motivo — visível
+   no dashboard via showChatbotModal, um modal simples que lê esse
+   motivo e monta a frase pro usuário. Se passar no filtro, nasce
+   "pending", aguardando aprovação manual no painel admin (a seção
+   de aprovação em si ainda não existe no admin.js — próximo passo).
+   viewHome e viewExplore filtram por status "published" para a
+   vitrine pública nunca vazar pendentes/rejeitados.
 
-   v3: CORREÇÃO — onAuthStateChanged agora reseta dbReady sempre
-   que o estado de login muda. Antes, quando o login acontecia,
-   o render({navigation:true}) disparado pelo onAuthStateChanged
-   podia rodar ANTES do db-sync.js terminar de recarregar os nós
-   protegidos (users, referrals, etc.) para o novo usuário logado
-   — nesse instante db.users ainda estava vazio/desatualizado, o
-   guard de rota concluía (errado) que ninguém estava logado, e
-   redirecionava via location.href para login.html?redirect=... ,
-   cancelando a navegação antes dos dados corretos chegarem.
-   Resetar dbReady força a tela de "Carregando…" nesse intervalo
-   em vez de redirecionar precocemente.
-
-   NOTA: o bug de comentários virarem "Usuário removido" / "Invalid
-   Date" (ver histórico) não estava neste arquivo — script.js já
-   usava sempre os IDs de negócio (post.id, comment.id) corretamente.
-   A causa era em db-sync.js (addComment/addReply escrevendo no
-   índice do array em vez da chave real do Firebase). Este arquivo
-   segue sem alterações.
+   Valores de status padronizados em inglês (pending/published/
+   rejected) para bater com admin.js e worker.js, que já usam esse
+   padrão em outras entidades (withdrawals, commissions).
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -51,7 +40,6 @@ import { uid, nowISO } from "./seed.js";
 (function () {
   "use strict";
 
-  // Troque pela URL real do seu Worker publicado na Cloudflare
   const WORKER_URL = "https://apidocompartilharprojetos.lucas-dev-programador.workers.dev";
 
   const PLANS = {
@@ -60,18 +48,14 @@ import { uid, nowISO } from "./seed.js";
     p7: { id: "p7", name: "Plano 7 Dias", price: 20, days: 7 },
     pMensal: { id: "pMensal", name: "Plano Mensal", price: 50, days: 30 },
   };
-  const COMMISSION_RATE = 0.3; // 30% para quem indicou
+  const COMMISSION_RATE = 0.3;
   const MIN_WITHDRAW = 10;
 
-  // estado local — populado pelos listeners do Firebase
   let db = null;
   let firebaseUser = null;
   let authReady = false;
   let dbReady = false;
 
-  /* ---------------------------------------------------------
-     SESSÃO
-  --------------------------------------------------------- */
   function currentUser() {
     if (!db || !firebaseUser) return null;
     return db.users.find((u) => u.id === firebaseUser.uid) || null;
@@ -83,15 +67,11 @@ import { uid, nowISO } from "./seed.js";
     if (!user || !user.subscription || !user.subscription.active) return false;
     return new Date(user.subscription.expiresAt) > new Date();
   }
-  // Administradores podem publicar projetos mesmo sem assinatura ativa.
   function canPublish(user) {
     if (!user) return false;
     return user.role === "admin" || isSubscriptionActive(user);
   }
 
-  /* ---------------------------------------------------------
-     UTILITÁRIOS
-  --------------------------------------------------------- */
   function escapeHtml(str) {
     if (str == null) return "";
     return String(str)
@@ -176,6 +156,52 @@ import { uid, nowISO } from "./seed.js";
       return fallbackMsg || "Não foi possível concluir a ação. Verifique se o conteúdo não contém links.";
     }
     return raw || fallbackMsg;
+  }
+
+  /* ---------------------------------------------------------
+     MODERAÇÃO AUTOMÁTICA DE PROJETOS
+     Roda dentro de publishProject, no momento do envio. Decide
+     entre "pending" (aguardando aprovação manual) e "rejected"
+     (motivo já identificado automaticamente, sem intervenção do
+     admin). rejectReason é "categoria" ou "contato" — usado pelo
+     showChatbotModal para montar a frase certa.
+  --------------------------------------------------------- */
+  const PROHIBITED_TERMS = [
+    "cassino", "casino", "aposta", "apostas", "bet365", "betano",
+    "roleta", "blaze", "jogo do tigrinho", "sportsbook", "bookmaker",
+  ];
+  function normalizeForMatch(str) {
+    return (str || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+  function findProhibitedTerm(text) {
+    const normalized = normalizeForMatch(text);
+    return PROHIBITED_TERMS.find((term) => normalized.includes(normalizeForMatch(term))) || null;
+  }
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  function isPlausibleContact(contact) {
+    const trimmed = (contact || "").trim();
+    if (EMAIL_PATTERN.test(trimmed)) return true;
+    const digits = onlyDigits(trimmed);
+    if (digits.length === 10 || digits.length === 11) return true;
+    if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) return true;
+    return false;
+  }
+  // Devolve { status, rejectReason }. rejectReason é "categoria",
+  // "contato", ou null se aprovado no filtro automático (ainda
+  // "pending", aguardando revisão manual).
+  function moderateProject(data) {
+    const termInTitle = findProhibitedTerm(data.title);
+    const termInDescription = findProhibitedTerm(data.description);
+    if (termInTitle || termInDescription) {
+      return { status: "rejected", rejectReason: "categoria" };
+    }
+    if (!isPlausibleContact(data.contact)) {
+      return { status: "rejected", rejectReason: "contato" };
+    }
+    return { status: "pending", rejectReason: null };
   }
 
   /* ---------------------------------------------------------
@@ -360,6 +386,8 @@ import { uid, nowISO } from "./seed.js";
     if (!data.ownerName) throw new Error("Informe o nome do responsável.");
     if (!data.contact) throw new Error("Informe uma forma de contato.");
 
+    const moderation = moderateProject(data);
+
     const project = {
       id: uid("pj"),
       title: sanitizeText(data.title.trim()),
@@ -371,17 +399,18 @@ import { uid, nowISO } from "./seed.js";
       contact: sanitizeText(data.contact.trim()),
       ownerId: user.id,
       createdAt: nowISO(),
-      status: "pendente", 
+      status: moderation.status,
+      rejectReason: moderation.rejectReason,
     };
     return addProject(project);
   }
 
-  // --- Função para o Modal de Aviso Limpo ---
+  // Modal de aviso — lê project.rejectReason ("categoria" | "contato")
+  // e monta a frase correspondente. Mantido como no arquivo enviado.
   function showChatbotModal(project) {
     const existing = qs(".modal-overlay");
     if (existing) existing.remove();
 
-    // Define o motivo dinamicamente com letras minúsculas para encaixar na frase
     let motivo = "a categoria selecionada está incorreta ou os dados de contato informados são inválidos";
     if (project.rejectReason === "categoria") motivo = "a categoria selecionada está incorreta";
     if (project.rejectReason === "contato") motivo = "os dados de contato informados são inválidos";
@@ -475,9 +504,6 @@ import { uid, nowISO } from "./seed.js";
     return db.commissions.filter((c) => c.referrerId === userId).reduce((s, c) => s + c.amount, 0);
   }
 
-  /* ---------------------------------------------------------
-     HEADER / ESTADO GLOBAL
-  --------------------------------------------------------- */
   function refreshHeader() {
     const user = currentUser();
     document.body.classList.toggle("is-guest", !user);
@@ -495,9 +521,6 @@ import { uid, nowISO } from "./seed.js";
     });
   }
 
-  /* ---------------------------------------------------------
-     ROTEADOR
-  --------------------------------------------------------- */
   function currentRoute() {
     const hash = location.hash.replace(/^#/, "") || "/";
     const [path, query] = hash.split("?");
@@ -516,9 +539,6 @@ import { uid, nowISO } from "./seed.js";
 
   const PROTECTED_ROUTES = ["/painel", "/perfil", "/indicacoes", "/publicar"];
 
-  /* ---------------------------------------------------------
-     RENDER
-  --------------------------------------------------------- */
   let pendingDataRender = false;
 
   function hasActiveFormField() {
@@ -583,9 +603,6 @@ import { uid, nowISO } from "./seed.js";
     }, 0);
   });
 
-  /* ---------------------------------------------------------
-     VIEWS (HTML)
-  --------------------------------------------------------- */
   function projectCard(p) {
     const img = p.images && p.images[0];
     return `
@@ -606,7 +623,9 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function viewHome() {
-    const featured = db.projects.filter(p => p.status === "published").slice(0, 4);
+    // Filtra por "published" — a home nunca deve vazar pending/rejected.
+    const publishedProjects = db.projects.filter((p) => p.status === "published");
+    const featured = publishedProjects.slice(0, 4);
     return `
     <section class="hero">
       <div class="container hero-inner">
@@ -619,7 +638,7 @@ import { uid, nowISO } from "./seed.js";
             <a href="#/explorar" class="btn btn-ghost btn-lg" style="border-color:rgba(255,255,255,.35);color:#fff">Explorar projetos</a>
           </div>
           <div class="hero-stats">
-            <div><strong>${db.projects.length}+</strong><span>projetos publicados</span></div>
+            <div><strong>${publishedProjects.length}+</strong><span>projetos publicados</span></div>
             <div><strong>${db.users.length}+</strong><span>criadores cadastrados</span></div>
             <div><strong>${db.categories.length}</strong><span>categorias ativas</span></div>
           </div>
@@ -671,7 +690,7 @@ import { uid, nowISO } from "./seed.js";
 
   function viewExplore(params) {
     const search = (params.q || "").toLowerCase();
-    
+
     let list = db.projects.filter((p) => p.status === "published");
     if (search) list = list.filter((p) => p.title.toLowerCase().includes(search) || p.description.toLowerCase().includes(search));
 
@@ -762,6 +781,7 @@ import { uid, nowISO } from "./seed.js";
         <span class="tag-label">Novo projeto</span>
         <h2 style="margin-bottom:6px">Publicar projeto</h2>
         ${user.role === "admin" ? `<p class="field-hint" style="margin-bottom:20px">Você está publicando como administrador — não é necessário ter assinatura ativa.</p>` : `<div style="margin-bottom:26px"></div>`}
+        <p class="field-hint" style="margin-bottom:20px">Todas as postagens passam por revisão antes de serem publicadas na vitrine.</p>
         <form id="publishForm" class="panel">
           <div class="field"><label>Nome do projeto</label><input name="title" required placeholder="Ex.: Nimbus — painel financeiro"></div>
           <div class="field"><label>Descrição</label><textarea name="description" rows="5" required placeholder="Conte o que é, para quem serve e o que torna especial."></textarea></div>
@@ -773,7 +793,7 @@ import { uid, nowISO } from "./seed.js";
           </div>
           <div class="field"><label>Link do projeto</label><input name="link" type="url" required placeholder="https://"></div>
           <div class="field"><label>Nome do responsável</label><input name="ownerName" required value="${escapeHtml(user.name)}"></div>
-          <div class="field"><label>Forma de contato</label><input name="contact" required placeholder="E-mail, WhatsApp ou @usuário" value="${escapeHtml(user.email)}"></div>
+          <div class="field"><label>Forma de contato</label><input name="contact" required placeholder="E-mail ou telefone (WhatsApp)" value="${escapeHtml(user.email)}"></div>
           <div class="field">
             <label>Imagens do projeto</label>
             <input type="file" id="imageInput" accept="image/*" multiple>
@@ -885,8 +905,7 @@ import { uid, nowISO } from "./seed.js";
       </div>
       <div class="container">
         <div class="plans-grid">
-          
-          <!-- PLANO TESTE -->
+
           <div class="plan-card card-teste">
             <span class="plan-name">Plano Teste</span>
             <div class="plan-price">R$ 5<span>,00</span></div>
@@ -898,8 +917,7 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-teste btn-block" data-plan="pTeste">Assinar plano teste</button>
           </div>
-          
-          <!-- PLANO 4 DIAS -->
+
           <div class="plan-card card-4dias">
             <span class="plan-name">Plano 4 dias</span>
             <div class="plan-price">R$ 10<span>,00</span></div>
@@ -912,8 +930,7 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-4dias btn-block" data-plan="p4">Assinar plano 4 dias</button>
           </div>
-          
-          <!-- PLANO 7 DIAS (Dourado / Original) -->
+
           <div class="plan-card featured">
             <span class="plan-name">Plano 7 dias</span>
             <div class="plan-price">R$ 20<span>,00</span></div>
@@ -927,8 +944,7 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-gold btn-block" data-plan="p7">Assinar plano 7 dias</button>
           </div>
-          
-          <!-- PLANO MENSAL -->
+
           <div class="plan-card card-mensal">
             <span class="plan-name">Plano Mensal</span>
             <div class="plan-price">R$ 50<span>,00</span></div>
@@ -940,7 +956,7 @@ import { uid, nowISO } from "./seed.js";
             </ul>
             <button class="btn btn-mensal btn-block" data-plan="pMensal">Assinar plano mensal</button>
           </div>
-          
+
         </div>
       </div>
     </section>`;
@@ -950,7 +966,6 @@ import { uid, nowISO } from "./seed.js";
     return `<div class="section text-center"><div class="container"><h2>Página não encontrada</h2><p class="muted mt-1">O endereço acessado não existe.</p><a href="#/" class="btn btn-primary mt-3">Voltar para o início</a></div></div>`;
   }
 
-  /* ---------------- DASHBOARD / PERFIL / INDICAÇÕES ---------------- */
   function sideNav(active) {
     const items = [
       ["/painel", "Visão geral"],
@@ -985,7 +1000,7 @@ import { uid, nowISO } from "./seed.js";
               ? `<span class="badge badge-success">Ativa</span>`
               : `<span class="badge badge-danger">Expirada</span>`
           }</div></div>
-          <div class="stat-card"><div class="stat-label">Projetos publicados</div><div class="stat-value">${myProjects.length}</div></div>
+          <div class="stat-card"><div class="stat-label">Projetos publicados</div><div class="stat-value">${myProjects.filter((p) => p.status === "published").length}</div></div>
           <div class="stat-card gold"><div class="stat-label">Comissões disponíveis</div><div class="stat-value">${fmtBRL(availableCommission(user.id))}</div></div>
           <div class="stat-card"><div class="stat-label">Indicações</div><div class="stat-value">${db.referrals.filter((r) => r.referrerId === user.id).length}</div></div>
         </div>
@@ -1004,15 +1019,14 @@ import { uid, nowISO } from "./seed.js";
 
                       if (p.status === 'published') {
                         badge = '<span class="badge badge-success">Aprovado</span>';
-                      } else if (p.status === 'rejeitado') {
+                      } else if (p.status === 'rejected') {
                         badge = '<span class="badge badge-danger">Rejeitado</span>';
-                        // Botão limpo e sem emojis
                         action = `<button class="btn btn-sm btn-ghost" data-chatbot-msg="${p.id}" style="color: #cf3527; border: 1px solid #cf3527; padding: 4px 8px;">Ver Mensagem</button>`;
                       } else {
                         badge = '<span class="badge badge-warning">Em Revisão</span>';
                         action = `<span class="muted">Aguardando aprovação...</span>`;
                       }
-                      
+
                       return `<tr>
                     <td><strong>${escapeHtml(p.title)}</strong></td>
                     <td>${escapeHtml(categoryName(p.categoryId))}</td>
@@ -1138,14 +1152,10 @@ import { uid, nowISO } from "./seed.js";
     </div>`;
   }
 
-  /* ---------------------------------------------------------
-     EVENTOS POR PÁGINA
-  --------------------------------------------------------- */
   let pendingImages = [];
 
   function bindPageEvents(path) {
 
-    // Adiciona o evento de clique para o botão "Ver Mensagem"
     qsa("[data-chatbot-msg]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const projectId = btn.getAttribute("data-chatbot-msg");
@@ -1177,7 +1187,7 @@ import { uid, nowISO } from "./seed.js";
           btn.disabled = true;
           let doc = currentUser().document;
           if (!doc) {
-            doc = await showDocumentModal(); 
+            doc = await showDocumentModal();
           }
           btn.textContent = "Gerando Pix...";
           const result = await startPixPayment(planId, doc);
@@ -1224,7 +1234,7 @@ import { uid, nowISO } from "./seed.js";
           )
           .then((project) => {
             toast("Projeto enviado para revisão com sucesso!", "success");
-            navigate("/painel"); 
+            navigate("/painel");
           })
           .catch((err) => {
             qs("#publishError").textContent = err.message;
@@ -1358,9 +1368,6 @@ import { uid, nowISO } from "./seed.js";
     };
   }
 
-  /* ---------------------------------------------------------
-     HEADER GLOBAL (menu usuário, hambúrguer)
-  --------------------------------------------------------- */
   function bindGlobalUI() {
     const avatarBtn = qs("#avatarBtn");
     const userMenu = qs("#userMenu");
@@ -1391,9 +1398,6 @@ import { uid, nowISO } from "./seed.js";
     }
   }
 
-  /* ---------------------------------------------------------
-     TEMPO REAL — Firebase Auth + Realtime Database
-  --------------------------------------------------------- */
   onAuthStateChanged(auth, (user) => {
     firebaseUser = user;
     authReady = true;
