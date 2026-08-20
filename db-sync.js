@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v6)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v7)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -20,18 +20,18 @@
    Por isso agora os listeners são recriados sempre que o estado
    de autenticação muda (onAuthStateChanged), garantindo que,
    assim que o login é confirmado, os nós que exigem auth != null
-   (users, referrals, commissions, withdrawals) voltem a ser lidos
-   com o token válido.
+   (users, referrals, commissions, withdrawals, notifications)
+   voltem a ser lidos com o token válido.
 
    v5: CORREÇÃO — onDBChange() chamava cb(cache) imediatamente ao
    registrar o listener, mesmo com cache ainda vazio (emptyCache()
    não é null, então a checagem antiga "if (cache) cb(cache)" era
    sempre verdadeira). Isso fazia quem escuta onDBChange (admin.js)
    marcar dbReady = true um instante cedo demais, antes do primeiro
-   sync completo dos 7 nós — causando um flash da tela de "acesso
+   sync completo dos nós — causando um flash da tela de "acesso
    negado" antes dos dados reais chegarem. Agora existe um flag
    `synced`, exportado via isDBSynced(), que só vira true depois que
-   TODOS os 7 nós responderam (sucesso ou erro) pelo menos uma vez
+   TODOS os nós responderam (sucesso ou erro) pelo menos uma vez
    na geração de sync atual. onDBChange() só dispara de imediato se
    `synced` já for true; subscribeAll() reseta `synced` no início de
    cada nova geração (login/logout), evitando também que o painel
@@ -54,18 +54,30 @@
    passaram a usar push() em vez de "length" como próximo índice,
    eliminando a race condition de duas escritas simultâneas colidirem
    no mesmo índice.
+
+   v7: NOTIFICAÇÕES. Novo nó de primeiro nível "notifications" — é
+   onde o Worker grava um aviso quando um projeto é reprovado na
+   moderação (ver handleModerateProject no worker.js), lido pelo
+   script.js para mostrar o sino no header e a lista no painel do
+   usuário. O Worker grava usando notificationsList.length como
+   índice (não push()), então diferente de posts/comments a chave
+   real do Firebase É o índice — não precisa de _fbKey/cleanKeyed,
+   clean() padrão já basta. markNotificationRead() é a única escrita
+   client-side sobre este nó (o usuário marcando a própria
+   notificação como lida) — criar/editar o conteúdo da notificação
+   continua sendo exclusividade do Worker, como subscription/role.
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const DB_PATH = "database";
-const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals"];
+const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications"];
 
 let cache = emptyCache();
 const listeners = [];
-// true só depois que os 7 nós responderam (sucesso OU erro) pelo menos
-// uma vez desde a última mudança de login/logout. Ver nota v5 acima.
+// true só depois que todos os nós responderam (sucesso OU erro) pelo
+// menos uma vez desde a última mudança de login/logout. Ver nota v5.
 let synced = false;
 
 function emptyCache() {
@@ -77,6 +89,7 @@ function emptyCache() {
     referrals: [],
     commissions: [],
     withdrawals: [],
+    notifications: [],
   };
 }
 
@@ -199,10 +212,28 @@ export function addWithdrawalRequest(withdrawal) {
 }
 
 /* ---------------------------------------------------------
+   NOTIFICAÇÕES — o Worker cria (via Service Account, quando um
+   projeto é reprovado — ver handleModerateProject no worker.js),
+   o cliente só marca como lida. O Worker usa o comprimento da
+   lista como índice ao gravar (não push()), então a chave real no
+   Firebase de uma notificação é simplesmente sua posição no nó —
+   por isso usamos o índice do array local diretamente, sem
+   depender de _fbKey (diferente de posts/comments, que usam
+   push() e por isso precisam de cleanKeyed — ver nota v6).
+--------------------------------------------------------- */
+export function markNotificationRead(notificationId) {
+  const idx = cache.notifications.findIndex((n) => n && n.id === notificationId);
+  if (idx === -1) throw new Error("Notificação não encontrada: " + notificationId);
+  return update(ref(rtdb), { [`${DB_PATH}/notifications/${idx}/read`]: true });
+}
+
+/* ---------------------------------------------------------
    NOTA: subscription, role e commissions NÃO têm função de
    escrita aqui de propósito — só o Worker (com a Service
    Account) pode alterar esses campos, via webhook de pagamento
-   confirmado. Isso é reforçado pelas Regras do Firebase.
+   confirmado ou ações administrativas. Isso é reforçado pelas
+   Regras do Firebase. O mesmo vale para o CONTEÚDO de uma
+   notificação (só o campo "read" é editável pelo cliente).
 --------------------------------------------------------- */
 
 /* ---------------------------------------------------------
@@ -215,19 +246,19 @@ export function addWithdrawalRequest(withdrawal) {
    pra evitar o problema do onValue() "morrer" depois de um
    permission_denied e nunca mais voltar a escutar sozinho.
 
-   IMPORTANTE: cada um dos 7 nós tem seu próprio listener, e eles
+   IMPORTANTE: cada um dos nós tem seu próprio listener, e eles
    resolvem em momentos diferentes — os públicos (categories,
    projects, posts) costumam responder quase na hora, enquanto
-   users/referrals/commissions/withdrawals dependem do token de
-   auth mais recente e demoram um pouco mais. Se notify() disparasse
-   a cada nó individualmente, o primeiro aviso (ex.: vindo de
-   "categories") já marcaria os dados como "prontos" em quem escuta
-   onDBChange, mesmo com "users" ainda vazio — e isso reintroduz o
-   mesmo problema de redirecionar pro login antes da hora. Por isso
-   agora notify() só é chamado depois que TODOS os 7 nós tiverem
-   respondido (com sucesso OU erro) pelo menos uma vez desde a
-   última mudança de login/logout. O mesmo critério agora também
-   controla o flag `synced` (ver v5 no cabeçalho do arquivo).
+   users/referrals/commissions/withdrawals/notifications dependem
+   do token de auth mais recente e demoram um pouco mais. Se
+   notify() disparasse a cada nó individualmente, o primeiro aviso
+   (ex.: vindo de "categories") já marcaria os dados como "prontos"
+   em quem escuta onDBChange, mesmo com "users" ainda vazio — e isso
+   reintroduz o mesmo problema de redirecionar pro login antes da
+   hora. Por isso agora notify() só é chamado depois que TODOS os
+   nós tiverem respondido (com sucesso OU erro) pelo menos uma vez
+   desde a última mudança de login/logout. O mesmo critério agora
+   também controla o flag `synced` (ver v5 no cabeçalho do arquivo).
 --------------------------------------------------------- */
 let syncGeneration = 0;
 
@@ -278,10 +309,10 @@ function subscribeAll() {
       (err) => {
         if (gen !== syncGeneration) return;
         // Normal enquanto o usuário não está logado: users, referrals,
-        // commissions e withdrawals exigem auth != null nas regras.
-        // categories/projects/posts são de leitura pública e não devem
-        // cair aqui. Quando o usuário logar, subscribeAll() roda de
-        // novo via onAuthStateChanged e o listener é recriado.
+        // commissions, withdrawals e notifications exigem auth != null
+        // nas regras. categories/projects/posts são de leitura pública
+        // e não devem cair aqui. Quando o usuário logar, subscribeAll()
+        // roda de novo via onAuthStateChanged e o listener é recriado.
         console.error(`Erro ao ler ${key} do Firebase:`, err);
         cache[key] = []; // evita vazar dado de uma sessão anterior
         markLoaded(key);
