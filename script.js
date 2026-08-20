@@ -2,36 +2,13 @@
    COMPARTILHAR PROJETOS — SCRIPT.JS
    SPA leve, sincronizada com o Firebase Realtime Database.
    Autenticação via Firebase Auth. Pagamento de assinatura via
-   Pix (VizzionPay), processado por um Cloudflare Worker que
-   confirma o pagamento e ativa a assinatura direto no Firebase.
+   Pix (VizzionPay), processado por um Cloudflare Worker.
 
-   v4: MODERAÇÃO AUTOMÁTICA DE PROJETOS. publishProject roda
-   moderateProject() antes de gravar: detecta termos proibidos
-   (cassino/apostas etc.) no título/descrição e valida se o contato
-   parece um e-mail ou telefone plausível. Se algo falhar, o projeto
-   nasce com status "rejected". Se passar no filtro, nasce "pending",
-   aguardando aprovação manual no painel admin. viewHome e
-   viewExplore filtram por status "published" para a vitrine pública
-   nunca vazar pendentes/rejeitados. Valores de status padronizados
-   em inglês (pending/published/rejected) para bater com admin.js e
-   worker.js.
-
-   v5: NOTIFICAÇÕES. O antigo showChatbotModal (motivo de rejeição
-   lido de project.rejectReason, mostrado num modal isolado) foi
-   substituído por um sistema real de notificações, lido de
-   db.notifications (novo nó sincronizado por db-sync.js). Quando a
-   moderação automática rejeita um projeto na hora da publicação,
-   publishProject chama o Worker (/notify-auto-rejection) para criar
-   a notificação — o cliente nunca escreve o CONTEÚDO da notificação
-   diretamente, só marca como lida (markNotificationRead), mantendo
-   o mesmo padrão de segurança usado em subscription/role/commissions
-   (só a Service Account do Worker decide o que é "verdade"). Quando
-   um admin rejeita manualmente pelo painel, a notificação nasce
-   direto em handleModerateProject (worker.js), sem essa chamada
-   extra. Notificações aparecem em dois lugares: um sino no header
-   (criado dinamicamente, já que index.html não foi tocado aqui) com
-   contador de não lidas, e uma seção "Notificações" no topo de
-   /painel.
+   v4: MODERAÇÃO AUTOMÁTICA DE PROJETOS.
+   v5: NOTIFICAÇÕES (Sino e listagem).
+   v6: UX UPGRADE NAS NOTIFICAÇÕES. Botão Editar e Reenviar (pré-preenchido),
+       tempo relativo, cores inteligentes, limite de listagem e botão
+       "Marcar todas como lidas".
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -101,6 +78,24 @@ import { uid, nowISO } from "./seed.js";
     const d = new Date(iso);
     return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   }
+  
+  // Função para transformar datas absolutas em tempo relativo (UX Upgrade)
+  function timeAgo(isoString) {
+    const date = new Date(isoString);
+    const now = new Date();
+    const seconds = Math.round((now - date) / 1000);
+    const minutes = Math.round(seconds / 60);
+    const hours = Math.round(minutes / 60);
+    const days = Math.round(hours / 24);
+
+    if (seconds < 60) return "Agora mesmo";
+    if (minutes < 60) return `Há ${minutes} min`;
+    if (hours < 24) return `Há ${hours} h`;
+    if (days === 1) return "Ontem";
+    if (days < 7) return `Há ${days} dias`;
+    return fmtDate(isoString);
+  }
+
   function fmtBRL(v) {
     return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
@@ -172,11 +167,6 @@ import { uid, nowISO } from "./seed.js";
 
   /* ---------------------------------------------------------
      MODERAÇÃO AUTOMÁTICA DE PROJETOS
-     Roda dentro de publishProject, no momento do envio. Decide
-     entre "pending" (aguardando aprovação manual) e "rejected"
-     (motivo já identificado automaticamente, sem intervenção do
-     admin). rejectReason é "categoria" ou "contato" — usado pelo
-     showChatbotModal para montar a frase certa.
   --------------------------------------------------------- */
   const PROHIBITED_TERMS = [
     "cassino", "casino", "aposta", "apostas", "bet365", "betano",
@@ -201,9 +191,6 @@ import { uid, nowISO } from "./seed.js";
     if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) return true;
     return false;
   }
-  // Devolve { status, rejectReason }. rejectReason é "categoria",
-  // "contato", ou null se aprovado no filtro automático (ainda
-  // "pending", aguardando revisão manual).
   function moderateProject(data) {
     const termInTitle = findProhibitedTerm(data.title);
     const termInDescription = findProhibitedTerm(data.description);
@@ -217,7 +204,7 @@ import { uid, nowISO } from "./seed.js";
   }
 
   /* ---------------------------------------------------------
-     GERAÇÃO DE QR CODE (no navegador)
+     GERAÇÃO DE QR CODE
   --------------------------------------------------------- */
   let qrCodeLibPromise = null;
   function ensureQRCodeLib() {
@@ -236,7 +223,6 @@ import { uid, nowISO } from "./seed.js";
     container.innerHTML = "";
     ensureQRCodeLib()
       .then(() => {
-        // eslint-disable-next-line no-undef
         new QRCode(container, {
           text: text || "",
           width: 220,
@@ -251,7 +237,7 @@ import { uid, nowISO } from "./seed.js";
   }
 
   /* ---------------------------------------------------------
-     PAGAMENTO — Pix via VizzionPay (processado pelo Worker)
+     PAGAMENTO — Pix
   --------------------------------------------------------- */
   async function startPixPayment(planId, documentOverride) {
     const user = currentUser();
@@ -386,25 +372,6 @@ import { uid, nowISO } from "./seed.js";
 
   /* ---------------------------------------------------------
      AÇÕES DE NEGÓCIO
-
-     publishProject é async: quando a moderação automática rejeita
-     na hora (moderateProject retorna "rejected"), o projeto ainda
-     é gravado normalmente via addProject() (o cliente sempre pode
-     gravar seu próprio projeto), mas a NOTIFICAÇÃO explicando o
-     motivo é criada pelo Worker, via /notify-auto-rejection — não
-     é o cliente que escreve em /database/notifications diretamente.
-     Isso mantém notifications como um nó onde só a Service Account
-     grava conteúdo (o mesmo padrão de subscription/role/commissions),
-     mesmo quando quem "decide" a rejeição é o filtro automático e
-     não um admin olhando o painel. Ver handleNotifyAutoRejection no
-     worker.js — ele confirma que quem chama é o dono do projeto e
-     que o projeto já está mesmo "rejected" antes de criar a
-     notificação, então essa chamada não pode ser usada para forjar
-     avisos em projetos de terceiros ou ainda pendentes.
-
-     A notificação de rejeição MANUAL (quando um admin reprova pelo
-     painel) já é criada pelo Worker dentro de handleModerateProject
-     — nada muda ali.
   --------------------------------------------------------- */
   async function publishProject(data) {
     const user = currentUser();
@@ -443,10 +410,6 @@ import { uid, nowISO } from "./seed.js";
           body: JSON.stringify({ projectId: project.id, rejectReason: moderation.rejectReason }),
         });
       } catch (err) {
-        // O projeto já foi gravado como "rejected" — se a notificação
-        // falhar (rede, worker fora do ar), o usuário ainda vê o status
-        // "Não aprovado" no painel, só sem o motivo detalhado. Não
-        // interrompe o fluxo de publicação por causa disso.
         console.error("Falha ao registrar notificação de rejeição automática:", err);
       }
     }
@@ -524,9 +487,7 @@ import { uid, nowISO } from "./seed.js";
   }
 
   /* ---------------------------------------------------------
-     NOTIFICAÇÕES — avisos de moderação (rejeição de projeto,
-     automática ou manual pelo admin). Gravadas pelo Worker em
-     /database/notifications; o cliente só marca como lida.
+     NOTIFICAÇÕES
   --------------------------------------------------------- */
   function myNotifications(userId) {
     return db.notifications
@@ -555,13 +516,6 @@ import { uid, nowISO } from "./seed.js";
     refreshNotificationBell(user);
   }
 
-  /* ---------------------------------------------------------
-     SINO DE NOTIFICAÇÕES — criado dinamicamente dentro de
-     .header-user-actions (index.html não faz parte dos arquivos
-     tocados aqui, então em vez de exigir um <button> novo no HTML,
-     o elemento é criado uma única vez por JS e só atualizado depois).
-     Some completamente para visitantes não logados.
-  --------------------------------------------------------- */
   let notifBellBound = false;
   function ensureNotificationBell() {
     let btn = document.getElementById("notifBellBtn");
@@ -580,7 +534,6 @@ import { uid, nowISO } from "./seed.js";
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       </svg>
       <span id="notifBellCount" class="badge badge-danger" style="display:none;position:absolute;top:-4px;right:-4px;padding:1px 5px;font-size:10px;min-width:16px;text-align:center"></span>`;
-    // Insere antes do avatar, se existir, senão no fim do host.
     const avatarBtn = qs("#avatarBtn", host);
     if (avatarBtn) host.insertBefore(btn, avatarBtn);
     else host.appendChild(btn);
@@ -606,9 +559,6 @@ import { uid, nowISO } from "./seed.js";
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         navigate("/painel");
-        // Dá tempo do render acontecer antes de rolar até a seção —
-        // painel muda de conteúdo via hashchange, que roda de forma
-        // assíncrona (listener separado), não imediatamente aqui.
         setTimeout(() => {
           const section = document.getElementById("notificationsSection");
           if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -676,7 +626,7 @@ import { uid, nowISO } from "./seed.js";
     if (path === "/" || path === "") html = viewHome();
     else if (path === "/explorar") html = viewExplore(params);
     else if (seg[0] === "projeto" && seg[1]) html = viewProjectDetail(seg[1]);
-    else if (path === "/publicar") html = viewPublish();
+    else if (path === "/publicar") html = viewPublish(params);
     else if (path === "/comunidade") html = viewCommunity();
     else if (path === "/planos") html = viewPlans();
     else if (path === "/painel") html = viewDashboard();
@@ -719,7 +669,6 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function viewHome() {
-    // Filtra por "published" — a home nunca deve vazar pending/rejected.
     const publishedProjects = db.projects.filter((p) => p.status === "published");
     const featured = publishedProjects.slice(0, 4);
     return `
@@ -859,7 +808,7 @@ import { uid, nowISO } from "./seed.js";
     </div>`;
   }
 
-  function viewPublish() {
+  function viewPublish(params) {
     const user = currentUser();
     if (!canPublish(user)) {
       return `
@@ -871,33 +820,49 @@ import { uid, nowISO } from "./seed.js";
         </div>
       </div>`;
     }
+    
+    // UX UPGRADE: Recuperar projeto rejeitado para Auto-Preenchimento
+    let editProj = null;
+    if (params && params.edit) {
+       editProj = db.projects.find(p => p.id === params.edit && p.ownerId === user.id);
+    }
+    
+    const isEdit = !!editProj;
+    const titleVal = editProj ? escapeHtml(editProj.title) : "";
+    const descVal = editProj ? escapeHtml(editProj.description) : "";
+    const linkVal = editProj ? escapeHtml(editProj.link) : "";
+    const catIdVal = editProj ? editProj.categoryId : "";
+    const ownerNameVal = editProj ? escapeHtml(editProj.ownerName) : escapeHtml(user.name);
+    const contactVal = editProj ? escapeHtml(editProj.contact) : escapeHtml(user.email);
+
     return `
     <section class="section" style="padding-top:44px;max-width:720px;margin:0 auto">
       <div class="container">
-        <span class="tag-label">Novo projeto</span>
-        <h2 style="margin-bottom:6px">Publicar projeto</h2>
+        <span class="tag-label">${isEdit ? "Revisão de Projeto" : "Novo projeto"}</span>
+        <h2 style="margin-bottom:6px">${isEdit ? "Editar e Reenviar Projeto" : "Publicar projeto"}</h2>
         ${user.role === "admin" ? `<p class="field-hint" style="margin-bottom:20px">Você está publicando como administrador — não é necessário ter assinatura ativa.</p>` : `<div style="margin-bottom:26px"></div>`}
-        <p class="field-hint" style="margin-bottom:20px">Todas as postagens passam por revisão antes de serem publicadas na vitrine.</p>
+        ${isEdit ? `<div class="badge badge-warning" style="margin-bottom: 20px; display: inline-block;">Corrija as informações abaixo para reenviar seu projeto.</div>` : `<p class="field-hint" style="margin-bottom:20px">Todas as postagens passam por revisão antes de serem publicadas na vitrine.</p>`}
+        
         <form id="publishForm" class="panel">
-          <div class="field"><label>Nome do projeto</label><input name="title" required placeholder="Ex.: Nimbus — painel financeiro"></div>
-          <div class="field"><label>Descrição</label><textarea name="description" rows="5" required placeholder="Conte o que é, para quem serve e o que torna especial."></textarea></div>
+          <div class="field"><label>Nome do projeto</label><input name="title" required placeholder="Ex.: Nimbus — painel financeiro" value="${titleVal}"></div>
+          <div class="field"><label>Descrição</label><textarea name="description" rows="5" required placeholder="Conte o que é, para quem serve e o que torna especial.">${descVal}</textarea></div>
           <div class="field"><label>Categoria</label>
             <select name="categoryId" required>
               <option value="">Selecione…</option>
-              ${db.categories.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("")}
+              ${db.categories.map((c) => `<option value="${c.id}" ${c.id === catIdVal ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join("")}
             </select>
           </div>
-          <div class="field"><label>Link do projeto</label><input name="link" type="url" required placeholder="https://"></div>
-          <div class="field"><label>Nome do responsável</label><input name="ownerName" required value="${escapeHtml(user.name)}"></div>
-          <div class="field"><label>Forma de contato</label><input name="contact" required placeholder="E-mail ou telefone (WhatsApp)" value="${escapeHtml(user.email)}"></div>
+          <div class="field"><label>Link do projeto</label><input name="link" type="url" required placeholder="https://" value="${linkVal}"></div>
+          <div class="field"><label>Nome do responsável</label><input name="ownerName" required value="${ownerNameVal}"></div>
+          <div class="field"><label>Forma de contato</label><input name="contact" required placeholder="E-mail ou telefone (WhatsApp)" value="${contactVal}"></div>
           <div class="field">
-            <label>Imagens do projeto</label>
+            <label>Imagens do projeto ${isEdit ? "(Envie as imagens novamente)" : ""}</label>
             <input type="file" id="imageInput" accept="image/*" multiple>
             <div class="field-hint">Envie até 4 imagens do seu projeto.</div>
             <div class="upload-preview" id="uploadPreview"></div>
           </div>
           <div class="field-error" id="publishError"></div>
-          <button class="btn btn-primary btn-block" type="submit">Publicar projeto</button>
+          <button class="btn btn-primary btn-block" type="submit">${isEdit ? "Reenviar Projeto" : "Publicar projeto"}</button>
         </form>
       </div>
     </section>`;
@@ -1076,14 +1041,39 @@ import { uid, nowISO } from "./seed.js";
       .join("")}`;
   }
 
+  // UX UPGRADE: Card de Notificação mais moderno com cores e ação rápida
   function notificationCard(n) {
+    let icon = "🔔";
+    let color = "var(--ink-700)";
+    let border = n.read ? "1px solid var(--ink-200)" : "1px solid var(--gold-400)";
+    let title = "Notificação";
+
+    // Identificação visual de gravidade
+    if (n.message.includes("aprovado") || n.message.includes("sucesso") || n.message.includes("disponível")) {
+       icon = "✅"; color = "var(--green-700)"; title = "Aprovado";
+    } else if (n.message.includes("reprovado") || n.message.includes("não foi aprovado") || n.message.includes("ATENÇÃO")) {
+       icon = "⚠️"; color = "var(--red-600)"; title = "Ação Necessária";
+    }
+
+    let msgHtml = escapeHtml(n.message);
+    let actionBtn = "";
+    
+    // Identifica se é um projeto rejeitado para injetar o botão Salva-Vidas
+    if (n.projectId && (n.message.includes("ATENÇÃO") || n.message.includes("reprovado"))) {
+       actionBtn = `<a href="#/publicar?edit=${n.projectId}" class="btn btn-sm btn-primary mt-2" style="display:inline-block">✏️ Editar e reenviar projeto</a>`;
+    }
+
     return `
-    <div class="panel" data-notification="${n.id}" style="${n.read ? "" : "border-color:var(--gold-400)"};padding:16px 18px;margin-bottom:10px">
+    <div class="panel" data-notification="${n.id}" style="border:${border};padding:16px 18px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-        <p style="font-size:13.5px;color:var(--ink-700);flex:1">${escapeHtml(n.message)}</p>
-        ${n.read ? "" : `<button class="btn btn-sm btn-ghost" data-mark-read="${n.id}" style="flex:none">Marcar como lida</button>`}
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px;color:${color};margin-bottom:4px">${icon} ${title}</div>
+          <p style="font-size:13.5px;color:var(--ink-700);line-height:1.4">${msgHtml}</p>
+          ${actionBtn}
+        </div>
+        ${n.read ? "" : `<button class="btn btn-sm btn-ghost" data-mark-read="${n.id}" style="flex:none">Marcar lida</button>`}
       </div>
-      <span class="muted" style="font-size:12px;display:block;margin-top:8px">${fmtDateTime(n.createdAt)}</span>
+      <span class="muted" style="font-size:12px;display:block;margin-top:10px" title="${fmtDateTime(n.createdAt)}">${timeAgo(n.createdAt)}</span>
     </div>`;
   }
 
@@ -1091,7 +1081,35 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     const myProjects = db.projects.filter((p) => p.ownerId === user.id);
     const active = isSubscriptionActive(user);
-    const notifications = myNotifications(user.id);
+    
+    const allNotifications = myNotifications(user.id);
+    const unreadCount = allNotifications.filter((n) => !n.read).length;
+    
+    // UX UPGRADE: Limite de visualização para não poluir a tela
+    let notifHtml = "";
+    if (allNotifications.length > 0) {
+       const topNotifs = allNotifications.slice(0, 5);
+       const hasMore = allNotifications.length > 5;
+
+       notifHtml = `
+       <div class="panel" id="notificationsSection">
+         <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:8px">
+                <h3>Notificações</h3>
+                ${unreadCount > 0 ? `<span class="badge badge-danger">${unreadCount} não lida(s)</span>` : ""}
+            </div>
+            ${unreadCount > 0 ? `<button class="btn btn-sm btn-ghost" id="markAllReadBtn">Marcar todas como lidas ✓</button>` : ""}
+         </div>
+         <div id="notifListContainer">
+            ${topNotifs.map(notificationCard).join("")}
+         </div>
+         ${hasMore ? `<button class="btn btn-sm btn-ghost btn-block mt-2" id="showAllNotifsBtn">Ver todas as ${allNotifications.length} notificações</button>` : ""}
+         <div id="allNotifsContainer" style="display:none">
+            ${allNotifications.slice(5).map(notificationCard).join("")}
+         </div>
+       </div>`;
+    }
+
     return `
     <div class="dash-shell">
       <nav class="dash-sidebar">${sideNav("/painel")}</nav>
@@ -1101,16 +1119,7 @@ import { uid, nowISO } from "./seed.js";
           <a href="#/publicar" class="btn btn-gold">+ Publicar projeto</a>
         </div>
 
-        ${
-          notifications.length
-            ? `<div class="panel" id="notificationsSection">
-                <div class="panel-head"><h3>Notificações</h3>${
-                  unreadNotificationsCount(user.id) > 0 ? `<span class="badge badge-danger">${unreadNotificationsCount(user.id)} não lida(s)</span>` : ""
-                }</div>
-                ${notifications.map(notificationCard).join("")}
-              </div>`
-            : ""
-        }
+        ${notifHtml}
 
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-label">Status da assinatura</div><div class="stat-value" style="font-size:16px">${
@@ -1141,9 +1150,6 @@ import { uid, nowISO } from "./seed.js";
                         badge = '<span class="badge badge-success">Aprovado</span>';
                       } else if (p.status === 'rejected') {
                         badge = '<span class="badge badge-danger">Rejeitado</span>';
-                        // O motivo detalhado chega como notificação (sino no
-                        // header / seção "Notificações" abaixo), não mais
-                        // por um modal disparado a partir desta linha.
                         action = `<span class="muted">Veja o motivo em Notificações</span>`;
                       } else {
                         badge = '<span class="badge badge-warning">Em Revisão</span>';
@@ -1279,6 +1285,7 @@ import { uid, nowISO } from "./seed.js";
 
   function bindPageEvents(path) {
 
+    // Lógica UX: Marcar uma única notificação
     qsa("[data-mark-read]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-mark-read");
@@ -1287,11 +1294,32 @@ import { uid, nowISO } from "./seed.js";
           toast(err.message || "Não foi possível marcar como lida.", "error");
           btn.disabled = false;
         });
-        // Sem re-render manual aqui: onDBChange já dispara um
-        // render({navigation:false}) assim que o Firebase confirmar a
-        // escrita, atualizando o card e o contador do sino sozinho.
       });
     });
+
+    // Lógica UX: Marcar todas as notificações não lidas
+    const markAllBtn = qs("#markAllReadBtn");
+    if (markAllBtn) {
+      markAllBtn.addEventListener("click", () => {
+        markAllBtn.disabled = true;
+        const unreadNotifs = myNotifications(currentUser().id).filter(n => !n.read);
+        Promise.all(unreadNotifs.map(n => markNotificationRead(n.id))).then(() => {
+          toast("Todas as notificações marcadas como lidas!", "success");
+        }).catch(err => {
+          toast("Erro ao marcar notificações.", "error");
+          markAllBtn.disabled = false;
+        });
+      });
+    }
+
+    // Lógica UX: Mostrar notificações antigas (expandir)
+    const showAllBtn = qs("#showAllNotifsBtn");
+    if (showAllBtn) {
+      showAllBtn.addEventListener("click", () => {
+        qs("#allNotifsContainer").style.display = "block";
+        showAllBtn.style.display = "none";
+      });
+    }
 
     const search = qs("#searchInput");
     const catFilter = qs("#catFilter");
