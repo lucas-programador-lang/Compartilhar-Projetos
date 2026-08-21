@@ -1112,12 +1112,12 @@ import { uid, nowISO } from "./seed.js";
     let title = "Notificação";
 
     // Identificação visual de gravidade (Apenas cores, sem emojis)
-    if (n.message.includes("aprovado") || n.message.includes("sucesso") || n.message.includes("disponível")) {
-       color = "var(--green-700)"; title = "Aprovado";
-    } else if (n.message.includes("reprovado") || n.message.includes("não foi aprovado") || n.message.includes("ATENÇÃO")) {
-       color = "var(--red-600)"; title = "Ação Necessária";
-    }
-
+    // como aprovação (era exatamente esse o bug do print).
+if (n.message.includes("reprovado") || n.message.includes("não foi aprovado") || n.message.includes("ATENÇÃO")) {
+   color = "var(--red-600)"; title = "Ação Necessária";
+} else if (n.message.includes("aprovado") || n.message.includes("sucesso") || n.message.includes("disponível")) {
+   color = "var(--green-700)"; title = "Aprovado";
+}
     let msgHtml = escapeHtml(n.message);
     let actionBtn = "";
 
