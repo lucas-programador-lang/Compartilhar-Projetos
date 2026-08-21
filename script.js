@@ -552,11 +552,11 @@ import { uid, nowISO } from "./seed.js";
   /* ---------------------------------------------------------
      NOTIFICAÇÕES
   --------------------------------------------------------- */
-  function myNotifications(userId) {
-    return db.notifications
-      .filter((n) => n.userId === userId)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }
+ function myNotifications(userId) {
+  return db.notifications
+    .filter((n) => n.userId === userId && !n.resolved)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
   function unreadNotificationsCount(userId) {
     return myNotifications(userId).filter((n) => !n.read).length;
   }
