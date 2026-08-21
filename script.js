@@ -667,6 +667,8 @@ import { uid, nowISO } from "./seed.js";
       return;
     }
 
+     refreshHeader();
+
     if (!isNavigation && hasActiveFormField()) {
       pendingDataRender = true;
       return;
@@ -697,11 +699,10 @@ import { uid, nowISO } from "./seed.js";
     else if (path === "/indicacoes") html = viewReferrals();
     else html = view404();
 
-    app.innerHTML = html;
+     app.innerHTML = html;
     if (isNavigation) {
       window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
     }
-    refreshHeader();
     bindPageEvents(path);
   }
 
