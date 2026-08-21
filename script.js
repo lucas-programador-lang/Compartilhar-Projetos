@@ -18,6 +18,7 @@ import {
   onDBChange,
   updateUserProfile,
   addProject,
+  updateProject,
   addPost,
   addComment,
   addReply,
