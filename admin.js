@@ -825,11 +825,36 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     boot();
   });
 
+    // Guarda o último estado do banco que de fato gerou uma renderização
+  // — excluindo "notifications" de propósito, porque nenhuma seção do
+  // painel admin lê ou exibe esse nó (confirmado: nenhuma renderX()
+  // usa db.notifications). Sem isso, toda vez que o Worker grava uma
+  // notificação (saque decidido, comissão creditada, projeto
+  // resolvido — tudo isso é rotina agora) o admin.js re-renderizava o
+  // painel inteiro à toa, mesmo sem nada relevante ter mudado.
+  let lastRelevantSnapshot = null;
+  function relevantSnapshot(database) {
+    const { notifications, ...rest } = database;
+    return JSON.stringify(rest);
+  }
+
   onDBChange((newDb) => {
     db = newDb;
+    const wasReady = dbReady;
     // dbReady só vira true quando o db-sync.js confirma que os nós
     // já responderam pelo menos uma vez nesta geração (ver nota v3).
     dbReady = isDBSynced();
+
+    if (dbReady) {
+      const snap = relevantSnapshot(db);
+      if (wasReady && snap === lastRelevantSnapshot) {
+        // Nada que o painel exibe mudou de fato — evita o "pisca" e a
+        // perda de posição de rolagem/seleção por um re-render inútil.
+        return;
+      }
+      lastRelevantSnapshot = snap;
+    }
+
     boot();
   });
 
