@@ -66,6 +66,19 @@
    client-side sobre este nó (o usuário marcando a própria
    notificação como lida) — criar/editar o conteúdo da notificação
    continua sendo exclusividade do Worker, como subscription/role.
+
+   v8: EDITAR E REENVIAR PROJETO REJEITADO. "projects" passou a usar
+   cleanKeyed() (mesmo tratamento de "posts") — sem isso,
+   updateProject() teria que escrever usando o índice do array local,
+   e esse índice muda toda vez que um projeto é excluído em qualquer
+   posição anterior à dele, fazendo a escrita ir parar no projeto
+   errado (o mesmo bug de fundo que a v6 corrigiu para
+   addComment/addReply). Nova função updateProject() permite ao
+   dono de um projeto "rejected" reenviá-lo com os campos corrigidos
+   SEM criar um registro novo — o script.js usa isso no fluxo de
+   "Editar e reenviar" para não duplicar o projeto (antes, reenviar
+   chamava addProject() de novo e o projeto rejeitado antigo ficava
+   perdido no banco, nunca mais visível em lugar nenhum).
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
@@ -168,6 +181,22 @@ export function updateUserProfile(userId, { name, bio, document } = {}) {
 export function addProject(project) {
   const newRef = push(ref(rtdb, `${DB_PATH}/projects`));
   return set(newRef, project).then(() => project);
+}
+
+// Atualiza um projeto EXISTENTE (usado no fluxo "Editar e reenviar" de
+// um projeto rejeitado) — nunca cria um registro novo. Usa a chave
+// real do Firebase (project._fbKey), não o id de negócio nem o índice
+// do array local — ver nota v8 no cabeçalho do arquivo. `updates` é
+// um objeto parcial: só os campos passados são sobrescritos, o resto
+// do projeto (createdAt original, ownerId, id, etc.) permanece intacto.
+export function updateProject(projectId, updates) {
+  const project = cache.projects.find((p) => p && p.id === projectId);
+  if (!project || !project._fbKey) throw new Error("Projeto não encontrado: " + projectId);
+  const patch = {};
+  Object.keys(updates || {}).forEach((field) => {
+    patch[`${DB_PATH}/projects/${project._fbKey}/${field}`] = updates[field];
+  });
+  return update(ref(rtdb), patch).then(() => ({ ...project, ...updates }));
 }
 
 /* ---------------------------------------------------------
@@ -301,6 +330,13 @@ function subscribeAll() {
               c.replies = cleanKeyed(c.replies);
             });
           });
+        } else if (key === "projects") {
+          // projects também precisa da chave real (_fbKey) — necessário
+          // para updateProject() escrever no registro certo ao reenviar
+          // um projeto rejeitado, em vez de depender do índice do array
+          // local (que muda se qualquer projeto anterior for excluído).
+          // Ver nota v8.
+          cache.projects = cleanKeyed(snapshot.exists() ? snapshot.val() : {});
         } else {
           cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
         }
