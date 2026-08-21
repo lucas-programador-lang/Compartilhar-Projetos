@@ -8,218 +8,257 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  /* =========================================================
-     REVISÃO 3 — foco em responsivo + desktop, mantendo a mesma
-     paleta e variáveis do design system (navy/blue-vibrant/gold).
-     Nada de estrutura HTML foi alterado, só o bloco de estilo.
+ /* =========================================================
+   REVISÃO 3 — foco em responsivo + desktop, mantendo a mesma
+   paleta e variáveis do design system (navy/blue-vibrant/gold).
+   Nada de estrutura HTML foi alterado, só o bloco de estilo.
 
-     O QUE MUDOU EM RELAÇÃO À REVISÃO 2:
+   O QUE MUDOU EM RELAÇÃO À REVISÃO 2:
 
-     1) ESCALA FLUIDA (clamp) em vez de só saltos por breakpoint
-        - Paddings do .admin-main, tamanho de .admin-head h1 e o
-          gap do .admin-nav agora usam clamp(), então o layout
-          "respira" continuamente entre 320px e 1920px em vez de
-          pular abruptamente nos pontos de quebra. Os breakpoints
-          continuam existindo, mas só pra mudanças estruturais
-          (grid → coluna única, sidebar vertical → horizontal),
-          não mais pra ajustar números de espaçamento.
+   1) ESCALA FLUIDA (clamp) em vez de só saltos por breakpoint
+      - Paddings do .admin-main, tamanho de .admin-head h1 e o
+        gap do .admin-nav agora usam clamp(), então o layout
+        "respira" continuamente entre 320px e 1920px em vez de
+        pular abruptamente nos pontos de quebra. Os breakpoints
+        continuam existindo, mas só pra mudanças estruturais
+        (grid → coluna única, sidebar vertical → horizontal),
+        não mais pra ajustar números de espaçamento.
 
-     2) DESKTOP / ULTRAWIDE
-        - Novo teto em 1920px: conteúdo central ganha mais
-          respiro (max-width maior) em vez de ficar com uma faixa
-          estreita cercada de vazio nas telas grandes.
-        - .admin-head agora também é fluido, então títulos longos
-          (ex. "Indicações & comissões") não colidem com o
-          cabeçalho em telas médias.
-        - Variáveis locais (--admin-*) centralizam raio, sombra e
-          duração de transição, então qualquer ajuste futuro de
-          "personalidade visual" do painel é feito em um lugar só.
+   2) DESKTOP / ULTRAWIDE
+      - Novo teto em 1920px: conteúdo central ganha mais
+        respiro (max-width maior) em vez de ficar com uma faixa
+        estreita cercada de vazio nas telas grandes.
+      - .admin-head agora também é fluido, então títulos longos
+        (ex. "Indicações & comissões") não colidem com o
+        cabeçalho em telas médias.
+      - Variáveis locais (--admin-*) centralizam raio, sombra e
+        duração de transição, então qualquer ajuste futuro de
+        "personalidade visual" do painel é feito em um lugar só.
 
-     3) SIDEBAR / NAV MOBILE
-        - A barra horizontal do menu em mobile agora tem uma
-          máscara de gradiente nas bordas (fade real, visível em
-          qualquer navegador) indicando que dá pra arrastar —
-          antes só existia uma scrollbar fininha, pouco perceptível
-          em touch (a maioria dos navegadores mobile esconde
-          scrollbar customizada).
-        - Botões do menu com min-height 44px mantidos (alvo de
-          toque), mas agora com scroll-snap para "encaixar" no item
-          ao arrastar, uma sensação mais nativa/profissional.
+   3) SIDEBAR / NAV MOBILE
+      - A barra horizontal do menu em mobile agora tem uma
+        máscara de gradiente nas bordas (fade real, visível em
+        qualquer navegador) indicando que dá pra arrastar —
+        antes só existia uma scrollbar fininha, pouco perceptível
+        em touch (a maioria dos navegadores mobile esconde
+        scrollbar customizada).
+      - Botões do menu com min-height 44px mantidos (alvo de
+        toque), mas agora com scroll-snap para "encaixar" no item
+        ao arrastar, uma sensação mais nativa/profissional.
 
-     4) TABELAS EM TELAS PEQUENAS
-        - .table-wrap ganhou sombra de fade nas laterais quando há
-          overflow horizontal, para o usuário perceber que a tabela
-          continua além da borda (problema comum em painéis admin
-          mobile: tabela "corta" sem aviso).
-        - Primeira coluna com sticky opcional via classe utilitária
-          (.data-table--sticky-first), pronta pra usar quando uma
-          tabela tiver muitas colunas e for útil fixar o identificador
-          (nome/usuário) durante o scroll horizontal.
+   4) TABELAS EM TELAS PEQUENAS
+      - .table-wrap ganhou sombra de fade nas laterais quando há
+        overflow horizontal, para o usuário perceber que a tabela
+        continua além da borda (problema comum em painéis admin
+        mobile: tabela "corta" sem aviso).
+      - Primeira coluna com sticky opcional via classe utilitária
+        (.data-table--sticky-first), pronta pra usar quando uma
+        tabela tiver muitas colunas e for útil fixar o identificador
+        (nome/usuário) durante o scroll horizontal.
 
-     5) INTEGRAÇÃO COM O style.css (agora que temos o arquivo real)
-        - O fade de overflow horizontal nas tabelas e o utilitário
-          .data-table--sticky-first foram MOVIDOS para o style.css
-          (afinal .table-wrap/.data-table são classes globais usadas
-          também no dashboard e na comunidade — fazia sentido ficarem
-          no design system, não duplicadas só aqui).
-        - :focus-visible e prefers-reduced-motion já existem global-
-          mente no style.css (`:focus-visible{outline:3px solid
-          var(--gold-500)...}` e a regra que zera durações de
-          animação/transição) — as versões locais foram removidas
-          daqui pra não haver duas fontes de verdade. Só ficou um
-          ajuste bem pontual pro scroll-snap do menu mobile, que o
-          style.css não cobre.
-        - Breakpoints ultrawide realinhados para 1440px/1800px,
-          batendo exatamente com os do .dash-shell/.container no
-          style.css (antes este arquivo usava 1920px, fora de
-          sincronia com o resto do site).
-        - Pequeno ajuste de contraste em .admin-nav button (cor de
-          texto padrão um pouco mais clara) pra ficar confortável em
-          telas com brilho baixo, sem sacrificar o visual atual.
-     ========================================================= */
+   5) INTEGRAÇÃO COM O style.css (agora que temos o arquivo real)
+      - O fade de overflow horizontal nas tabelas e o utilitário
+        .data-table--sticky-first foram MOVIDOS para o style.css
+        (afinal .table-wrap/.data-table são classes globais usadas
+        também no dashboard e na comunidade — fazia sentido ficarem
+        no design system, não duplicadas só aqui).
+      - :focus-visible e prefers-reduced-motion já existem global-
+        mente no style.css (`:focus-visible{outline:3px solid
+        var(--gold-500)...}` e a regra que zera durações de
+        animação/transição) — as versões locais foram removidas
+        daqui pra não haver duas fontes de verdade. Só ficou um
+        ajuste bem pontual pro scroll-snap do menu mobile, que o
+        style.css não cobre.
+      - Breakpoints ultrawide realinhados para 1440px/1800px,
+        batendo exatamente com os do .dash-shell/.container no
+        style.css (antes este arquivo usava 1920px, fora de
+        sincronia com o resto do site).
+      - Pequeno ajuste de contraste em .admin-nav button (cor de
+        texto padrão um pouco mais clara) pra ficar confortável em
+        telas com brilho baixo, sem sacrificar o visual atual.
 
-  :root{
-    --admin-radius: 12px;
-    --admin-radius-sm: 8px;
-    --admin-shadow: 0 6px 16px rgba(10,47,184,.32);
-    --admin-ease: cubic-bezier(.4,0,.2,1);
-    --admin-dur: .18s;
-  }
+   REVISÃO 4 — nenhuma cor foi alterada aqui (o arquivo já estava
+   bem alinhado com a paleta principal). Só folga fina de
+   responsivo/desktop que a REVISÃO 3 ainda não cobria:
+   - .admin-shell agora usa min-height:100dvh (igual ao que a
+     .admin-sidebar e o .gate já faziam), pra não sobrar/faltar
+     espaço quando a barra de endereço do navegador mobile
+     recolhe/expande.
+   - .admin-head h1 ganhou overflow-wrap:break-word — títulos bem
+     longos numa tela estreita agora quebram a palavra em vez de
+     estourar o card e empurrar layout.
+   - .admin-nav em mobile ganhou -webkit-overflow-scrolling:touch
+     (rolagem com inércia em iOS mais antigo, mesmo tratamento que
+     .table-wrap já recebe no style.css) e
+     overscroll-behavior-x:contain, pra arrastar o menu não puxar a
+     página inteira junto (rubber-band) em iOS/Android.
+   - .admin-nav ganhou padding-inline com env(safe-area-inset-*),
+     evitando que o primeiro/último botão do menu fiquem colados ou
+     parcialmente cobertos pelo "notch"/cantos arredondados em
+     celulares com tela nas bordas, quando em paisagem.
+   - scrollbar-color (Firefox) adicionada ao .admin-nav, espelhando
+     o fallback ::-webkit-scrollbar que já existia só pra
+     Chrome/Safari.
+   - Novo degrau <360px (mesmo ponto de corte que o header do site
+     já usa) apertando levemente o padding dos botões do menu e o
+     gap da marca, pra caber mais itens de menu sem rolar tanto em
+     telas muito estreitas (ex: 320px).
+   ========================================================= */
 
-  .admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh;min-width:0}
+:root{
+  --admin-radius: 12px;
+  --admin-radius-sm: 8px;
+  --admin-shadow: 0 6px 16px rgba(10,47,184,.32);
+  --admin-ease: cubic-bezier(.4,0,.2,1);
+  --admin-dur: .18s;
+}
+
+.admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh;min-height:100dvh;min-width:0}
+.admin-sidebar{
+  background:linear-gradient(180deg,var(--navy-950), var(--navy-900) 75%);
+  color:#dfe6f6;
+  padding:clamp(20px,2.4vw,28px) clamp(14px,1.6vw,20px);
+  position:sticky;top:0;height:100vh;height:100dvh;
+  display:flex;flex-direction:column;min-width:0;
+  border-right:1px solid rgba(220,174,44,.14);
+  box-shadow:6px 0 24px rgba(3,7,15,.18);
+  overflow-y:auto;
+}
+.admin-brand{
+  display:flex;align-items:center;gap:10px;padding:0 10px 22px;margin-bottom:18px;
+  position:relative;
+}
+.admin-brand::after{
+  content:"";position:absolute;left:10px;right:10px;bottom:0;height:1px;
+  background:linear-gradient(90deg, var(--blue-vibrant-1), var(--gold-vibrant-1), transparent);
+  opacity:.55;
+}
+.admin-brand strong{font-family:var(--font-display);font-size:16px;color:#fff}
+.admin-brand span{display:block;font-size:11px;color:var(--gold-300);font-family:var(--font-mono);letter-spacing:.04em}
+.admin-nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.admin-nav button{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--admin-radius-sm);
+  font-weight:600;font-size:14px;color:#cbd4ef;text-align:left;
+  border-left:2.5px solid transparent;
+  transition:background var(--admin-dur) var(--admin-ease),
+             color var(--admin-dur) var(--admin-ease),
+             border-color var(--admin-dur) var(--admin-ease);
+}
+.admin-nav button:hover{background:rgba(255,255,255,.07);color:#fff}
+.admin-nav button.active{
+  background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));
+  color:#fff;border-left-color:var(--gold-vibrant-1);
+  box-shadow:var(--admin-shadow);
+}
+.admin-back{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+.admin-back a{display:block;padding:10px 12px;font-size:13.5px;color:#a9b4d4;font-weight:600;border-radius:var(--admin-radius-sm);transition:background var(--admin-dur) var(--admin-ease), color var(--admin-dur) var(--admin-ease)}
+.admin-back a:hover{color:var(--gold-300);background:rgba(255,255,255,.05)}
+.admin-back a#adminLogout{color:#ffb3ac}
+.admin-back a#adminLogout:hover{color:#ff9186;background:rgba(207,53,39,.12)}
+
+.admin-main{padding:clamp(22px,3.2vw,44px) clamp(18px,3.6vw,52px);min-width:0}
+.admin-head{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
+  margin-bottom:clamp(20px,2.4vw,28px);
+  padding-bottom:clamp(14px,1.6vw,20px);
+  border-bottom:1px solid var(--border-soft);
+}
+.admin-head h1{font-size:clamp(20px,1.6vw + 14px,26px);color:var(--navy-900);line-height:1.2;overflow-wrap:break-word}
+.admin-head p{color:var(--ink-600);margin-top:6px;font-size:14px}
+
+.section-block{display:none}
+.section-block.active{display:block;animation:sectionIn .28s var(--admin-ease)}
+@keyframes sectionIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+
+.gate{
+  min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:
+    radial-gradient(900px 460px at 85% -10%, rgba(220,174,44,.14), transparent 55%),
+    radial-gradient(760px 420px at 10% 105%, rgba(49,99,234,.14), transparent 55%);
+}
+.gate .auth-card{border-top:3px solid var(--gold-500)}
+
+/* =================== DESKTOP =================== */
+/* Breakpoints e valores idênticos aos do .dash-shell/.dash-main
+   no style.css (250→270→290px de sidebar; 1400/1520px de largura
+   máxima de conteúdo), pra admin e dashboard escalarem juntos. */
+
+/* desktop grande: paridade com .dash-shell do restante do site */
+@media (min-width:1440px) and (max-width:1799.98px){
+  .admin-shell{grid-template-columns:270px 1fr}
+  .admin-main{max-width:1400px;margin:0 auto}
+}
+
+/* ultrawide: mesmo teto de largura que .container ganha no
+   style.css a partir de 1800px (--container-max-wide:1520px) */
+@media (min-width:1800px){
+  .admin-shell{grid-template-columns:290px 1fr}
+  .admin-main{max-width:1520px;margin:0 auto}
+}
+
+/* tablet: sidebar mais estreita antes do colapso total em 900px,
+   evita espremer tabelas na faixa 900–1100px */
+@media (max-width:1100px){
+  .admin-shell{grid-template-columns:210px 1fr}
+}
+
+/* =================== MOBILE / SIDEBAR HORIZONTAL =================== */
+
+@media (max-width:900px){
+  .admin-shell{grid-template-columns:1fr}
   .admin-sidebar{
-    background:linear-gradient(180deg,var(--navy-950), var(--navy-900) 75%);
-    color:#dfe6f6;
-    padding:clamp(20px,2.4vw,28px) clamp(14px,1.6vw,20px);
-    position:sticky;top:0;height:100vh;height:100dvh;
-    display:flex;flex-direction:column;min-width:0;
-    border-right:1px solid rgba(220,174,44,.14);
-    box-shadow:6px 0 24px rgba(3,7,15,.18);
-    overflow-y:auto;
+    position:static;height:auto;box-shadow:none;border-right:none;
+    border-bottom:1px solid rgba(220,174,44,.14);overflow-y:visible;
   }
-  .admin-brand{
-    display:flex;align-items:center;gap:10px;padding:0 10px 22px;margin-bottom:18px;
-    position:relative;
+  .admin-nav{
+    flex-direction:row;overflow-x:auto;position:relative;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    scrollbar-color: rgba(255,255,255,.18) transparent;
+    padding-inline:max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right));
+    -webkit-mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+    mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
   }
-  .admin-brand::after{
-    content:"";position:absolute;left:10px;right:10px;bottom:0;height:1px;
-    background:linear-gradient(90deg, var(--blue-vibrant-1), var(--gold-vibrant-1), transparent);
-    opacity:.55;
-  }
-  .admin-brand strong{font-family:var(--font-display);font-size:16px;color:#fff}
-  .admin-brand span{display:block;font-size:11px;color:var(--gold-300);font-family:var(--font-mono);letter-spacing:.04em}
-  .admin-nav{display:flex;flex-direction:column;gap:2px;flex:1}
-  .admin-nav button{
-    display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--admin-radius-sm);
-    font-weight:600;font-size:14px;color:#cbd4ef;text-align:left;
-    border-left:2.5px solid transparent;
-    transition:background var(--admin-dur) var(--admin-ease),
-               color var(--admin-dur) var(--admin-ease),
-               border-color var(--admin-dur) var(--admin-ease);
-  }
-  .admin-nav button:hover{background:rgba(255,255,255,.07);color:#fff}
-  .admin-nav button.active{
-    background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));
-    color:#fff;border-left-color:var(--gold-vibrant-1);
-    box-shadow:var(--admin-shadow);
-  }
-  .admin-back{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
-  .admin-back a{display:block;padding:10px 12px;font-size:13.5px;color:#a9b4d4;font-weight:600;border-radius:var(--admin-radius-sm);transition:background var(--admin-dur) var(--admin-ease), color var(--admin-dur) var(--admin-ease)}
-  .admin-back a:hover{color:var(--gold-300);background:rgba(255,255,255,.05)}
-  .admin-back a#adminLogout{color:#ffb3ac}
-  .admin-back a#adminLogout:hover{color:#ff9186;background:rgba(207,53,39,.12)}
+  .admin-nav button{white-space:nowrap;min-height:44px;scroll-snap-align:start}
+}
 
-  .admin-main{padding:clamp(22px,3.2vw,44px) clamp(18px,3.6vw,52px);min-width:0}
-  .admin-head{
-    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
-    margin-bottom:clamp(20px,2.4vw,28px);
-    padding-bottom:clamp(14px,1.6vw,20px);
-    border-bottom:1px solid var(--border-soft);
-  }
-  .admin-head h1{font-size:clamp(20px,1.6vw + 14px,26px);color:var(--navy-900);line-height:1.2}
-  .admin-head p{color:var(--ink-600);margin-top:6px;font-size:14px}
+/* toolbar (busca) empilhada em telas muito estreitas — .search-input
+   tem min-width:220px herdado do style.css e podia estourar a
+   largura em aparelhos pequenos */
+@media (max-width:480px){
+  .toolbar{flex-direction:column;align-items:stretch}
+  .toolbar .search-input{width:100%;min-width:0}
+}
 
-  .section-block{display:none}
-  .section-block.active{display:block;animation:sectionIn .28s var(--admin-ease)}
-  @keyframes sectionIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* telefones muito estreitos (mesmo corte que o header do site usa em
+   .brand-name/.header-actions) — aperta um pouco mais o menu mobile
+   pra caber mais itens antes de precisar rolar */
+@media (max-width:359px){
+  .admin-brand{gap:8px}
+  .admin-nav button{padding:10px 12px;font-size:13.5px}
+}
 
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+/* celular em paisagem: altura curta é o problema, não a largura —
+   sem isso o cartão de acesso restrito cortava na dobra */
+@media (max-height:480px) and (orientation:landscape){
+  .gate{align-items:flex-start;padding-top:24px}
+}
 
-  .gate{
-    min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;
-    background:
-      radial-gradient(900px 460px at 85% -10%, rgba(220,174,44,.14), transparent 55%),
-      radial-gradient(760px 420px at 10% 105%, rgba(49,99,234,.14), transparent 55%);
-  }
-  .gate .auth-card{border-top:3px solid var(--gold-500)}
+/* barra de rolagem horizontal do menu (fallback em navegadores que
+   ainda mostram scrollbar customizada), com leve tom dourado no hover */
+.admin-nav::-webkit-scrollbar{height:4px}
+.admin-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
+.admin-nav::-webkit-scrollbar-thumb:hover{background:rgba(220,174,44,.45)}
 
-  /* =================== DESKTOP =================== */
-  /* Breakpoints e valores idênticos aos do .dash-shell/.dash-main
-     no style.css (250→270→290px de sidebar; 1400/1520px de largura
-     máxima de conteúdo), pra admin e dashboard escalarem juntos. */
-
-  /* desktop grande: paridade com .dash-shell do restante do site */
-  @media (min-width:1440px) and (max-width:1799.98px){
-    .admin-shell{grid-template-columns:270px 1fr}
-    .admin-main{max-width:1400px;margin:0 auto}
-  }
-
-  /* ultrawide: mesmo teto de largura que .container ganha no
-     style.css a partir de 1800px (--container-max-wide:1520px) */
-  @media (min-width:1800px){
-    .admin-shell{grid-template-columns:290px 1fr}
-    .admin-main{max-width:1520px;margin:0 auto}
-  }
-
-  /* tablet: sidebar mais estreita antes do colapso total em 900px,
-     evita espremer tabelas na faixa 900–1100px */
-  @media (max-width:1100px){
-    .admin-shell{grid-template-columns:210px 1fr}
-  }
-
-  /* =================== MOBILE / SIDEBAR HORIZONTAL =================== */
-
-  @media (max-width:900px){
-    .admin-shell{grid-template-columns:1fr}
-    .admin-sidebar{
-      position:static;height:auto;box-shadow:none;border-right:none;
-      border-bottom:1px solid rgba(220,174,44,.14);overflow-y:visible;
-    }
-    .admin-nav{
-      flex-direction:row;overflow-x:auto;position:relative;
-      scroll-snap-type:x proximity;
-      -webkit-mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-      mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-    }
-    .admin-nav button{white-space:nowrap;min-height:44px;scroll-snap-align:start}
-  }
-
-  /* toolbar (busca) empilhada em telas muito estreitas — .search-input
-     tem min-width:220px herdado do style.css e podia estourar a
-     largura em aparelhos pequenos */
-  @media (max-width:480px){
-    .toolbar{flex-direction:column;align-items:stretch}
-    .toolbar .search-input{width:100%;min-width:0}
-  }
-
-  /* celular em paisagem: altura curta é o problema, não a largura —
-     sem isso o cartão de acesso restrito cortava na dobra */
-  @media (max-height:480px) and (orientation:landscape){
-    .gate{align-items:flex-start;padding-top:24px}
-  }
-
-  /* barra de rolagem horizontal do menu (fallback em navegadores que
-     ainda mostram scrollbar customizada), com leve tom dourado no hover */
-  .admin-nav::-webkit-scrollbar{height:4px}
-  .admin-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
-  .admin-nav::-webkit-scrollbar-thumb:hover{background:rgba(220,174,44,.45)}
-
-  /* o style.css já zera durações de animação/transição globalmente
-     em prefers-reduced-motion; scroll-snap não é coberto por isso,
-     então só essa parte precisa de tratamento local */
-  @media (prefers-reduced-motion:reduce){
-    .admin-nav{scroll-snap-type:none}
-  }
+/* o style.css já zera durações de animação/transição globalmente
+   em prefers-reduced-motion; scroll-snap não é coberto por isso,
+   então só essa parte precisa de tratamento local */
+@media (prefers-reduced-motion:reduce){
+  .admin-nav{scroll-snap-type:none}
+}
 </style>
 </head>
 <body>
