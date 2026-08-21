@@ -9,6 +9,16 @@
    v6: UX UPGRADE NAS NOTIFICAÇÕES. Botão Editar e Reenviar (pré-preenchido),
        tempo relativo, cores inteligentes, limite de listagem e botão
        "Marcar todas como lidas".
+   v7: EDITAR E REENVIAR SEM DUPLICAR. O botão "Editar e reenviar" (v6)
+       levava a /publicar?edit=ID e pré-preenchia o formulário, mas o
+       submit sempre chamava publishProject() — ou seja, reenviar criava
+       um projeto NOVO via addProject(), e o antigo (rejeitado) ficava
+       esquecido no banco, nunca mais visível em lugar nenhum. Agora o
+       form ganha um campo hidden "editingProjectId" (só presente em modo
+       edição — ver viewPublish) e o handler de submit decide entre
+       publishProject (cria) e a nova resendProject (atualiza, via
+       updateProject() do db-sync.js, usando _fbKey — não o índice do
+       array) com base nesse campo.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -79,7 +89,7 @@ import { uid, nowISO } from "./seed.js";
     const d = new Date(iso);
     return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   }
-  
+
   // Função para transformar datas absolutas em tempo relativo (UX Upgrade)
   function timeAgo(isoString) {
     const date = new Date(isoString);
@@ -409,6 +419,58 @@ import { uid, nowISO } from "./seed.js";
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
           body: JSON.stringify({ projectId: project.id, rejectReason: moderation.rejectReason }),
+        });
+      } catch (err) {
+        console.error("Falha ao registrar notificação de rejeição automática:", err);
+      }
+    }
+
+    return saved;
+  }
+
+  // Atualiza um projeto EXISTENTE (fluxo "Editar e reenviar", disparado a
+  // partir do botão na notificação de rejeição — ver notificationCard).
+  // Diferente de publishProject(), nunca cria um registro novo: usa
+  // updateProject() do db-sync.js, que escreve pela chave real do
+  // Firebase (_fbKey), não pelo índice do array local (ver v8 no
+  // cabeçalho do db-sync.js) — por isso o projeto rejeitado antigo não
+  // fica perdido no banco depois do reenvio.
+  async function resendProject(projectId, data) {
+    const user = currentUser();
+    if (!user) throw new Error("Você precisa entrar na sua conta.");
+    if (!data.title || data.title.trim().length < 3) throw new Error("Informe um título para o projeto.");
+    if (!data.description || data.description.trim().length < 10) throw new Error("Descreva melhor o seu projeto.");
+    if (!data.categoryId) throw new Error("Selecione uma categoria.");
+    if (!data.link || !isValidUrl(data.link)) throw new Error("Informe um link válido (começando com http:// ou https://).");
+    if (!data.ownerName) throw new Error("Informe o nome do responsável.");
+    if (!data.contact) throw new Error("Informe uma forma de contato.");
+
+    const existing = db.projects.find((p) => p.id === projectId);
+    if (!existing || existing.ownerId !== user.id) throw new Error("Projeto não encontrado.");
+
+    const moderation = moderateProject(data);
+
+    const updates = {
+      title: sanitizeText(data.title.trim()),
+      description: sanitizeText(data.description.trim()),
+      // se o usuário não anexar imagens novas no reenvio, mantém as
+      // que o projeto já tinha em vez de apagá-las.
+      images: (data.images && data.images.length ? data.images : existing.images || []).slice(0, 6),
+      categoryId: data.categoryId,
+      link: data.link.trim(),
+      ownerName: sanitizeText(data.ownerName.trim()),
+      contact: sanitizeText(data.contact.trim()),
+      status: moderation.status,
+    };
+    const saved = await updateProject(projectId, updates);
+
+    if (moderation.status === "rejected") {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        await fetch(`${WORKER_URL}/notify-auto-rejection`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+          body: JSON.stringify({ projectId, rejectReason: moderation.rejectReason }),
         });
       } catch (err) {
         console.error("Falha ao registrar notificação de rejeição automática:", err);
@@ -821,13 +883,13 @@ import { uid, nowISO } from "./seed.js";
         </div>
       </div>`;
     }
-    
+
     // UX UPGRADE: Recuperar projeto rejeitado para Auto-Preenchimento
     let editProj = null;
     if (params && params.edit) {
        editProj = db.projects.find(p => p.id === params.edit && p.ownerId === user.id);
     }
-    
+
     const isEdit = !!editProj;
     const titleVal = editProj ? escapeHtml(editProj.title) : "";
     const descVal = editProj ? escapeHtml(editProj.description) : "";
@@ -843,8 +905,9 @@ import { uid, nowISO } from "./seed.js";
         <h2 style="margin-bottom:6px">${isEdit ? "Editar e Reenviar Projeto" : "Publicar projeto"}</h2>
         ${user.role === "admin" ? `<p class="field-hint" style="margin-bottom:20px">Você está publicando como administrador — não é necessário ter assinatura ativa.</p>` : `<div style="margin-bottom:26px"></div>`}
         ${isEdit ? `<div class="badge badge-warning" style="margin-bottom: 20px; display: inline-block;">Corrija as informações abaixo para reenviar seu projeto.</div>` : `<p class="field-hint" style="margin-bottom:20px">Todas as postagens passam por revisão antes de serem publicadas na vitrine.</p>`}
-        
+
         <form id="publishForm" class="panel">
+          ${isEdit ? `<input type="hidden" name="editingProjectId" value="${escapeHtml(editProj.id)}">` : ""}
           <div class="field"><label>Nome do projeto</label><input name="title" required placeholder="Ex.: Nimbus — painel financeiro" value="${titleVal}"></div>
           <div class="field"><label>Descrição</label><textarea name="description" rows="5" required placeholder="Conte o que é, para quem serve e o que torna especial.">${descVal}</textarea></div>
           <div class="field"><label>Categoria</label>
@@ -1057,7 +1120,7 @@ import { uid, nowISO } from "./seed.js";
 
     let msgHtml = escapeHtml(n.message);
     let actionBtn = "";
-    
+
     // Identifica se é um projeto rejeitado para injetar o botão Salva-Vidas (Sem emoji)
     if (n.projectId && (n.message.includes("ATENÇÃO") || n.message.includes("reprovado"))) {
        actionBtn = `<a href="#/publicar?edit=${n.projectId}" class="btn btn-sm btn-primary mt-2" style="display:inline-block">Editar e reenviar projeto</a>`;
@@ -1080,10 +1143,10 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     const myProjects = db.projects.filter((p) => p.ownerId === user.id);
     const active = isSubscriptionActive(user);
-    
+
     const allNotifications = myNotifications(user.id);
     const unreadCount = allNotifications.filter((n) => !n.read).length;
-    
+
     // UX UPGRADE: Limite de visualização para não poluir a tela
     let notifHtml = "";
     if (allNotifications.length > 0) {
@@ -1374,20 +1437,32 @@ import { uid, nowISO } from "./seed.js";
         e.preventDefault();
         const fd = new FormData(publishForm);
         qs("#publishError").style.display = "none";
+        // Presente só quando o form foi aberto em modo edição
+        // (viewPublish, params.edit) — decide qual ação de negócio
+        // rodar sem depender de nenhum outro estado global.
+        const editingProjectId = fd.get("editingProjectId");
+        const payload = {
+          title: fd.get("title"),
+          description: fd.get("description"),
+          categoryId: fd.get("categoryId"),
+          link: fd.get("link"),
+          ownerName: fd.get("ownerName"),
+          contact: fd.get("contact"),
+          images: pendingImages,
+        };
         Promise.resolve()
           .then(() =>
-            publishProject({
-              title: fd.get("title"),
-              description: fd.get("description"),
-              categoryId: fd.get("categoryId"),
-              link: fd.get("link"),
-              ownerName: fd.get("ownerName"),
-              contact: fd.get("contact"),
-              images: pendingImages,
-            })
+            editingProjectId
+              ? resendProject(editingProjectId, payload)
+              : publishProject(payload)
           )
           .then((project) => {
-            toast("Projeto enviado para revisão com sucesso!", "success");
+            toast(
+              editingProjectId
+                ? "Projeto reenviado para revisão com sucesso!"
+                : "Projeto enviado para revisão com sucesso!",
+              "success"
+            );
             navigate("/painel");
           })
           .catch((err) => {
