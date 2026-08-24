@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin.html
-Disallow: /admin.js
-
-Sitemap: https://compartilhar-projetos.com.br/sitemap.xml
