@@ -428,13 +428,7 @@ import { uid, nowISO } from "./seed.js";
     return saved;
   }
 
-  // Atualiza um projeto EXISTENTE (fluxo "Editar e reenviar", disparado a
-  // partir do botão na notificação de rejeição — ver notificationCard).
-  // Diferente de publishProject(), nunca cria um registro novo: usa
-  // updateProject() do db-sync.js, que escreve pela chave real do
-  // Firebase (_fbKey), não pelo índice do array local (ver v8 no
-  // cabeçalho do db-sync.js) — por isso o projeto rejeitado antigo não
-  // fica perdido no banco depois do reenvio.
+  // Atualiza um projeto EXISTENTE
   async function resendProject(projectId, data) {
     const user = currentUser();
     if (!user) throw new Error("Você precisa entrar na sua conta.");
@@ -453,8 +447,6 @@ import { uid, nowISO } from "./seed.js";
     const updates = {
       title: sanitizeText(data.title.trim()),
       description: sanitizeText(data.description.trim()),
-      // se o usuário não anexar imagens novas no reenvio, mantém as
-      // que o projeto já tinha em vez de apagá-las.
       images: (data.images && data.images.length ? data.images : existing.images || []).slice(0, 6),
       categoryId: data.categoryId,
       link: data.link.trim(),
@@ -552,11 +544,11 @@ import { uid, nowISO } from "./seed.js";
   /* ---------------------------------------------------------
      NOTIFICAÇÕES
   --------------------------------------------------------- */
- function myNotifications(userId) {
-  return db.notifications
-    .filter((n) => n.userId === userId && !n.resolved)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-}
+  function myNotifications(userId) {
+    return db.notifications
+      .filter((n) => n.userId === userId && !n.resolved)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
   function unreadNotificationsCount(userId) {
     return myNotifications(userId).filter((n) => !n.read).length;
   }
@@ -697,6 +689,7 @@ import { uid, nowISO } from "./seed.js";
     else if (path === "/painel") html = viewDashboard();
     else if (path === "/perfil") html = viewProfile();
     else if (path === "/indicacoes") html = viewReferrals();
+    else if (path === "/ranking") html = viewRanking();
     else html = view404();
 
      app.innerHTML = html;
@@ -712,6 +705,116 @@ import { uid, nowISO } from "./seed.js";
       if (!hasActiveFormField()) render({ navigation: false });
     }, 0);
   });
+
+  /* ---------------------------------------------------------
+     RANKING
+  --------------------------------------------------------- */
+  function monthRangeFor(date) {
+    const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+    const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+    return { start, end };
+  }
+
+  function currentMonthRanking() {
+    const { start, end } = monthRangeFor(new Date());
+    const referralCounts = {};
+    db.referrals.forEach((r) => {
+      if (!r.createdAt) return;
+      const d = new Date(r.createdAt);
+      if (d >= start && d < end) referralCounts[r.referrerId] = (referralCounts[r.referrerId] || 0) + 1;
+    });
+
+    const payingSets = {};
+    db.commissions.forEach((c) => {
+      if (!c.createdAt) return;
+      const d = new Date(c.createdAt);
+      if (d >= start && d < end) {
+        if (!payingSets[c.referrerId]) payingSets[c.referrerId] = new Set();
+        payingSets[c.referrerId].add(c.referredId);
+      }
+    });
+
+    const toSortedList = (map) =>
+      Object.entries(map)
+        .map(([userId, count]) => ({ user: userById(userId), count }))
+        .filter((row) => row.user)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
+
+    return {
+      byReferrals: toSortedList(referralCounts),
+      byPaying: toSortedList(Object.fromEntries(Object.entries(payingSets).map(([id, set]) => [id, set.size]))),
+    };
+  }
+
+  function rankingRow(row, i) {
+    const pos = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`;
+    return `<tr>
+      <td>${pos}</td>
+      <td><span class="pc-mini-avatar" style="background:${row.user.avatarColor || "#888"}">${initials(row.user.name)}</span> ${escapeHtml(row.user.name)}</td>
+      <td>${row.count}</td>
+    </tr>`;
+  }
+
+  function pastPrizesList() {
+    return (db.rankingPrizes || [])
+      .slice()
+      .sort((a, b) => b.month.localeCompare(a.month) || a.category.localeCompare(b.category))
+      .slice(0, 12);
+  }
+
+  function viewRanking() {
+    const { byReferrals, byPaying } = currentMonthRanking();
+    const monthLabel = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const prizes = pastPrizesList();
+    const content = `
+    <section class="section" style="padding-top:44px">
+      <div class="container">
+        <span class="tag-label">Ranking de indicações</span>
+        <h2 style="margin-bottom:6px">Ranking de ${escapeHtml(monthLabel)}</h2>
+        <p class="field-hint" style="margin-bottom:26px">O ranking reinicia todo mês. No fechamento, o 1º lugar de cada categoria leva o prêmio (em caso de empate, sorteio automático decide).</p>
+        <div class="panel">
+          <div class="panel-head"><h3>Mais indicações</h3></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Posição</th><th>Usuário</th><th>Indicações</th></tr></thead>
+            <tbody>${byReferrals.map(rankingRow).join("") || `<tr><td colspan="3" class="muted text-center">Ninguém indicou este mês ainda.</td></tr>`}</tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Mais assinantes indicados</h3></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Posição</th><th>Usuário</th><th>Assinantes</th></tr></thead>
+            <tbody>${byPaying.map(rankingRow).join("") || `<tr><td colspan="3" class="muted text-center">Ninguém converteu assinante este mês ainda.</td></tr>`}</tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Vencedores anteriores</h3></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Mês</th><th>Categoria</th><th>Vencedor</th><th>Pontuação</th><th>Prêmio</th></tr></thead>
+            <tbody>${
+              prizes
+                .map((p) => {
+                  const winner = p.winnerId ? userById(p.winnerId) : null;
+                  const catLabel = p.category === "indicacoes" ? "Mais indicações" : "Mais assinantes";
+                  return `<tr>
+                    <td>${escapeHtml(p.month)}</td>
+                    <td>${catLabel}</td>
+                    <td>${winner ? escapeHtml(winner.name) : "—"}</td>
+                    <td>${p.score}</td>
+                    <td><span class="badge ${p.delivered ? "badge-success" : "badge-warning"}">${p.delivered ? "Entregue" : "Pendente"}</span></td>
+                  </tr>`;
+                })
+                .join("") || `<tr><td colspan="5" class="muted text-center">Nenhum mês fechado ainda.</td></tr>`
+            }</tbody>
+          </table></div>
+        </div>
+      </div>
+    </section>`;
+    const user = currentUser();
+    return user
+      ? `<div class="dash-shell"><nav class="dash-sidebar">${sideNav("/ranking")}</nav><div class="dash-main">${content}</div></div>`
+      : content;
+  }
 
   function projectCard(p) {
     const img = p.images && p.images[0];
@@ -1098,6 +1201,7 @@ import { uid, nowISO } from "./seed.js";
       ["/publicar", "Publicar projeto"],
       ["/perfil", "Meu perfil"],
       ["/indicacoes", "Indicações"],
+      ["/ranking", "Ranking"],
       ["/planos", "Assinatura"],
       ["/comunidade", "Comunidade"],
     ];
