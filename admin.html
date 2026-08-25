@@ -8,272 +8,140 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
- /* =========================================================
-   REVISÃO 3 — foco em responsivo + desktop, mantendo a mesma
-   paleta e variáveis do design system (navy/blue-vibrant/gold).
-   Nada de estrutura HTML foi alterado, só o bloco de estilo.
+ :root{
+   --admin-radius: 12px;
+   --admin-radius-sm: 8px;
+   --admin-shadow: 0 6px 16px rgba(10,47,184,.32);
+   --admin-ease: cubic-bezier(.4,0,.2,1);
+   --admin-dur: .18s;
+ }
 
-   O QUE MUDOU EM RELAÇÃO À REVISÃO 2:
+ .admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh;min-height:100dvh;min-width:0}
+ .admin-sidebar{
+   background:linear-gradient(180deg,var(--navy-950), var(--navy-900) 75%);
+   color:#dfe6f6;
+   padding:clamp(20px,2.4vw,28px) clamp(14px,1.6vw,20px);
+   position:sticky;top:0;height:100vh;height:100dvh;
+   display:flex;flex-direction:column;min-width:0;
+   border-right:1px solid rgba(220,174,44,.14);
+   box-shadow:6px 0 24px rgba(3,7,15,.18);
+   overflow-y:auto;
+ }
+ .admin-brand{
+   display:flex;align-items:center;gap:10px;padding:0 10px 22px;margin-bottom:18px;
+   position:relative;
+ }
+ .admin-brand::after{
+   content:"";position:absolute;left:10px;right:10px;bottom:0;height:1px;
+   background:linear-gradient(90deg, var(--blue-vibrant-1), var(--gold-vibrant-1), transparent);
+   opacity:.55;
+ }
+ .admin-brand strong{font-family:var(--font-display);font-size:16px;color:#fff}
+ .admin-brand span{display:block;font-size:11px;color:var(--gold-300);font-family:var(--font-mono);letter-spacing:.04em}
+ .admin-nav{display:flex;flex-direction:column;gap:2px;flex:1}
+ .admin-nav button{
+   display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--admin-radius-sm);
+   font-weight:600;font-size:14px;color:#cbd4ef;text-align:left;
+   border-left:2.5px solid transparent;
+   transition:background var(--admin-dur) var(--admin-ease),
+              color var(--admin-dur) var(--admin-ease),
+              border-color var(--admin-dur) var(--admin-ease);
+ }
+ .admin-nav button:hover{background:rgba(255,255,255,.07);color:#fff}
+ .admin-nav button.active{
+   background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));
+   color:#fff;border-left-color:var(--gold-vibrant-1);
+   box-shadow:var(--admin-shadow);
+ }
+ .admin-back{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+ .admin-back a{display:block;padding:10px 12px;font-size:13.5px;color:#a9b4d4;font-weight:600;border-radius:var(--admin-radius-sm);transition:background var(--admin-dur) var(--admin-ease), color var(--admin-dur) var(--admin-ease)}
+ .admin-back a:hover{color:var(--gold-300);background:rgba(255,255,255,.05)}
+ .admin-back a#adminLogout{color:#ffb3ac}
+ .admin-back a#adminLogout:hover{color:#ff9186;background:rgba(207,53,39,.12)}
 
-   1) ESCALA FLUIDA (clamp) em vez de só saltos por breakpoint
-      - Paddings do .admin-main, tamanho de .admin-head h1 e o
-        gap do .admin-nav agora usam clamp(), então o layout
-        "respira" continuamente entre 320px e 1920px em vez de
-        pular abruptamente nos pontos de quebra. Os breakpoints
-        continuam existindo, mas só pra mudanças estruturais
-        (grid → coluna única, sidebar vertical → horizontal),
-        não mais pra ajustar números de espaçamento.
+ .admin-main{padding:clamp(22px,3.2vw,44px) clamp(18px,3.6vw,52px);min-width:0}
+ .admin-head{
+   display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
+   margin-bottom:clamp(20px,2.4vw,28px);
+   padding-bottom:clamp(14px,1.6vw,20px);
+   border-bottom:1px solid var(--border-soft);
+ }
+ .admin-head h1{font-size:clamp(20px,1.6vw + 14px,26px);color:var(--navy-900);line-height:1.2;overflow-wrap:break-word}
+ .admin-head p{color:var(--ink-600);margin-top:6px;font-size:14px}
 
-   2) DESKTOP / ULTRAWIDE
-      - Novo teto em 1920px: conteúdo central ganha mais
-        respiro (max-width maior) em vez de ficar com uma faixa
-        estreita cercada de vazio nas telas grandes.
-      - .admin-head agora também é fluido, então títulos longos
-        (ex. "Indicações & comissões") não colidem com o
-        cabeçalho em telas médias.
-      - Variáveis locais (--admin-*) centralizam raio, sombra e
-        duração de transição, então qualquer ajuste futuro de
-        "personalidade visual" do painel é feito em um lugar só.
+ .section-block{display:none}
+ .section-block.active{display:block;animation:sectionIn .28s var(--admin-ease)}
+ @keyframes sectionIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-   3) SIDEBAR / NAV MOBILE
-      - A barra horizontal do menu em mobile agora tem uma
-        máscara de gradiente nas bordas (fade real, visível em
-        qualquer navegador) indicando que dá pra arrastar —
-        antes só existia uma scrollbar fininha, pouco perceptível
-        em touch (a maioria dos navegadores mobile esconde
-        scrollbar customizada).
-      - Botões do menu com min-height 44px mantidos (alvo de
-        toque), mas agora com scroll-snap para "encaixar" no item
-        ao arrastar, uma sensação mais nativa/profissional.
+ .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
 
-   4) TABELAS EM TELAS PEQUENAS
-      - .table-wrap ganhou sombra de fade nas laterais quando há
-        overflow horizontal, para o usuário perceber que a tabela
-        continua além da borda (problema comum em painéis admin
-        mobile: tabela "corta" sem aviso).
-      - Primeira coluna com sticky opcional via classe utilitária
-        (.data-table--sticky-first), pronta pra usar quando uma
-        tabela tiver muitas colunas e for útil fixar o identificador
-        (nome/usuário) durante o scroll horizontal.
+ .gate{
+   min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;
+   background:
+     radial-gradient(900px 460px at 85% -10%, rgba(220,174,44,.14), transparent 55%),
+     radial-gradient(760px 420px at 10% 105%, rgba(49,99,234,.14), transparent 55%);
+ }
+ .gate .auth-card{border-top:3px solid var(--gold-500)}
 
-   5) INTEGRAÇÃO COM O style.css (agora que temos o arquivo real)
-      - O fade de overflow horizontal nas tabelas e o utilitário
-        .data-table--sticky-first foram MOVIDOS para o style.css
-        (afinal .table-wrap/.data-table são classes globais usadas
-        também no dashboard e na comunidade — fazia sentido ficarem
-        no design system, não duplicadas só aqui).
-      - :focus-visible e prefers-reduced-motion já existem global-
-        mente no style.css (`:focus-visible{outline:3px solid
-        var(--gold-500)...}` e a regra que zera durações de
-        animação/transição) — as versões locais foram removidas
-        daqui pra não haver duas fontes de verdade. Só ficou um
-        ajuste bem pontual pro scroll-snap do menu mobile, que o
-        style.css não cobre.
-      - Breakpoints ultrawide realinhados para 1440px/1800px,
-        batendo exatamente com os do .dash-shell/.container no
-        style.css (antes este arquivo usava 1920px, fora de
-        sincronia com o resto do site).
-      - Pequeno ajuste de contraste em .admin-nav button (cor de
-        texto padrão um pouco mais clara) pra ficar confortável em
-        telas com brilho baixo, sem sacrificar o visual atual.
-
-   REVISÃO 4 — nenhuma cor foi alterada aqui (o arquivo já estava
-   bem alinhado com a paleta principal). Só folga fina de
-   responsivo/desktop que a REVISÃO 3 ainda não cobria:
-   - .admin-shell agora usa min-height:100dvh (igual ao que a
-     .admin-sidebar e o .gate já faziam), pra não sobrar/faltar
-     espaço quando a barra de endereço do navegador mobile
-     recolhe/expande.
-   - .admin-head h1 ganhou overflow-wrap:break-word — títulos bem
-     longos numa tela estreita agora quebram a palavra em vez de
-     estourar o card e empurrar layout.
-   - .admin-nav em mobile ganhou -webkit-overflow-scrolling:touch
-     (rolagem com inércia em iOS mais antigo, mesmo tratamento que
-     .table-wrap já recebe no style.css) e
-     overscroll-behavior-x:contain, pra arrastar o menu não puxar a
-     página inteira junto (rubber-band) em iOS/Android.
-   - .admin-nav ganhou padding-inline com env(safe-area-inset-*),
-     evitando que o primeiro/último botão do menu fiquem colados ou
-     parcialmente cobertos pelo "notch"/cantos arredondados em
-     celulares com tela nas bordas, quando em paisagem.
-   - scrollbar-color (Firefox) adicionada ao .admin-nav, espelhando
-     o fallback ::-webkit-scrollbar que já existia só pra
-     Chrome/Safari.
-   - Novo degrau <360px (mesmo ponto de corte que o header do site
-     já usa) apertando levemente o padding dos botões do menu e o
-     gap da marca, pra caber mais itens de menu sem rolar tanto em
-     telas muito estreitas (ex: 320px).
-   ========================================================= */
-
-:root{
-  --admin-radius: 12px;
-  --admin-radius-sm: 8px;
-  --admin-shadow: 0 6px 16px rgba(10,47,184,.32);
-  --admin-ease: cubic-bezier(.4,0,.2,1);
-  --admin-dur: .18s;
-}
-
-.admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh;min-height:100dvh;min-width:0}
-.admin-sidebar{
-  background:linear-gradient(180deg,var(--navy-950), var(--navy-900) 75%);
-  color:#dfe6f6;
-  padding:clamp(20px,2.4vw,28px) clamp(14px,1.6vw,20px);
-  position:sticky;top:0;height:100vh;height:100dvh;
-  display:flex;flex-direction:column;min-width:0;
-  border-right:1px solid rgba(220,174,44,.14);
-  box-shadow:6px 0 24px rgba(3,7,15,.18);
-  overflow-y:auto;
-}
-.admin-brand{
-  display:flex;align-items:center;gap:10px;padding:0 10px 22px;margin-bottom:18px;
-  position:relative;
-}
-.admin-brand::after{
-  content:"";position:absolute;left:10px;right:10px;bottom:0;height:1px;
-  background:linear-gradient(90deg, var(--blue-vibrant-1), var(--gold-vibrant-1), transparent);
-  opacity:.55;
-}
-.admin-brand strong{font-family:var(--font-display);font-size:16px;color:#fff}
-.admin-brand span{display:block;font-size:11px;color:var(--gold-300);font-family:var(--font-mono);letter-spacing:.04em}
-.admin-nav{display:flex;flex-direction:column;gap:2px;flex:1}
-.admin-nav button{
-  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--admin-radius-sm);
-  font-weight:600;font-size:14px;color:#cbd4ef;text-align:left;
-  border-left:2.5px solid transparent;
-  transition:background var(--admin-dur) var(--admin-ease),
-             color var(--admin-dur) var(--admin-ease),
-             border-color var(--admin-dur) var(--admin-ease);
-}
-.admin-nav button:hover{background:rgba(255,255,255,.07);color:#fff}
-.admin-nav button.active{
-  background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));
-  color:#fff;border-left-color:var(--gold-vibrant-1);
-  box-shadow:var(--admin-shadow);
-}
-.admin-back{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
-.admin-back a{display:block;padding:10px 12px;font-size:13.5px;color:#a9b4d4;font-weight:600;border-radius:var(--admin-radius-sm);transition:background var(--admin-dur) var(--admin-ease), color var(--admin-dur) var(--admin-ease)}
-.admin-back a:hover{color:var(--gold-300);background:rgba(255,255,255,.05)}
-.admin-back a#adminLogout{color:#ffb3ac}
-.admin-back a#adminLogout:hover{color:#ff9186;background:rgba(207,53,39,.12)}
-
-.admin-main{padding:clamp(22px,3.2vw,44px) clamp(18px,3.6vw,52px);min-width:0}
-.admin-head{
-  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
-  margin-bottom:clamp(20px,2.4vw,28px);
-  padding-bottom:clamp(14px,1.6vw,20px);
-  border-bottom:1px solid var(--border-soft);
-}
-.admin-head h1{font-size:clamp(20px,1.6vw + 14px,26px);color:var(--navy-900);line-height:1.2;overflow-wrap:break-word}
-.admin-head p{color:var(--ink-600);margin-top:6px;font-size:14px}
-
-.section-block{display:none}
-.section-block.active{display:block;animation:sectionIn .28s var(--admin-ease)}
-@keyframes sectionIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
-
-.gate{
-  min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;
-  background:
-    radial-gradient(900px 460px at 85% -10%, rgba(220,174,44,.14), transparent 55%),
-    radial-gradient(760px 420px at 10% 105%, rgba(49,99,234,.14), transparent 55%);
-}
-.gate .auth-card{border-top:3px solid var(--gold-500)}
-
-/* =================== DESKTOP =================== */
-/* Breakpoints e valores idênticos aos do .dash-shell/.dash-main
-   no style.css (250→270→290px de sidebar; 1400/1520px de largura
-   máxima de conteúdo), pra admin e dashboard escalarem juntos. */
-
-/* desktop grande: paridade com .dash-shell do restante do site */
-@media (min-width:1440px) and (max-width:1799.98px){
-  .admin-shell{grid-template-columns:270px 1fr}
-  .admin-main{max-width:1400px;margin:0 auto}
-}
-
-/* ultrawide: mesmo teto de largura que .container ganha no
-   style.css a partir de 1800px (--container-max-wide:1520px) */
-@media (min-width:1800px){
-  .admin-shell{grid-template-columns:290px 1fr}
-  .admin-main{max-width:1520px;margin:0 auto}
-}
-
-/* tablet: sidebar mais estreita antes do colapso total em 900px,
-   evita espremer tabelas na faixa 900–1100px */
-@media (max-width:1100px){
-  .admin-shell{grid-template-columns:210px 1fr}
-}
-
-/* =================== MOBILE / SIDEBAR HORIZONTAL =================== */
-
-@media (max-width:900px){
-  .admin-shell{grid-template-columns:1fr}
-  .admin-sidebar{
-    position:static;height:auto;box-shadow:none;border-right:none;
-    border-bottom:1px solid rgba(220,174,44,.14);overflow-y:visible;
-  }
-  .admin-nav{
-    flex-direction:row;overflow-x:auto;position:relative;
-    scroll-snap-type:x proximity;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior-x:contain;
-    scrollbar-color: rgba(255,255,255,.18) transparent;
-    padding-inline:max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right));
-    -webkit-mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-    mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-  }
-  .admin-nav button{white-space:nowrap;min-height:44px;scroll-snap-align:start}
-}
-
-/* toolbar (busca) empilhada em telas muito estreitas — .search-input
-   tem min-width:220px herdado do style.css e podia estourar a
-   largura em aparelhos pequenos */
-@media (max-width:480px){
-  .toolbar{flex-direction:column;align-items:stretch}
-  .toolbar .search-input{width:100%;min-width:0}
-}
-
-/* telefones muito estreitos (mesmo corte que o header do site usa em
-   .brand-name/.header-actions) — aperta um pouco mais o menu mobile
-   pra caber mais itens antes de precisar rolar */
-@media (max-width:359px){
-  .admin-brand{gap:8px}
-  .admin-nav button{padding:10px 12px;font-size:13.5px}
-}
-
-/* celular em paisagem: altura curta é o problema, não a largura —
-   sem isso o cartão de acesso restrito cortava na dobra */
-@media (max-height:480px) and (orientation:landscape){
-  .gate{align-items:flex-start;padding-top:24px}
-}
-
-/* barra de rolagem horizontal do menu (fallback em navegadores que
-   ainda mostram scrollbar customizada), com leve tom dourado no hover */
-.admin-nav::-webkit-scrollbar{height:4px}
-.admin-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
-.admin-nav::-webkit-scrollbar-thumb:hover{background:rgba(220,174,44,.45)}
-
-/* o style.css já zera durações de animação/transição globalmente
-   em prefers-reduced-motion; scroll-snap não é coberto por isso,
-   então só essa parte precisa de tratamento local */
-@media (prefers-reduced-motion:reduce){
-  .admin-nav{scroll-snap-type:none}
-}
+ @media (min-width:1440px) and (max-width:1799.98px){
+   .admin-shell{grid-template-columns:270px 1fr}
+   .admin-main{max-width:1400px;margin:0 auto}
+ }
+ @media (min-width:1800px){
+   .admin-shell{grid-template-columns:290px 1fr}
+   .admin-main{max-width:1520px;margin:0 auto}
+ }
+ @media (max-width:1100px){
+   .admin-shell{grid-template-columns:210px 1fr}
+ }
+ @media (max-width:900px){
+   .admin-shell{grid-template-columns:1fr}
+   .admin-sidebar{
+     position:static;height:auto;box-shadow:none;border-right:none;
+     border-bottom:1px solid rgba(220,174,44,.14);overflow-y:visible;
+   }
+   .admin-nav{
+     flex-direction:row;overflow-x:auto;position:relative;
+     scroll-snap-type:x proximity;
+     -webkit-overflow-scrolling:touch;
+     overscroll-behavior-x:contain;
+     scrollbar-color: rgba(255,255,255,.18) transparent;
+     padding-inline:max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right));
+     -webkit-mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+     mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+   }
+   .admin-nav button{white-space:nowrap;min-height:44px;scroll-snap-align:start}
+ }
+ @media (max-width:480px){
+   .toolbar{flex-direction:column;align-items:stretch}
+   .toolbar .search-input{width:100%;min-width:0}
+ }
+ @media (max-width:359px){
+   .admin-brand{gap:8px}
+   .admin-nav button{padding:10px 12px;font-size:13.5px}
+ }
+ @media (max-height:480px) and (orientation:landscape){
+   .gate{align-items:flex-start;padding-top:24px}
+ }
+ .admin-nav::-webkit-scrollbar{height:4px}
+ .admin-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
+ .admin-nav::-webkit-scrollbar-thumb:hover{background:rgba(220,174,44,.45)}
+ @media (prefers-reduced-motion:reduce){
+   .admin-nav{scroll-snap-type:none}
+ }
 </style>
 </head>
 <body>
 
-<!-- Tela de acesso restrito (mostrada se não houver admin logado) -->
 <div class="gate" id="gateScreen" style="display:none">
   <div class="auth-card text-center" style="max-width:420px">
     <h2>Área restrita</h2>
-    <p class="sub">Este painel é exclusivo para administradores da plataforma. Entre com uma conta de administrador para continuar.</p>
+    <p class="sub">Este painel é exclusivo para administradores da plataforma.</p>
     <a href="login.html?redirect=painel" class="btn btn-primary btn-block">Ir para o login</a>
     <a href="index.html" class="link mt-2" style="display:inline-block">Voltar para o site</a>
   </div>
 </div>
 
-<!-- Painel administrativo -->
 <div class="admin-shell" id="adminShell" style="display:none">
   <nav class="admin-sidebar">
     <div class="admin-brand">
@@ -292,6 +160,7 @@
       <button data-section="comunidade">Comunidade</button>
       <button data-section="indicacoes">Indicações &amp; comissões</button>
       <button data-section="saques">Saques</button>
+      <button data-section="chat">Atendimento</button>
     </div>
     <div class="admin-back">
       <a href="index.html">← Voltar ao site</a>
@@ -300,7 +169,6 @@
   </nav>
 
   <main class="admin-main">
-
     <!-- VISÃO GERAL -->
     <section class="section-block active" id="sec-visao">
       <div class="admin-head"><div><h1>Visão geral</h1><p>Estatísticas gerais da plataforma em tempo real.</p></div></div>
@@ -377,11 +245,46 @@
 
     <!-- SAQUES -->
     <section class="section-block" id="sec-saques">
-      <div class="admin-head"><div><h1>Solicitações de saque</h1><p>Aprove ou recuse pedidos de saque de comissão. Saque mínimo: R$ 10,00.</p></div></div>
+      <div class="admin-head"><div><h1>Solicitações de saque</h1><p>Aprove ou recuse pedidos de saque de comissão.</p></div></div>
       <div class="panel"><div class="table-wrap"><table class="data-table" id="withdrawTable">
         <thead><tr><th>Usuário</th><th>Valor</th><th>Chave Pix</th><th>Solicitado em</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody></tbody>
       </table></div></div>
+    </section>
+
+    <!-- ATENDIMENTO (CHAT ADMIN) -->
+    <section class="section-block" id="sec-chat">
+      <div class="admin-head"><div><h1>Atendimento (Chat)</h1><p>Responda as dúvidas dos visitantes em tempo real.</p></div></div>
+      
+      <div class="chat-admin-container" style="display: grid; grid-template-columns: 260px 1fr; gap: 0; height: 65vh; min-height: 500px; background: #fff; border-radius: var(--admin-radius); box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid var(--border-soft);">
+        
+        <!-- Lista de Conversas -->
+        <div class="chat-admin-list" style="border-right: 1px solid var(--border-soft); background: #f9f9fa; display: flex; flex-direction: column;">
+          <div style="padding: 16px; border-bottom: 1px solid var(--border-soft); background: #fff;">
+            <h3 style="font-size: 14px; margin: 0; color: var(--navy-900);">Conversas Ativas</h3>
+          </div>
+          <div id="adminChatList" style="flex: 1; overflow-y: auto;">
+            <!-- Os contatos vão aparecer aqui via JS -->
+            <p style="padding: 16px; font-size: 13px; color: #888; text-align: center;">Nenhuma conversa encontrada.</p>
+          </div>
+        </div>
+
+        <!-- Janela de Mensagens -->
+        <div class="chat-admin-window" style="display: flex; flex-direction: column; background: #fff;">
+          <div style="padding: 16px; border-bottom: 1px solid var(--border-soft); background: #fff;">
+            <h3 id="adminChatActiveUser" style="font-size: 14px; margin: 0; color: var(--navy-900);">Selecione uma conversa ao lado</h3>
+          </div>
+          
+          <div id="adminChatBody" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f9f9fa;">
+             <p style="text-align: center; color: #888; margin-top: auto; margin-bottom: auto; font-size: 14px;">Aguardando seleção...</p>
+          </div>
+
+          <form id="adminChatForm" style="display: flex; padding: 16px; border-top: 1px solid var(--border-soft); background: #fff; gap: 10px;">
+             <input type="text" id="adminChatInput" placeholder="Digite sua resposta..." style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; outline: none; font-family: inherit;" disabled>
+             <button type="submit" class="btn btn-primary" id="adminChatSubmitBtn" disabled>Enviar</button>
+          </form>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -401,7 +304,6 @@
   </div>
 </div>
 
-<!-- Modal de Rejeição com aviso do Chatbot -->
 <div class="confirm-overlay" id="rejectModal" style="display: none;">
   <div class="confirm-box" style="max-width: 450px; text-align: center;">
     <div class="confirm-icon" style="background: rgba(207,53,39,.12); color: #cf3527;">!</div>
@@ -435,11 +337,6 @@
 
 <script type="module" src="admin.js"></script>
 <script>
-  // Ativa/desativa as classes is-scrollable-left/right (definidas no
-  // style.css) conforme o scroll horizontal de cada .table-wrap — é o
-  // que faz o fade lateral aparecer. Puramente visual, não interfere
-  // em nada do admin.js. Mesmo trecho pode ser copiado para outras
-  // páginas com tabelas (dashboard, comunidade) se quiser o mesmo efeito lá.
   document.querySelectorAll('.table-wrap').forEach(function (wrap) {
     function update() {
       wrap.classList.toggle('is-scrollable-left', wrap.scrollLeft > 4);
