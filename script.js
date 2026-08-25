@@ -709,14 +709,30 @@ import { uid, nowISO } from "./seed.js";
   /* ---------------------------------------------------------
      RANKING
   --------------------------------------------------------- */
-  function monthRangeFor(date) {
-    const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-    const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+  // Mesmo raciocínio de previousMonthRangeBRT no worker.js — limites do
+  // mês CORRENTE calculados em BRT, não UTC. Offset fixo de -3h (Brasil
+  // não tem horário de verão desde 2019).
+  function monthRangeForBRT(date = new Date()) {
+    const fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+    });
+    const parts = fmt.formatToParts(date).reduce((acc, p) => {
+      acc[p.type] = p.value;
+      return acc;
+    }, {});
+    const year = parseInt(parts.year, 10);
+    const month = parseInt(parts.month, 10);
+    const start = new Date(Date.UTC(year, month - 1, 1, 3, 0, 0));
+    const endMonth = month === 12 ? 1 : month + 1;
+    const endYear = month === 12 ? year + 1 : year;
+    const end = new Date(Date.UTC(endYear, endMonth - 1, 1, 3, 0, 0));
     return { start, end };
   }
 
   function currentMonthRanking() {
-    const { start, end } = monthRangeFor(new Date());
+    const { start, end } = monthRangeForBRT();
     const referralCounts = {};
     db.referrals.forEach((r) => {
       if (!r.createdAt) return;
@@ -1270,7 +1286,7 @@ if (n.message.includes("reprovado") || n.message.includes("não foi aprovado") |
          <div id="notifListContainer">
             ${topNotifs.map(notificationCard).join("")}
          </div>
-         ${hasMore ? `<button class="btn btn-sm btn-ghost btn-block mt-2" id="showAllNotifsBtn">Ver todas as ${allNotifications.length} notificações</button>` : ""}
+         ${hasMore ? `<button class="btn btn-sm btn-ghost btn-block mt-2" id="showAllNotifsBtn">Ver todas as ${allNotifications.length} notifications</button>` : ""}
          <div id="allNotifsContainer" style="display:none">
             ${allNotifications.slice(5).map(notificationCard).join("")}
          </div>
