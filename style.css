@@ -452,42 +452,65 @@ body:not(.is-admin) .admin-only{display:none !important}
   .dash-shell{grid-template-columns:210px 1fr}
 }
 
-/* === CORREÇÃO DEFINITIVA DO MOBILE (TÍTULOS COBERTOS) === */
+/* === CORREÇÃO DEFINITIVA DO MOBILE (FLEXBOX / ANTI-OVERLAP) === */
 @media (max-width:900px){
-  .dash-shell{grid-template-columns:1fr; min-width:0; max-width:100vw;}
-  
-  /* Menu Carrossel Mobile */
-  .dash-sidebar{
-    position:relative; 
-    top:0;
-    height:auto; display:flex; flex-direction:row; overflow-x:auto; gap:8px; padding:16px;
-    -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
-    white-space:nowrap; border-right:none;
-    background:var(--navy-950);
-    width:100%; min-width:0; max-width:100vw; 
+  .dash-shell {
+    display: flex !important; /* Destrói o grid no celular e empilha nativamente */
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
+  
+  .dash-sidebar {
+    position: relative !important;
+    top: auto !important;
+    height: auto !important; 
+    min-height: 70px !important;
+    display: flex !important; 
+    flex-direction: row !important; 
+    overflow-x: auto !important; 
+    gap: 8px !important; 
+    padding: 16px !important;
+    -webkit-overflow-scrolling: touch !important; 
+    scroll-snap-type: x proximity !important;
+    white-space: nowrap !important; 
+    border-right: none !important;
+    background: var(--navy-950) !important;
+    width: 100% !important; 
+    margin: 0 !important;
+    flex: none !important; /* Garante que o menu pare de crescer */
+  }
+  
   .dash-sidebar::-webkit-scrollbar { display: none; }
   .dash-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
-  .dash-sidebar .side-title{display:none}
+  .dash-sidebar .side-title { display: none !important; }
   
-  .side-link{
-    display:inline-flex; justify-content:center; flex:none; white-space:nowrap; 
-    min-height:40px; scroll-snap-align:start; margin-bottom:0; 
-    background:rgba(255,255,255,0.08); border-radius:20px; padding:8px 18px;
-    box-shadow:none;
+  .side-link {
+    display: inline-flex !important; 
+    justify-content: center !important; 
+    flex: none !important; 
+    white-space: nowrap !important; 
+    min-height: 40px !important; 
+    scroll-snap-align: start !important; 
+    margin: 0 !important; 
+    background: rgba(255,255,255,0.08) !important; 
+    border-radius: 20px !important; 
+    padding: 8px 18px !important;
+    box-shadow: none !important;
   }
-  .side-link:hover { background:rgba(255,255,255,0.15); }
-  .side-link.active{ background:var(--gold-500); color:var(--navy-950); box-shadow:none; }
+  .side-link.active { 
+    background: var(--gold-500) !important; 
+    color: var(--navy-950) !important; 
+  }
   
-  .dash-sidebar::before, .dash-sidebar::after{
-    content:"";position:sticky;top:0;width:20px;flex:none;pointer-events:none;align-self:stretch;
-  }
-  .dash-sidebar::before{left:0;order:-1;background:linear-gradient(90deg, var(--navy-950), transparent)}
-  .dash-sidebar::after{right:0;background:linear-gradient(270deg, var(--navy-950), transparent)}
-
-  /* Pula o conteúdo para baixo da barra de menu, fazendo o H1 aparecer 100% */
-  .dash-main{
-    padding-top: 24px !important;
+  .dash-main {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    padding: 24px 16px 80px 16px !important;
+    margin: 0 !important;
+    flex: 1 !important; /* O conteúdo preenche o resto do espaço para baixo */
   }
 }
 
