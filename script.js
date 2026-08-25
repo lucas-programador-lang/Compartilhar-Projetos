@@ -15,6 +15,20 @@ import { uid, nowISO } from "./seed.js";
 (function () {
   "use strict";
 
+  // --- CORREÇÃO MOBILE: Transforma a barra lateral em um menu rolante horizontal no celular ---
+  const mobileStyle = document.createElement("style");
+  mobileStyle.innerHTML = `
+    @media (max-width: 768px) {
+      .dash-sidebar { display: flex !important; flex-direction: row !important; overflow-x: auto !important; white-space: nowrap !important; padding-bottom: 12px !important; margin-bottom: 16px !important; border-right: none !important; -webkit-overflow-scrolling: touch; }
+      .dash-sidebar .side-title { display: none !important; }
+      .dash-sidebar .side-link { display: inline-flex !important; margin-right: 8px !important; padding: 8px 16px !important; background: rgba(0,0,0,0.03); border-radius: 20px !important; }
+      .dash-sidebar .side-link.active { background: var(--gold-500, #d4af37) !important; color: #000 !important; }
+      .dash-head { flex-wrap: wrap !important; gap: 16px !important; }
+      .panel, .stat-card { word-break: break-word !important; overflow-wrap: break-word !important; }
+    }
+  `;
+  document.head.appendChild(mobileStyle);
+
   const WORKER_URL = "https://api.compartilhar-projetos.com.br";
 
   const PLANS = {
@@ -269,7 +283,6 @@ import { uid, nowISO } from "./seed.js";
     return { byReferrals: toSortedList(referralCounts), byPaying: toSortedList(Object.fromEntries(Object.entries(payingSets).map(([id, set]) => [id, set.size]))) };
   }
 
-  // Retorna os dados em tempo real do ranking do evento quinzenal atual
   function currentBiweeklyRanking() {
     const BIWEEKLY_EVENT_ANCHOR = "2026-08-25T03:00:00Z";
     const anchor = new Date(BIWEEKLY_EVENT_ANCHOR);
@@ -279,9 +292,7 @@ import { uid, nowISO } from "./seed.js";
     const cycleStart = new Date(anchor.getTime() + cycleIndex * 15 * 86400000);
     const cycleEnd = new Date(cycleStart.getTime() + 15 * 86400000);
 
-    const commissions = db.commissions.filter(c =>
-       c && c.planId === "p4" && c.createdAt && new Date(c.createdAt) >= cycleStart && new Date(c.createdAt) < cycleEnd
-    );
+    const commissions = db.commissions.filter(c => c && c.planId === "p4" && c.createdAt && new Date(c.createdAt) >= cycleStart && new Date(c.createdAt) < cycleEnd);
 
     const payingSets = {};
     commissions.forEach((c) => {
@@ -311,7 +322,6 @@ import { uid, nowISO } from "./seed.js";
     const content = `
     <section class="section" style="padding-top:44px">
       <div class="container">
-        
         <!-- BLOCO MENSAL -->
         <span class="tag-label">Ranking de indicações</span>
         <h2 style="margin-bottom:6px">Ranking de ${escapeHtml(monthLabel)}</h2>
@@ -365,7 +375,7 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function sideNav(active) {
-    const items = [ ["/painel", "Visão geral"], ["/publicar", "Publicar projeto"], ["/perfil", "Meu perfil"], ["/indicacoes", "Indicações"], ["/ranking", "Ranking"], ["/planos", "Assinatura"], ["/comunidade", "Comunidade"] ];
+    const items = [ ["/painel", "Visão geral"], ["/publicar", "Publicar"], ["/perfil", "Meu perfil"], ["/indicacoes", "Indicações"], ["/ranking", "Ranking"], ["/planos", "Assinatura"], ["/comunidade", "Comunidade"] ];
     return `<div class="side-title">Meu painel</div>${items.map(([p, l]) => `<a class="side-link ${p === active ? "active" : ""}" href="#${p}">${l}</a>`).join("")}`;
   }
 
@@ -426,7 +436,7 @@ import { uid, nowISO } from "./seed.js";
     if (n.message.includes("reprovado") || n.message.includes("não foi aprovado") || n.message.includes("ATENÇÃO")) { color = "var(--red-600)"; title = "Ação Necessária"; } else if (n.message.includes("aprovado") || n.message.includes("sucesso") || n.message.includes("disponível") || n.message.includes("Parabéns")) { color = "var(--green-700)"; title = "Aprovado"; }
     let msgHtml = escapeHtml(n.message); let actionBtn = "";
     if (n.projectId && (n.message.includes("ATENÇÃO") || n.message.includes("reprovado"))) { actionBtn = `<a href="#/publicar?edit=${n.projectId}" class="btn btn-sm btn-primary mt-2" style="display:inline-block">Editar e reenviar projeto</a>`; }
-    return `<div class="panel" data-notification="${n.id}" style="border:${border};padding:16px 18px;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div style="font-weight:600;font-size:13px;color:${color};margin-bottom:4px">${title}</div><p style="font-size:13.5px;color:var(--ink-700);line-height:1.4">${msgHtml}</p>${actionBtn}</div>${n.read ? "" : `<button class="btn btn-sm btn-ghost" data-mark-read="${n.id}" style="flex:none">Marcar lida</button>`}</div><span class="muted" style="font-size:12px;display:block;margin-top:10px" title="${fmtDateTime(n.createdAt)}">${timeAgo(n.createdAt)}</span></div>`;
+    return `<div class="panel" data-notification="${n.id}" style="border:${border};padding:16px 18px;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;"><div style="flex:1"><div style="font-weight:600;font-size:13px;color:${color};margin-bottom:4px">${title}</div><p style="font-size:13.5px;color:var(--ink-700);line-height:1.4;word-break:break-word;">${msgHtml}</p>${actionBtn}</div>${n.read ? "" : `<button class="btn btn-sm btn-ghost" data-mark-read="${n.id}" style="flex:none">Marcar lida</button>`}</div><span class="muted" style="font-size:12px;display:block;margin-top:10px" title="${fmtDateTime(n.createdAt)}">${timeAgo(n.createdAt)}</span></div>`;
   }
 
   function viewDashboard() {
@@ -437,7 +447,7 @@ import { uid, nowISO } from "./seed.js";
        const topNotifs = allNotifications.slice(0, 5); const hasMore = allNotifications.length > 5;
        notifHtml = `<div class="panel" id="notificationsSection"><div class="panel-head"><div style="display:flex;align-items:center;gap:8px"><h3>Notificações</h3>${unreadCount > 0 ? `<span class="badge badge-danger">${unreadCount} não lida(s)</span>` : ""}</div>${unreadCount > 0 ? `<button class="btn btn-sm btn-ghost" id="markAllReadBtn">Marcar todas como lidas ✓</button>` : ""}</div><div id="notifListContainer">${topNotifs.map(notificationCard).join("")}</div>${hasMore ? `<button class="btn btn-sm btn-ghost btn-block mt-2" id="showAllNotifsBtn">Ver todas as ${allNotifications.length} notificações</button>` : ""}<div id="allNotifsContainer" style="display:none">${allNotifications.slice(5).map(notificationCard).join("")}</div></div>`;
     }
-    return `<div class="dash-shell"><nav class="dash-sidebar">${sideNav("/painel")}</nav><div class="dash-main"><div class="dash-head"><div><h1>Olá, ${escapeHtml(user.name.split(" ")[0])}</h1><p>Aqui está um resumo da sua conta em Compartilhar Projetos.</p></div><a href="#/publicar" class="btn btn-gold">+ Publicar projeto</a></div>${notifHtml}<div class="stat-grid"><div class="stat-card"><div class="stat-label">Status da assinatura</div><div class="stat-value" style="font-size:16px">${user.role === "admin" ? `<span class="badge badge-blue">Administrador</span>` : active ? `<span class="badge badge-success">Ativa</span>` : `<span class="badge badge-danger">Expirada</span>`}</div></div><div class="stat-card"><div class="stat-label">Projetos publicados</div><div class="stat-value">${myProjects.filter((p) => p.status === "published").length}</div></div><div class="stat-card gold"><div class="stat-label">Comissões disponíveis</div><div class="stat-value">${fmtBRL(availableCommission(user.id))}</div></div><div class="stat-card"><div class="stat-label">Indicações</div><div class="stat-value">${db.referrals.filter((r) => r.referrerId === user.id).length}</div></div></div><div class="panel"><div class="panel-head"><h3>Seus projetos</h3><a href="#/publicar" class="link">Publicar novo →</a></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Projeto</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead><tbody>${myProjects.map((p) => { let badge = ''; let action = `<a href="#/projeto/${p.id}" class="link">Acessar ↗</a>`; if (p.status === 'published') { badge = '<span class="badge badge-success">Aprovado</span>'; } else if (p.status === 'rejected') { badge = '<span class="badge badge-danger">Rejeitado</span>'; action = `<span class="muted">Veja o motivo em Notificações</span>`; } else { badge = '<span class="badge badge-warning">Em Revisão</span>'; action = `<span class="muted">Aguardando aprovação...</span>`; } return `<tr><td><strong>${escapeHtml(p.title)}</strong></td><td>${escapeHtml(categoryName(p.categoryId))}</td><td>${badge}</td><td>${action}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted text-center">Você ainda não publicou nenhum projeto.</td></tr>`}</tbody></table></div></div>${!active && user.role !== "admin" ? `<div class="panel" style="border-color:var(--gold-400)"><div class="panel-head"><h3>Sua assinatura expirou</h3></div><p class="muted">Renove seu plano para voltar a publicar novos projetos.</p><a href="#/planos" class="btn btn-gold mt-2">Ver planos</a></div>` : ""}</div></div>`;
+    return `<div class="dash-shell"><nav class="dash-sidebar">${sideNav("/painel")}</nav><div class="dash-main"><div class="dash-head"><div><h1 style="word-break:break-word;">Olá, ${escapeHtml(user.name.split(" ")[0])}</h1><p>Aqui está um resumo da sua conta em Compartilhar Projetos.</p></div><a href="#/publicar" class="btn btn-gold" style="white-space:nowrap">+ Publicar projeto</a></div>${notifHtml}<div class="stat-grid"><div class="stat-card"><div class="stat-label">Status da assinatura</div><div class="stat-value" style="font-size:16px">${user.role === "admin" ? `<span class="badge badge-blue">Administrador</span>` : active ? `<span class="badge badge-success">Ativa</span>` : `<span class="badge badge-danger">Expirada</span>`}</div></div><div class="stat-card"><div class="stat-label">Projetos publicados</div><div class="stat-value">${myProjects.filter((p) => p.status === "published").length}</div></div><div class="stat-card gold"><div class="stat-label">Comissões disponíveis</div><div class="stat-value">${fmtBRL(availableCommission(user.id))}</div></div><div class="stat-card"><div class="stat-label">Indicações</div><div class="stat-value">${db.referrals.filter((r) => r.referrerId === user.id).length}</div></div></div><div class="panel"><div class="panel-head"><h3>Seus projetos</h3><a href="#/publicar" class="link">Publicar novo →</a></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Projeto</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead><tbody>${myProjects.map((p) => { let badge = ''; let action = `<a href="#/projeto/${p.id}" class="link">Acessar ↗</a>`; if (p.status === 'published') { badge = '<span class="badge badge-success">Aprovado</span>'; } else if (p.status === 'rejected') { badge = '<span class="badge badge-danger">Rejeitado</span>'; action = `<span class="muted">Veja o motivo em Notificações</span>`; } else { badge = '<span class="badge badge-warning">Em Revisão</span>'; action = `<span class="muted">Aguardando aprovação...</span>`; } return `<tr><td><strong>${escapeHtml(p.title)}</strong></td><td>${escapeHtml(categoryName(p.categoryId))}</td><td>${badge}</td><td>${action}</td></tr>`; }).join("") || `<tr><td colspan="4" class="muted text-center">Você ainda não publicou nenhum projeto.</td></tr>`}</tbody></table></div></div>${!active && user.role !== "admin" ? `<div class="panel" style="border-color:var(--gold-400)"><div class="panel-head"><h3>Sua assinatura expirou</h3></div><p class="muted">Renove seu plano para voltar a publicar novos projetos.</p><a href="#/planos" class="btn btn-gold mt-2">Ver planos</a></div>` : ""}</div></div>`;
   }
 
   function viewProfile() {
