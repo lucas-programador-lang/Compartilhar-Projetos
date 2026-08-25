@@ -34,6 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput.disabled = true;
     chatForm.querySelector('button[type="submit"]').disabled = true;
 
+    // Mostra um erro visível pro usuário dentro do próprio chat, em vez
+    // de deixar só no console (antes, se a autenticação falhasse, a
+    // pessoa via o input travado pra sempre sem nenhuma explicação).
+    function showAuthError(message) {
+        let errEl = document.getElementById('chat-auth-error-msg');
+        if (!errEl) {
+            errEl = document.createElement('p');
+            errEl.id = 'chat-auth-error-msg';
+            errEl.className = 'chat-error';
+            chatBody.appendChild(errEl);
+        }
+        errEl.textContent = message;
+    }
+
     // 3. Garante sessão autenticada — real (login) ou anônima.
     //    A regra do RTDB exige auth.uid === $uid; o antigo ID
     //    aleatório do localStorage não satisfaz isso mais.
@@ -43,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await signInAnonymously(auth);
             } catch (error) {
                 console.error("Falha ao autenticar visitante:", error);
+                showAuthError('Não foi possível iniciar o chat. Recarregue a página.');
             }
             return; // onAuthStateChanged dispara de novo quando a sessão anônima completar
         }
@@ -78,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         onValue(activeChatRef, activeListenerCallback, (error) => {
             console.error("Erro ao ler mensagens:", error);
+            showAuthError('Erro ao carregar mensagens. Tente recarregar a página.');
         });
     });
 
