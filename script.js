@@ -15,20 +15,6 @@ import { uid, nowISO } from "./seed.js";
 (function () {
   "use strict";
 
-  // --- CORREÇÃO MOBILE: Transforma a barra lateral em um menu rolante horizontal no celular ---
-  const mobileStyle = document.createElement("style");
-  mobileStyle.innerHTML = `
-    @media (max-width: 768px) {
-      .dash-sidebar { display: flex !important; flex-direction: row !important; overflow-x: auto !important; white-space: nowrap !important; padding-bottom: 12px !important; margin-bottom: 16px !important; border-right: none !important; -webkit-overflow-scrolling: touch; }
-      .dash-sidebar .side-title { display: none !important; }
-      .dash-sidebar .side-link { display: inline-flex !important; margin-right: 8px !important; padding: 8px 16px !important; background: rgba(0,0,0,0.03); border-radius: 20px !important; }
-      .dash-sidebar .side-link.active { background: var(--gold-500, #d4af37) !important; color: #000 !important; }
-      .dash-head { flex-wrap: wrap !important; gap: 16px !important; }
-      .panel, .stat-card { word-break: break-word !important; overflow-wrap: break-word !important; }
-    }
-  `;
-  document.head.appendChild(mobileStyle);
-
   const WORKER_URL = "https://api.compartilhar-projetos.com.br";
 
   const PLANS = {
@@ -165,7 +151,7 @@ import { uid, nowISO } from "./seed.js";
     return saved;
   }
 
-  // --- FUNÇÕES DA COMUNIDADE (RESTAURADAS) ---
+  // --- FUNÇÕES DA COMUNIDADE ---
   function createPost(content) {
     const user = currentUser();
     if (!user) throw new Error("Entre na sua conta para publicar.");
@@ -198,7 +184,7 @@ import { uid, nowISO } from "./seed.js";
     return addReply(postId, commentId, reply);
   }
 
-  // --- FUNÇÕES DE SAQUE (RESTAURADA lastPixKey) ---
+  // --- FUNÇÕES DE SAQUE ---
   function requestWithdrawal(amount, pixKey) {
     const user = currentUser(); if (!user) throw new Error("Entre na sua conta.");
     const available = availableCommission(user.id);
