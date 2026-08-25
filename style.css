@@ -2,87 +2,6 @@
    COMPARTILHAR PROJETOS — DESIGN SYSTEM
    Paleta: Azul royal + Dourado sobre base neutra clara
    Tipografia: Sora (display) / Inter (texto) / JetBrains Mono (dados)
-   Revisão: tons ajustados dentro da mesma paleta (mais contraste
-   e hierarquia), responsivo mobile reforçado, breakpoints desktop
-   largo/ultrawide adicionados.
-
-   REVISÃO 2: melhorias de responsivo/desktop para admin e index —
-   NENHUM VALOR DE COR FOI ALTERADO (mantido azul + dourado como
-   estava). Mudanças, todas de layout:
-   - .stat-grid: trocado de repeat(4,1fr) fixo + breakpoints por
-     viewport para repeat(auto-fit,minmax(190px,1fr)). Isso reflui
-     conforme a largura REAL disponível (importa porque dashboard/
-     admin têm sidebar lateral consumindo espaço — em telas entre
-     900–1100px a área útil já é menor que o viewport, então um
-     grid fixo de 4 colunas ficava espremido antes do breakpoint
-     antigo de 900px disparar).
-   - .dash-shell: novo breakpoint intermediário em 1100px estreitando
-     a sidebar de 250px para 210px, evitando que o conteúdo fique
-     espremido em telas de tablet antes do colapso total em 900px.
-   - .dash-main: em telas ultrawide (min-width:1440px) ganhou
-     max-width + margin:auto, para tabelas/cards não esticarem a
-     largura inteira de monitores muito grandes.
-   - .data-table: fonte e padding reduzidos em telas ≤640px, pra
-     caber mais colunas sem espremer demais o texto.
-
-   REVISÃO 3: cores mantidas 100% (nenhum hex/rgba novo foi
-   introduzido) — o que mudou foi o USO de cores já existentes na
-   paleta em lugares que estavam sem tratamento (seleção de texto,
-   scrollbar, checkboxes/radios, foco em inputs, estado inválido,
-   zebra-striping de tabela, estado ativo de card), o que reforça
-   a identidade visual sem alterar nenhum tom. Responsivo/desktop
-   ganhou mais uma camada sobre a REVISÃO 2:
-   - Breakpoint <360px (telefones muito estreitos) para header,
-     hero, dashboard e diálogos, que antes só quebravam bem a
-     partir de 400/480px.
-   - Orientação paisagem em celular (max-height baixa) tratada
-     separadamente do "mobile" por largura — hero e modais deixam
-     de cortar conteúdo quando a altura é o fator limitante.
-   - .community-layout e .pd-grid: coluna lateral fixa (300px/1fr)
-     trocada por minmax fluido, evitando aperto na faixa 880–1100px.
-   - Área de toque mínima de 44px em botões-ícone e links de menu
-     mobile (diretriz de acessibilidade WCAG), sem alterar o
-     tamanho visual do ícone em si.
-   - safe-area-inset aplicado no toast e no rodapé mobile, pra não
-     ficar atrás do "notch"/barra de gestos em iOS/Android.
-   - Sidebar do dashboard em mobile ganhou indicador de scroll
-     (fade nas bordas) usando os mesmos tokens de navy já em uso.
-
-   REVISÃO 4: paleta principal (:root) segue 100% intacta — nenhum
-   token de azul/dourado/neutro foi alterado. Duas frentes de
-   trabalho:
-   1) Responsivo/desktop mais fluido, complementando a REVISÃO 2/3:
-      - Padding do .container passou de degraus fixos por
-        breakpoint (24px → 20px → 16px → 12px) para um único
-        clamp() fluido — menos código, transição suave em
-        qualquer largura de tela, sem "saltos" perceptíveis ao
-        redimensionar a janela.
-      - .dash-main também ganhou padding fluido via clamp(),
-        reduzindo a quantidade de breakpoints fixos necessários
-        e suavizando a transição entre mobile/tablet/desktop.
-      - Novo patamar para monitores muito grandes (min-width:2200px)
-        além do ultrawide de 1800px já existente, evitando que
-        grids de projeto e o painel fiquem largos demais em
-        telas 4K/ultra.
-      - scroll-snap adicionado à sidebar mobile do dashboard e às
-        miniaturas da galeria de projeto (.pd-thumbs), pra rolagem
-        por toque "encaixar" nos itens em vez de parar em posição
-        solta.
-      - pequeno reforço de profundidade (.panel:hover) usando um
-        shadow já existente no sistema, sem cor nova.
-   2) Recolor dos cards de planos (Teste / 4 dias / Mensal): as
-      cores anteriores (rosa neon, ciano, magenta) não faziam parte
-      da paleta da marca e destoavam do restante do site. Foram
-      substituídas por um trio profissional e coeso — grafite/slate
-      (Teste, tom neutro e sóbrio para o plano de entrada), verde-azulado/teal
-      (4 dias, tom fresco e confiante para o plano intermediário) e
-      índigo royal (Mensal, tom premium que conversa melhor com o
-      azul royal da marca do que o magenta anterior) — mantendo a
-      mesma estrutura visual (gradiente, sombra, borda) já usada
-      nos outros elementos do sistema.
-
-   REVISÃO 5: Ajustes vitais de transbordo no mobile (word-break e 
-   overflow horizontal) para o Menu do Dashboard e Cartões.
    ========================================================= */
 
 :root{
@@ -90,14 +9,14 @@
   --navy-900:#081736;
   --navy-800:#0d2456;
   --navy-700:#123071;
-  --blue-700:#123188;   /* levemente mais escuro/saturado p/ contraste em texto sobre branco */
+  --blue-700:#123188;   
   --blue-600:#1a49d6;
   --blue-500:#3163ea;
   --blue-400:#5c85f0;
   --blue-100:#e4ecfd;
   --blue-50:#f1f5fd;
 
-  --gold-700:#6e5209;   /* mais escuro: melhora contraste de texto em fundo claro (AA) */
+  --gold-700:#6e5209;   
   --gold-600:#a67b0c;
   --gold-500:#dcae2c;
   --gold-400:#ecc65b;
@@ -105,8 +24,6 @@
   --gold-200:#f8e8b8;
   --gold-100:#fcf2d8;
 
-  /* Vibrantes: mesmo matiz de azul/dourado, saturação/luminosidade elevadas —
-     reservado para botões, ícones de destaque e acentos, não para texto corrido. */
   --blue-vibrant-1:#2f5bff;
   --blue-vibrant-2:#0a2fb8;
   --gold-vibrant-1:#ffd257;
@@ -119,7 +36,7 @@
   --ink-900:#0a1224;
   --ink-700:#2c3a58;
   --ink-600:#48557a;
-  --ink-500:#68748f;   /* levemente mais escuro que o antigo #78859f: melhora legibilidade de textos secundários */
+  --ink-500:#68748f;   
   --ink-400:#8892ab;
   --ink-300:#b3bcd1;
   --border:#dde4f3;
@@ -130,7 +47,7 @@
   --success-bg:#e3f7ee;
   --danger:#cf3527;
   --danger-bg:#fbe9e7;
-  --warning:#96700b;   /* mais escuro que o antigo (igual ao gold-600 antigo) p/ contraste em warning-bg */
+  --warning:#96700b;   
   --warning-bg:#fbf2d8;
 
   --font-display:'Sora', sans-serif;
@@ -148,8 +65,6 @@
   --shadow-gold:0 12px 28px rgba(179,131,13,.30);
 
   --header-h:72px;
-
-  /* largura máxima de conteúdo em telas muito grandes */
   --container-max:1180px;
   --container-max-wide:1360px;
 }
@@ -173,7 +88,7 @@ body{
   background-repeat:no-repeat;
   background-attachment:fixed;
   position:relative;
-  overflow-x:hidden; /* evita rolagem horizontal indesejada no mobile */
+  overflow-x:hidden; 
 }
 body::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.6;
@@ -199,9 +114,6 @@ h1,h2,h3,h4{font-family:var(--font-display);line-height:1.15;font-weight:700;let
 :focus-visible{outline:3px solid var(--gold-500);outline-offset:2px;border-radius:4px}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}
 
-/* Uso consistente da paleta já existente em detalhes que antes
-   ficavam com o padrão do navegador (nenhuma cor nova aqui —
-   só aplicação dos mesmos tokens de azul/dourado). */
 ::selection{background:var(--blue-600);color:#fff}
 html{color-scheme:light}
 html{scrollbar-color:var(--ink-300) var(--surface-alt)}
@@ -212,9 +124,6 @@ html{scrollbar-color:var(--ink-300) var(--surface-alt)}
 input[type="checkbox"],input[type="radio"]{accent-color:var(--blue-600)}
 input::placeholder,textarea::placeholder{color:var(--ink-400)}
 
-/* Padding fluido: substitui os degraus fixos (24px/20px/16px/12px)
-   por breakpoint por uma única regra que reflui suavemente com a
-   largura da viewport — sem "saltos" perceptíveis ao redimensionar. */
 .container{width:100%;max-width:var(--container-max);margin:0 auto;padding:0 clamp(12px, 4vw, 24px)}
 
 /* =================== BUTTONS =================== */
@@ -242,7 +151,7 @@ input::placeholder,textarea::placeholder{color:var(--ink-400)}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none !important}
 .btn-icon{width:38px;height:38px;border-radius:50%;background:var(--surface-alt);display:inline-flex;align-items:center;justify-content:center;flex:none}
 @media (max-width:960px){
-  .btn-icon{width:44px;height:44px} /* alvo de toque mínimo recomendado em telas de toque */
+  .btn-icon{width:44px;height:44px} 
 }
 .link{color:var(--blue-600);font-weight:600}
 .link:hover{text-decoration:underline}
@@ -308,7 +217,6 @@ body.is-guest .auth-only{display:none !important}
 body:not(.is-guest) .guest-only{display:none !important}
 body:not(.is-admin) .admin-only{display:none !important}
 
-/* -- breakpoint tablet: reduz respiro sem virar mobile total -- */
 @media (max-width:1080px){
   .main-nav{gap:18px}
 }
@@ -321,14 +229,10 @@ body:not(.is-admin) .admin-only{display:none !important}
 }
 @media (min-width:961px){ .mobile-nav{display:none !important} }
 
-/* mobile pequeno: aperta paddings do header pra não espremer a marca
-   (o padding horizontal do .container já é fluido via clamp acima —
-   aqui só ajustamos o que o clamp não cobre: tamanho da marca e gaps) */
 @media (max-width:400px){
   .brand-name{font-size:16.5px}
   .header-actions{gap:8px}
 }
-/* telefones muito estreitos (ex: 320px) — mais um degrau de aperto */
 @media (max-width:359px){
   .brand-name{font-size:15px;max-width:130px}
   .header-actions{gap:6px}
@@ -387,7 +291,6 @@ body:not(.is-admin) .admin-only{display:none !important}
   .hero-visual{height:340px;order:-1}
   .fan-card{width:220px}
 }
-/* mobile pequeno: cards do hero não cabem lado a lado — empilha e reduz altura */
 @media (max-width:480px){
   .hero{padding:52px 0 60px}
   .hero-visual{height:260px}
@@ -395,14 +298,11 @@ body:not(.is-admin) .admin-only{display:none !important}
   .fan-1{top:0;left:2vw}
   .fan-2{top:44px;left:18vw}
   .fan-3{top:120px;left:6vw}
-  .fan-4{display:none} /* evita empilhamento ilegível em telas muito estreitas */
+  .fan-4{display:none} 
   .hero-stats{gap:22px}
   .hero-cta{gap:10px}
   .hero-cta .btn{width:100%}
 }
-/* celular em paisagem: a largura não é mais o fator limitante, é a
-   altura — sem isso o hero ficava alto demais e cortava conteúdo
-   na dobra em telas curtas (ex: celular deitado) */
 @media (max-height:440px) and (orientation:landscape){
   .hero{padding:32px 0}
   .hero-inner{grid-template-columns:1fr 1fr;align-items:center}
@@ -425,7 +325,6 @@ body:not(.is-admin) .admin-only{display:none !important}
   .section-head{margin-bottom:28px}
 }
 
-/* how it works */
 .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
 .step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:30px 26px}
 .step-num{font-family:var(--font-mono);font-size:13px;color:var(--gold-700);font-weight:700;margin-bottom:14px}
@@ -493,7 +392,7 @@ body:not(.is-admin) .admin-only{display:none !important}
 .pd-row{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--border-soft);font-size:14px}
 .pd-row:last-of-type{border-bottom:none}
 .pd-row span:first-child{color:var(--ink-500)}
-.pd-row span:last-child{font-weight:600;color:var(--ink-900);text-align:right}
+.pd-row span:last-child{font-weight:600;color:var(--ink-900);text-align:right; word-break: break-word;}
 .pd-side .btn{margin-top:18px}
 
 @media (max-width:900px){
@@ -544,7 +443,7 @@ body:not(.is-admin) .admin-only{display:none !important}
 .side-link:hover{background:rgba(255,255,255,.06);color:#fff}
 .side-link.active{background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));color:#fff;box-shadow:0 6px 16px rgba(10,47,184,.30)}
 
-.dash-main{padding:clamp(20px,3.5vw,38px) clamp(14px,4vw,40px);background:var(--bg);min-width:0}
+.dash-main{padding:clamp(20px,3.5vw,38px) clamp(14px,4vw,40px);background:var(--bg);min-width:0; width:100%;}
 .dash-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;gap:20px;flex-wrap:wrap}
 .dash-head h1{font-size:26px;color:var(--navy-900)}
 .dash-head p{color:var(--ink-600);margin-top:6px;font-size:14.5px}
@@ -553,17 +452,22 @@ body:not(.is-admin) .admin-only{display:none !important}
   .dash-shell{grid-template-columns:210px 1fr}
 }
 
-/* === NOVA ESTRUTURA MOBILE PARA DASHBOARD / MENU === */
+/* === SOLUÇÃO: PROTEÇÃO CONTRA O "GRID BLOWOUT" NO CELULAR === */
 @media (max-width:900px){
-  .dash-shell{grid-template-columns:1fr}
+  /* O dash-shell deve ser contido dentro da largura da tela */
+  .dash-shell{grid-template-columns:1fr; min-width:0; max-width:100vw;}
   
-  /* Menu em formato de "carrossel horizontal" de pílulas */
+  /* Menu Carrossel Mobile */
   .dash-sidebar{
     position:relative; height:auto; display:flex; flex-direction:row; overflow-x:auto; gap:8px; padding:16px;
     -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
     white-space:nowrap; border-right:none;
     background:var(--navy-950);
+    /* ESSA É A REGRA DE OURO QUE IMPEDE A TELA DE ESTICAR: */
+    width:100%; min-width:0; max-width:100vw; 
   }
+  .dash-sidebar::-webkit-scrollbar { display: none; }
+  .dash-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
   .dash-sidebar .side-title{display:none}
   
   .side-link{
@@ -625,7 +529,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .data-table tr:last-child td{border-bottom:none}
 .data-table tbody tr:nth-child(even){background:var(--surface-alt)}
 .data-table tbody tr:hover{background:var(--blue-50)}
-.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;width:100%;min-width:0;}
 
 .table-wrap::before,
 .table-wrap::after{
