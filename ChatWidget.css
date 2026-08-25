@@ -9,7 +9,7 @@
 
 /* Botão de abrir o chat */
 .chat-trigger-btn {
-  background-color: #1a49d6; /* Azul do seu projeto */
+  background-color: #1a49d6;
   color: white;
   border: none;
   border-radius: 30px;
@@ -19,22 +19,29 @@
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chat-trigger-btn:hover {
   transform: scale(1.05);
 }
 
-/* Janela do chat */
+/* Janela do chat (Escondida por padrão) */
 .chat-window {
   width: 320px;
   height: 450px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  display: flex;
+  display: none; /* Controlado via JS */
   flex-direction: column;
   overflow: hidden;
+}
+
+.chat-window.active {
+  display: flex;
 }
 
 /* Cabeçalho */
