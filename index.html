@@ -156,5 +156,40 @@
     updateAllFades(); // caso já exista alguma tabela ao carregar
   })();
 </script>
+
+  <!-- ========================================== -->
+    <!-- WIDGET DE CHAT (INÍCIO)                    -->
+    <!-- ========================================== -->
+    <div id="chat-widget-container" class="chat-widget-container">
+        
+        <!-- Botão flutuante -->
+        <button id="chat-trigger-btn" class="chat-trigger-btn">
+            <span class="chat-icon">💬</span> Ajuda
+        </button>
+
+        <!-- Janela do Chat -->
+        <div id="chat-window" class="chat-window">
+            <div class="chat-header">
+                <h4>Suporte</h4>
+                <button id="chat-close-btn" class="close-btn">✕</button>
+            </div>
+            
+            <div id="chat-body" class="chat-body">
+                <p class="chat-empty" id="chat-empty-msg">Olá! Como podemos te ajudar hoje?</p>
+                <!-- As mensagens aparecerão aqui via JavaScript -->
+            </div>
+
+            <form id="chat-form" class="chat-footer">
+                <input type="text" id="chat-input" placeholder="Digite sua dúvida..." autocomplete="off" required />
+                <button type="submit">Enviar</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Script exclusivo do chat (como módulo para importar o Firebase) -->
+    <script type="module" src="chat-widget.js"></script>
+    <!-- ========================================== -->
+    <!-- WIDGET DE CHAT (FIM)                       -->
+    <!-- ========================================== -->
 </body>
 </html>
