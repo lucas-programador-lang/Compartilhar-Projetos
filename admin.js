@@ -1,79 +1,13 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v6)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v6 + CHAT ADMIN)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
-   passa pelo Worker (/admin/*), que valida a role no servidor
-   com a Service Account — o cliente não tem mais permissão de
-   escrita direta nesses campos (users/subscription, users/role,
-   commissions, etc.), reforçado pelas Regras do Firebase.
-
-   v2.1: PLAN_NAMES e estimateRevenue() agora conhecem também os
-   planos "pTeste" (R$ 5, 2 dias) e "pMensal" (R$ 50, 30 dias) —
-   antes só p4/p7 eram reconhecidos, então assinantes desses dois
-   planos apareciam com plano "—" em Assinaturas e contribuíam
-   R$ 0 pra "Receita estimada".
-
-   v3: CORREÇÃO — dbReady virava true assim que onDBChange() era
-   registrado, porque o db-sync.js antigo chamava cb(cache)
-   imediatamente com o cache ainda vazio (emptyCache() não é null).
-   Isso fazia boot() cair no ramo "acesso negado" (gateScreen) por
-   uma fração de segundo antes do primeiro sync completo terminar
-   e re-renderizar o painel de verdade — um flash visual incômodo,
-   principalmente perceptível em conexões mais lentas. Agora
-   dbReady só vira true quando isDBSynced() confirma que os nós já
-   responderam pelo menos uma vez, e enquanto isso não acontece
-   (nem authReady) o boot() mostra uma tela de carregamento simples
-   em vez do gate — evitando o usuário ver "acesso negado" quando
-   na real os dados só ainda não chegaram.
-
-   v4: DUAS CORREÇÕES —
-
-   1) O card "Comissões pendentes de saque" na Visão geral somava
-      db.withdrawals com status "pending" (solicitações de saque
-      aguardando decisão do admin), mas o rótulo dava a entender
-      que era sobre comissões ainda não maturadas (commissions com
-      status "pending" — que segundo o worker.js nem chegam a
-      existir mais, toda comissão já nasce "available"). São
-      conceitos diferentes. Renomeado para "Saques aguardando
-      aprovação", que é o que o número de fato representa.
-
-   2) renderUsers(filter) e renderProjects(filter) perdiam o filtro
-      digitado sempre que renderAll() rodava por conta de QUALQUER
-      mudança em onDBChange — inclusive mudanças sem relação (ex.:
-      alguém comentando na comunidade enquanto o admin busca um
-      usuário específico). O texto continuava no campo de busca,
-      mas a tabela voltava a mostrar a lista completa sem filtro,
-      até o próximo keystroke. Agora o filtro atual é guardado em
-      currentUserFilter/currentProjectFilter e renderAll() sempre
-      repassa esse valor, então um sync em tempo real nunca reseta
-      visualmente uma busca em andamento.
-
-   v5: MODERAÇÃO DE PROJETOS. renderProjects() ganhou fila de
-   aprovação: pendentes ordenados primeiro, botões Aprovar/Reprovar
-   chamando /admin/moderate-project no Worker (handleModerateProject
-   em worker.js), e um modal (#rejectModal, em admin.html) para
-   escolher o motivo da reprovação, que dispara uma notificação para
-   o usuário (lida via db.notifications no script.js — sino no
-   header + seção no painel).
-
-   v6: CORREÇÃO — a integração inicial com script.js/worker.js usava
-   os valores de status em PORTUGUÊS ("pendente", "rejeitado") nas
-   comparações de renderProjects() e no payload enviado por
-   bindRejectModal(). O resto do sistema (script.js ao publicar um
-   projeto, worker.js ao processar a moderação) sempre trabalhou com
-   os valores em INGLÊS ("pending", "rejected", "published") — esse
-   descompasso fazia todo projeto pendente cair no branch genérico
-   "Pendente" (nunca reconhecido como tal por comparação exata) e
-   os botões Aprovar/Reprovar nunca aparecerem de verdade. Projetos
-   reprovados também nunca eram reconhecidos como "rejected" pelo
-   dashboard do usuário (script.js), então a notificação existia no
-   banco mas o botão de ver a mensagem nunca renderizava. Corrigido
-   para usar "pending"/"rejected"/"published" em todo lugar, batendo
-   com script.js e worker.js.
+   passa pelo Worker (/admin/*).
    ========================================================= */
 
-import { auth } from "./firebase-config.js";
+import { auth, rtdb } from "./firebase-config.js"; // <--- Importação do rtdb adicionada
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; // <--- Importação do chat adicionada
 import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
 (function () {
@@ -81,17 +15,15 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
   const WORKER_BASE_URL = "https://api.compartilhar-projetos.com.br";
 
-  // Nomes de exibição — mantidos em sincronia com o objeto PLANS do
-  // worker.js e do script.js. Se adicionar/remover um plano lá, espelhe
-  // a mudança aqui também.
+  // Nomes de exibição
   const PLAN_NAMES = {
     pTeste: "Plano Teste",
     p4: "Plano 4 Dias",
     p7: "Plano 7 Dias",
     pMensal: "Plano Mensal",
   };
-  // Preços — usados só pra "Receita estimada" no painel admin. Mantidos
-  // em sincronia com o objeto PLANS do worker.js e do script.js.
+  
+  // Preços
   const PLAN_PRICES = {
     pTeste: 5,
     p4: 10,
@@ -105,11 +37,12 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   let authReady = false;
   let dbReady = false;
 
-  // Guardam o texto atualmente digitado nas buscas, para que um
-  // re-render automático disparado por onDBChange (ver nota v4 acima)
-  // não "esqueça" o filtro em andamento.
   let currentUserFilter = "";
   let currentProjectFilter = "";
+
+  // Variáveis de estado do Chat Admin
+  let chatBound = false;
+  let currentActiveChatUser = null;
 
   function currentUser() {
     if (!db || !firebaseUser) return null;
@@ -188,15 +121,9 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         document.removeEventListener("keydown", onKey);
         resolve(result);
       }
-      function onOk() {
-        settle(true);
-      }
-      function onCancel() {
-        settle(false);
-      }
-      function onOverlayClick(e) {
-        if (e.target === overlay) settle(false);
-      }
+      function onOk() { settle(true); }
+      function onCancel() { settle(false); }
+      function onOverlayClick(e) { if (e.target === overlay) settle(false); }
       function onKey(e) {
         if (e.key === "Escape") settle(false);
         if (e.key === "Enter") settle(true);
@@ -233,19 +160,13 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
       body: JSON.stringify(body || {}),
     });
     let data = null;
-    try {
-      data = await res.json();
-    } catch {
-      /* corpo vazio ou não-JSON */
-    }
+    try { data = await res.json(); } catch { }
     if (!res.ok) {
       throw new Error((data && data.message) || `Falha na requisição (${res.status})`);
     }
     return data;
   }
 
-  // Evita cliques duplos disparando a mesma escrita duas vezes enquanto
-  // a primeira ainda está em voo.
   async function withButtonLock(btn, fn) {
     if (btn.dataset.busy === "1") return;
     btn.dataset.busy = "1";
@@ -262,9 +183,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     LOADING — mostrado enquanto auth e/ou o primeiro sync do
-     banco ainda não terminaram, pra não mostrar "acesso negado"
-     por engano antes dos dados reais chegarem (ver nota v3).
+     LOADING
   --------------------------------------------------------- */
   function showLoading(show) {
     let el = document.getElementById("adminLoadingScreen");
@@ -281,7 +200,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     GATE — só administradores acessam
+     GATE
   --------------------------------------------------------- */
   function boot() {
     if (!authReady || !dbReady) {
@@ -300,6 +219,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     qs("#adminShell").style.display = "grid";
     bindNav();
     bindForms();
+    bindChat(); // Inicializa o chat quando o painel carrega
     renderAll();
   }
 
@@ -327,8 +247,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
   /* ---------------------------------------------------------
      RENDER ALL
-     Reaplica sempre os filtros de busca atuais (currentUserFilter /
-     currentProjectFilter) — ver nota v4 no cabeçalho do arquivo.
   --------------------------------------------------------- */
   function renderAll() {
     renderOverview();
@@ -345,9 +263,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     const activeSubs = db.users.filter(isSubActive).length;
     const totalRevenueEstimate = estimateRevenue();
     const pendingWithdrawals = db.withdrawals.filter((w) => w.status === "pending").reduce((s, w) => s + w.amount, 0);
-    // "Projetos publicados" aqui significa aprovados de verdade (status
-    // "published") — projetos pendentes/rejeitados não contam nesse
-    // número, senão ele infla e não representa o que está na vitrine.
     const publishedCount = db.projects.filter((p) => p.status === "published").length;
     const pendingModerationCount = db.projects.filter((p) => p.status === "pending").length;
     qs("#statGrid").innerHTML = [
@@ -357,10 +272,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
       stat("Projetos aguardando moderação", pendingModerationCount, pendingModerationCount > 0),
       stat("Publicações na comunidade", db.posts.length),
       stat("Receita estimada", fmtBRL(totalRevenueEstimate), true),
-      // Antes rotulado "Comissões pendentes de saque" — mas o valor é a
-      // soma de SOLICITAÇÕES DE SAQUE com status "pending" (aguardando
-      // aprovação do admin), não de comissões ainda não maturadas. Ver
-      // nota v4 acima.
       stat("Saques aguardando aprovação", fmtBRL(pendingWithdrawals), true),
     ].join("");
 
@@ -374,9 +285,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         .join("") || `<tr><td colspan="4" class="muted text-center">Nenhum projeto ainda.</td></tr>`;
   }
 
-  // Soma o preço do plano de cada usuário com um plano definido — agora
-  // usando PLAN_PRICES em vez de um if/else fixo em p4/p7, então
-  // qualquer plano novo adicionado a PLAN_PRICES é contado automaticamente.
   function estimateRevenue() {
     return db.users.reduce((sum, u) => {
       if (u.subscription && u.subscription.plan) {
@@ -430,8 +338,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
           const u = userById(btn.getAttribute("data-suspend"));
           const result = await adminFetch("/admin/toggle-suspend", { targetUserId: u.id });
           toast(result.suspended ? "Usuário suspenso." : "Usuário reativado.", "success");
-          // db será atualizado pelo listener em tempo real (onDBChange);
-          // renderAll() aqui só evita a UI parada até isso acontecer.
           renderAll();
         })
       )
@@ -514,12 +420,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     PROJETOS (Moderação e Gerenciamento)
-
-     Ordena pendentes primeiro (a fila de moderação real é o que
-     importa ver de imediato), depois por data mais recente. Status
-     comparado sempre em inglês ("pending"/"published"/"rejected")
-     — ver nota v6 no cabeçalho do arquivo.
+     PROJETOS
   --------------------------------------------------------- */
   function renderProjects(filter) {
     filter = (filter || "").toLowerCase();
@@ -536,7 +437,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
       list
         .map((p) => {
           const owner = userById(p.ownerId);
-
           let statusBadge = "";
           if (p.status === "published") statusBadge = '<span class="badge badge-success mt-1">Aprovado</span>';
           else if (p.status === "rejected") statusBadge = '<span class="badge badge-danger mt-1">Rejeitado</span>';
@@ -594,16 +494,10 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     );
   }
 
-  /* ---------------------------------------------------------
-     MODAL DE REPROVAÇÃO — status enviado ao Worker em inglês
-     ("rejected"), batendo com handleModerateProject e com o que
-     script.js espera ler no dashboard do usuário.
-  --------------------------------------------------------- */
   function bindRejectModal() {
     const modal = qs("#rejectModal");
     if (!modal || modal.dataset.bound) return;
     modal.dataset.bound = "1";
-
     const cancelBtn = qs("#rejectCancelBtn", modal);
     const form = qs("#rejectForm", modal);
 
@@ -698,7 +592,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     INDICAÇÕES / COMISSÕES
+     INDICAÇÕES
   --------------------------------------------------------- */
   function renderReferrals() {
     qs("#refStatGrid").innerHTML = [
@@ -769,10 +663,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     FORMULÁRIOS (busca, nova categoria)
-     Os handlers de input atualizam currentUserFilter /
-     currentProjectFilter (ver nota v4) para que um re-render
-     automático vindo de onDBChange preserve o que está digitado.
+     FORMULÁRIOS
   --------------------------------------------------------- */
   function bindForms() {
     bindRejectModal();
@@ -817,6 +708,131 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
+     CHAT ADMIN (Lógica de Atendimento)
+  --------------------------------------------------------- */
+  function bindChat() {
+    if (chatBound) return;
+    
+    const listEl = qs("#adminChatList");
+    const bodyEl = qs("#adminChatBody");
+    const formEl = qs("#adminChatForm");
+    const inputEl = qs("#adminChatInput");
+    const submitBtn = qs("#adminChatSubmitBtn");
+    const activeUserEl = qs("#adminChatActiveUser");
+
+    if (!listEl || !formEl) return;
+    chatBound = true; // Impede que o listener se multiplique
+
+    // Escuta a lista de usuários que mandaram mensagem
+    const allChatsRef = ref(rtdb, 'chats');
+    onValue(allChatsRef, (snapshot) => {
+        listEl.innerHTML = ''; 
+        
+        if (!snapshot.exists()) {
+            listEl.innerHTML = '<p style="padding: 16px; font-size: 13px; color: #888; text-align: center;">Nenhuma conversa encontrada.</p>';
+            return;
+        }
+
+        snapshot.forEach((childSnapshot) => {
+            const userId = childSnapshot.key;
+            
+            const userBtn = document.createElement('button');
+            userBtn.style.cssText = "width: 100%; text-align: left; padding: 16px; border: none; border-bottom: 1px solid var(--border-soft); background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--navy-900); transition: background 0.2s;";
+            
+            const displayName = userId.length > 15 ? userId.substring(0, 10) + '...' : userId;
+            userBtn.innerText = `💬 Visitante: ${displayName}`;
+            
+            userBtn.onmouseover = () => { if(currentActiveChatUser !== userId) userBtn.style.background = '#f0f0f5'; };
+            userBtn.onmouseout = () => { if(currentActiveChatUser !== userId) userBtn.style.background = 'transparent'; };
+
+            userBtn.onclick = () => {
+                Array.from(listEl.children).forEach(btn => btn.style.background = 'transparent');
+                userBtn.style.background = '#e2e8f0';
+                openChatWithUser(userId);
+            };
+
+            if(currentActiveChatUser === userId) {
+                userBtn.style.background = '#e2e8f0';
+            }
+
+            listEl.appendChild(userBtn);
+        });
+    });
+
+    // Abre o histórico específico do usuário selecionado
+    function openChatWithUser(userId) {
+        currentActiveChatUser = userId;
+        activeUserEl.innerText = `Atendendo: ${userId}`;
+        
+        inputEl.disabled = false;
+        submitBtn.disabled = false;
+        inputEl.focus();
+
+        const userMessagesRef = ref(rtdb, `chats/${userId}/messages`);
+        
+        onValue(userMessagesRef, (snapshot) => {
+            if(currentActiveChatUser !== userId) return; // Evita conflito se clicar rápido em vários
+
+            bodyEl.innerHTML = ''; 
+            
+            if (!snapshot.exists()) {
+                bodyEl.innerHTML = '<p style="text-align: center; color: #888; margin-top: auto; margin-bottom: auto; font-size: 14px;">Nenhuma mensagem recebida ainda.</p>';
+                return;
+            }
+
+            snapshot.forEach((childSnapshot) => {
+                const msg = childSnapshot.val();
+                
+                const msgDiv = document.createElement('div');
+                msgDiv.style.cssText = "max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-wrap: break-word;";
+                
+                if (msg.sender === 'admin') {
+                    msgDiv.style.alignSelf = "flex-end";
+                    msgDiv.style.background = "var(--blue-600)";
+                    msgDiv.style.color = "white";
+                    msgDiv.style.borderBottomRightRadius = "4px";
+                } else {
+                    msgDiv.style.alignSelf = "flex-start";
+                    msgDiv.style.background = "#e5e5ea";
+                    msgDiv.style.color = "#333";
+                    msgDiv.style.borderBottomLeftRadius = "4px";
+                }
+
+                msgDiv.innerText = msg.text;
+                bodyEl.appendChild(msgDiv);
+            });
+
+            bodyEl.scrollTop = bodyEl.scrollHeight;
+        });
+    }
+
+    // Função de envio do administrador
+    formEl.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!currentActiveChatUser) return;
+        
+        const textValue = inputEl.value.trim();
+        if (!textValue) return;
+
+        inputEl.value = ''; 
+
+        const userMessagesRef = ref(rtdb, `chats/${currentActiveChatUser}/messages`);
+        
+        try {
+            await push(userMessagesRef, {
+                text: textValue,
+                sender: 'admin',
+                timestamp: serverTimestamp()
+            });
+        } catch (error) {
+            console.error("Erro ao enviar resposta:", error);
+            toast("Falha ao enviar mensagem ao visitante.", "error");
+        }
+    });
+  }
+
+  /* ---------------------------------------------------------
      TEMPO REAL — Firebase Auth + Realtime Database
   --------------------------------------------------------- */
   onAuthStateChanged(auth, (user) => {
@@ -825,13 +841,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     boot();
   });
 
-    // Guarda o último estado do banco que de fato gerou uma renderização
-  // — excluindo "notifications" de propósito, porque nenhuma seção do
-  // painel admin lê ou exibe esse nó (confirmado: nenhuma renderX()
-  // usa db.notifications). Sem isso, toda vez que o Worker grava uma
-  // notificação (saque decidido, comissão creditada, projeto
-  // resolvido — tudo isso é rotina agora) o admin.js re-renderizava o
-  // painel inteiro à toa, mesmo sem nada relevante ter mudado.
   let lastRelevantSnapshot = null;
   function relevantSnapshot(database) {
     const { notifications, ...rest } = database;
@@ -841,15 +850,11 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   onDBChange((newDb) => {
     db = newDb;
     const wasReady = dbReady;
-    // dbReady só vira true quando o db-sync.js confirma que os nós
-    // já responderam pelo menos uma vez nesta geração (ver nota v3).
     dbReady = isDBSynced();
 
     if (dbReady) {
       const snap = relevantSnapshot(db);
       if (wasReady && snap === lastRelevantSnapshot) {
-        // Nada que o painel exibe mudou de fato — evita o "pisca" e a
-        // perda de posição de rolagem/seleção por um re-render inútil.
         return;
       }
       lastRelevantSnapshot = snap;
