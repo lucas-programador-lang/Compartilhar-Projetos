@@ -80,6 +80,9 @@
       azul royal da marca do que o magenta anterior) — mantendo a
       mesma estrutura visual (gradiente, sombra, borda) já usada
       nos outros elementos do sistema.
+
+   REVISÃO 5: Ajustes vitais de transbordo no mobile (word-break e 
+   overflow horizontal) para o Menu do Dashboard e Cartões.
    ========================================================= */
 
 :root{
@@ -540,52 +543,68 @@ body:not(.is-admin) .admin-only{display:none !important}
 .side-link{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;font-weight:600;font-size:14px;color:#c3cdea;margin-bottom:2px}
 .side-link:hover{background:rgba(255,255,255,.06);color:#fff}
 .side-link.active{background:linear-gradient(135deg,var(--blue-vibrant-1),var(--blue-vibrant-2));color:#fff;box-shadow:0 6px 16px rgba(10,47,184,.30)}
-/* padding fluido: acompanha a viewport com suavidade entre o colapso
-   mobile (900px) e o teto ultrawide (1440px), reduzindo a necessidade
-   de vários breakpoints fixos de padding */
+
 .dash-main{padding:clamp(20px,3.5vw,38px) clamp(14px,4vw,40px);background:var(--bg);min-width:0}
 .dash-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;gap:20px;flex-wrap:wrap}
 .dash-head h1{font-size:26px;color:var(--navy-900)}
 .dash-head p{color:var(--ink-600);margin-top:6px;font-size:14.5px}
 
-/* tablet: sidebar um pouco mais estreita antes do colapso total em
-   900px, pra não espremer o conteúdo nessa faixa intermediária */
 @media (max-width:1100px){
   .dash-shell{grid-template-columns:210px 1fr}
 }
 
+/* === NOVA ESTRUTURA MOBILE PARA DASHBOARD / MENU === */
 @media (max-width:900px){
   .dash-shell{grid-template-columns:1fr}
+  
+  /* Menu em formato de "carrossel horizontal" de pílulas */
   .dash-sidebar{
-    position:relative;height:auto;display:flex;overflow-x:auto;gap:4px;padding:16px;-webkit-overflow-scrolling:touch;
-    scroll-snap-type:x proximity;
+    position:relative; height:auto; display:flex; flex-direction:row; overflow-x:auto; gap:8px; padding:16px;
+    -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
+    white-space:nowrap; border-right:none;
+    background:var(--navy-950);
   }
   .dash-sidebar .side-title{display:none}
-  .side-link{white-space:nowrap;min-height:44px;scroll-snap-align:start}
-  /* fade nas bordas pra sinalizar que dá pra rolar — mesmos tons de
-     navy já usados no fundo da sidebar, sem cor nova */
-  .dash-sidebar::before,.dash-sidebar::after{
+  
+  .side-link{
+    display:inline-flex; justify-content:center; flex:none; white-space:nowrap; 
+    min-height:40px; scroll-snap-align:start; margin-bottom:0; 
+    background:rgba(255,255,255,0.08); border-radius:20px; padding:8px 18px;
+    box-shadow:none;
+  }
+  .side-link:hover { background:rgba(255,255,255,0.15); }
+  .side-link.active{ background:var(--gold-500); color:var(--navy-950); box-shadow:none; }
+  
+  .dash-sidebar::before, .dash-sidebar::after{
     content:"";position:sticky;top:0;width:20px;flex:none;pointer-events:none;align-self:stretch;
   }
   .dash-sidebar::before{left:0;order:-1;background:linear-gradient(90deg, var(--navy-950), transparent)}
-  .dash-sidebar::after{right:0;background:linear-gradient(270deg, var(--navy-900), transparent)}
+  .dash-sidebar::after{right:0;background:linear-gradient(270deg, var(--navy-950), transparent)}
 }
+
 @media (max-width:480px){
   .dash-head h1{font-size:22px}
 }
 
-/* Fluido em vez de breakpoints fixos: reflui conforme a largura
-   REAL disponível (importa em telas com sidebar lateral, onde a
-   área útil já é menor que o viewport inteiro) */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;margin-bottom:34px}
-.stat-card{background:linear-gradient(165deg,#ffffff, #f7f9fe);border:1px solid var(--border);border-radius:var(--radius-md);padding:22px;transition:box-shadow .18s ease, border-color .18s ease}
+
+/* Proteção contra vazamento de layout (nomes/emails longos) */
+.stat-card{
+  background:linear-gradient(165deg,#ffffff, #f7f9fe); border:1px solid var(--border);border-radius:var(--radius-md);
+  padding:22px;transition:box-shadow .18s ease, border-color .18s ease;
+  word-break: break-word; overflow-wrap: break-word; min-width:0;
+}
 .stat-card:hover{box-shadow:var(--shadow-sm);border-color:var(--blue-100)}
 .stat-card .stat-label{font-size:12.5px;color:var(--ink-500);font-weight:600;margin-bottom:8px}
 .stat-card .stat-value{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--navy-900)}
 .stat-card.gold{background:linear-gradient(165deg,#fffdf7, var(--gold-100))}
 .stat-card.gold .stat-value{color:var(--gold-700)}
 
-.panel{background:linear-gradient(180deg,#ffffff, #fdfdfc);border:1px solid var(--border);border-radius:var(--radius-lg);padding:26px;transition:box-shadow .18s ease}
+.panel{
+  background:linear-gradient(180deg,#ffffff, #fdfdfc);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:26px;transition:box-shadow .18s ease;
+  word-break: break-word; overflow-wrap: break-word; min-width:0;
+}
 .panel:hover{box-shadow:var(--shadow-sm)}
 .panel + .panel{margin-top:22px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap}
@@ -608,12 +627,6 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .data-table tbody tr:hover{background:var(--blue-50)}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
 
-/* Affordance de overflow horizontal: sinaliza com um fade nas bordas
-   quando a tabela continua além da área visível — problema comum em
-   telas estreitas onde a tabela "corta" sem aviso. As classes
-   is-scrollable-left/right são alternadas por um pequeno script na
-   página (ver nota abaixo); sem o script, o fade simplesmente não
-   aparece e a tabela funciona como antes. */
 .table-wrap::before,
 .table-wrap::after{
   content:"";position:absolute;top:0;bottom:0;width:18px;pointer-events:none;
@@ -623,29 +636,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 .table-wrap::after{right:0;background:linear-gradient(270deg, rgba(255,255,255,.9), transparent)}
 .table-wrap.is-scrollable-left::before{opacity:1}
 .table-wrap.is-scrollable-right::after{opacity:1}
-/* Script de referência (adicionar em qualquer página com .table-wrap):
-   document.querySelectorAll('.table-wrap').forEach(function(wrap){
-     function update(){
-       wrap.classList.toggle('is-scrollable-left', wrap.scrollLeft > 4);
-       wrap.classList.toggle('is-scrollable-right', wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 4);
-     }
-     update();
-     wrap.addEventListener('scroll', update, {passive:true});
-     window.addEventListener('resize', update);
-   }); */
 
-/* Utilitário opcional para tabelas com muitas colunas: fixa a 1ª
-   coluna (geralmente o identificador — nome/usuário) durante o
-   scroll horizontal em telas estreitas. Aplicar a classe direto na
-   <table>, ex: <table class="data-table data-table--sticky-first"> */
 .data-table--sticky-first td:first-child,
 .data-table--sticky-first th:first-child{
   position:sticky;left:0;background:#fff;z-index:1;
 }
 .data-table--sticky-first tbody tr:nth-child(even) td:first-child{background:var(--surface-alt)}
 
-/* tabelas mais compactas em telas pequenas, sem perder colunas —
-   cabe mais informação antes de precisar rolar horizontalmente */
 @media (max-width:640px){
   .data-table{font-size:13px}
   .data-table th,.data-table td{padding:10px 8px}
@@ -836,9 +833,6 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 
 /* =========================================================
    DESKTOP GRANDE / ULTRAWIDE
-   O container ganha mais respiro e um teto maior de largura,
-   e grids com muitas colunas evitam esticar demais em telas
-   muito largas (mantendo cards com tamanho legível).
    ========================================================= */
 @media (min-width:1440px){
   .container{max-width:var(--container-max-wide);padding:0 32px}
@@ -847,9 +841,6 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   .project-grid{grid-template-columns:repeat(4,1fr);gap:28px}
   .stat-grid{gap:22px}
   .dash-shell{grid-template-columns:270px 1fr}
-  /* max-width + centralização: sem isso, tabelas e cards do
-     painel esticavam a largura inteira em monitores ultrawide,
-     ficando ilegíveis */
   .dash-main{padding:44px 52px;max-width:1400px;margin:0 auto}
   .footer-grid{grid-template-columns:1.8fr 1fr 1fr 1fr;gap:44px}
 }
@@ -864,10 +855,6 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   .fan-4{top:260px;left:180px}
 }
 
-/* Patamar extra para monitores muito grandes (4K/ultra) — sem isso,
-   em telas acima de ~2200px o grid de projetos e o painel do
-   dashboard continuavam com poucas colunas relativo ao espaço
-   disponível, deixando cards desproporcionalmente largos. */
 @media (min-width:2200px){
   :root{ --container-max-wide:1680px; }
   .project-grid{grid-template-columns:repeat(6,1fr)}
@@ -875,80 +862,22 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================
-   CARDS DE PLANOS — Teste / 4 dias / Mensal
-   Trio profissional e coeso (grafite · teal · índigo royal),
-   substituindo o conjunto anterior (rosa/ciano/magenta) que não
-   pertencia à paleta da marca. Mesma estrutura visual de sempre
-   (gradiente no botão, sombra na cor do plano, borda de destaque),
-   só a cor muda — e agora as três conversam melhor entre si e com
-   o azul royal + dourado do restante do site.
+   CARDS DE PLANOS
    ========================================= */
-
-/* --- PLANO TESTE (GRAFITE / SLATE) — tom neutro e sóbrio,
-       adequado para o plano de entrada/gratuito --- */
-.plan-card.card-teste {
-  background: linear-gradient(165deg, #ffffff, #f8fafc 130%);
-  border-color: #64748b;
-  box-shadow: 0 12px 28px rgba(71, 85, 105, 0.16);
-}
+.plan-card.card-teste { background: linear-gradient(165deg, #ffffff, #f8fafc 130%); border-color: #64748b; box-shadow: 0 12px 28px rgba(71, 85, 105, 0.16); }
 .card-teste .plan-name { color: #334155; }
-.btn-teste {
-  background: linear-gradient(135deg, #94a3b8, #475569);
-  color: #ffffff;
-  box-shadow: 0 10px 24px rgba(71, 85, 105, 0.28);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.btn-teste:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(71, 85, 105, 0.38);
-}
-.btn-teste:active {
-  transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(71, 85, 105, 0.22);
-}
+.btn-teste { background: linear-gradient(135deg, #94a3b8, #475569); color: #ffffff; box-shadow: 0 10px 24px rgba(71, 85, 105, 0.28); transition: transform .15s ease, box-shadow .15s ease; }
+.btn-teste:hover { transform: translateY(-2px); box-shadow: 0 18px 38px rgba(71, 85, 105, 0.38); }
+.btn-teste:active { transform: translateY(0); box-shadow: 0 6px 14px rgba(71, 85, 105, 0.22); }
 
-/* --- PLANO 4 DIAS (VERDE-AZULADO / TEAL) — tom fresco e confiante,
-       para o plano intermediário --- */
-.plan-card.card-4dias {
-  background: linear-gradient(165deg, #ffffff, #f0fdfa 130%);
-  border-color: #0d9488;
-  box-shadow: 0 12px 28px rgba(13, 148, 136, 0.16);
-}
+.plan-card.card-4dias { background: linear-gradient(165deg, #ffffff, #f0fdfa 130%); border-color: #0d9488; box-shadow: 0 12px 28px rgba(13, 148, 136, 0.16); }
 .card-4dias .plan-name { color: #0f766e; }
-.btn-4dias {
-  background: linear-gradient(135deg, #2dd4bf, #0d9488);
-  color: #ffffff;
-  box-shadow: 0 10px 24px rgba(13, 148, 136, 0.28);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.btn-4dias:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(13, 148, 136, 0.38);
-}
-.btn-4dias:active {
-  transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(13, 148, 136, 0.22);
-}
+.btn-4dias { background: linear-gradient(135deg, #2dd4bf, #0d9488); color: #ffffff; box-shadow: 0 10px 24px rgba(13, 148, 136, 0.28); transition: transform .15s ease, box-shadow .15s ease; }
+.btn-4dias:hover { transform: translateY(-2px); box-shadow: 0 18px 38px rgba(13, 148, 136, 0.38); }
+.btn-4dias:active { transform: translateY(0); box-shadow: 0 6px 14px rgba(13, 148, 136, 0.22); }
 
-/* --- PLANO MENSAL (ÍNDIGO ROYAL) — tom premium que conversa com
-       o azul royal da marca, para o plano principal --- */
-.plan-card.card-mensal {
-  background: linear-gradient(165deg, #ffffff, #f5f4ff 130%);
-  border-color: #4338ca;
-  box-shadow: 0 12px 28px rgba(67, 56, 202, 0.16);
-}
+.plan-card.card-mensal { background: linear-gradient(165deg, #ffffff, #f5f4ff 130%); border-color: #4338ca; box-shadow: 0 12px 28px rgba(67, 56, 202, 0.16); }
 .card-mensal .plan-name { color: #3730a3; }
-.btn-mensal {
-  background: linear-gradient(135deg, #818cf8, #4338ca);
-  color: #ffffff;
-  box-shadow: 0 10px 24px rgba(67, 56, 202, 0.28);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.btn-mensal:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(67, 56, 202, 0.38);
-}
-.btn-mensal:active {
-  transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(67, 56, 202, 0.22);
-}
+.btn-mensal { background: linear-gradient(135deg, #818cf8, #4338ca); color: #ffffff; box-shadow: 0 10px 24px rgba(67, 56, 202, 0.28); transition: transform .15s ease, box-shadow .15s ease; }
+.btn-mensal:hover { transform: translateY(-2px); box-shadow: 0 18px 38px rgba(67, 56, 202, 0.38); }
+.btn-mensal:active { transform: translateY(0); box-shadow: 0 6px 14px rgba(67, 56, 202, 0.22); }
