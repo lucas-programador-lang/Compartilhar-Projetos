@@ -1,13 +1,12 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v6 + CHAT ADMIN)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v7 + CHAT ADMIN via Worker)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
-   passa pelo Worker (/admin/*).
+   passa pelo Worker (/admin/*) — inclusive o chat, agora.
    ========================================================= */
 
-import { auth, rtdb } from "./firebase-config.js"; 
+import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
 import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
 (function () {
@@ -43,6 +42,9 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   // Variáveis de estado do Chat Admin
   let chatBound = false;
   let currentActiveChatUser = null;
+  const CHAT_POLL_INTERVAL_MS = 3000;
+  let chatListPollTimer = null;
+  let chatMessagesPollTimer = null;
 
   function currentUser() {
     if (!db || !firebaseUser) return null;
@@ -698,11 +700,20 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     CHAT ADMIN (Lógica de Atendimento com Nome/Email)
+     CHAT ADMIN (via Worker — /admin/chat-*)
+
+     Reescrito: antes lia/escrevia direto no RTDB via onValue/push,
+     o que exigia regra pública ou checagem de admin nas próprias
+     regras (inviável — chats/* é indexado por uid, não dá pra
+     validar "esse uid é admin" numa regra sem reestruturar users).
+     Agora tudo passa por adminFetch, igual ao resto das ações
+     administrativas. Como REST não empurra atualização sozinho,
+     usa polling curto (CHAT_POLL_INTERVAL_MS) para simular tempo
+     real — suficiente para um chat de suporte.
   --------------------------------------------------------- */
   function bindChat() {
     if (chatBound) return;
-    
+
     const listEl = qs("#adminChatList");
     const bodyEl = qs("#adminChatBody");
     const formEl = qs("#adminChatForm");
@@ -711,131 +722,141 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     const activeUserEl = qs("#adminChatActiveUser");
 
     if (!listEl || !formEl) return;
-    chatBound = true; 
+    chatBound = true;
 
-    // Escuta a lista de usuários que mandaram mensagem
-    const allChatsRef = ref(rtdb, 'chats');
-    onValue(allChatsRef, (snapshot) => {
-        listEl.innerHTML = ''; 
-        
-        if (!snapshot.exists()) {
-            listEl.innerHTML = '<p style="padding: 16px; font-size: 13px; color: #888; text-align: center;">Nenhuma conversa encontrada.</p>';
-            return;
+    startChatListPolling(listEl);
+
+    formEl.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!currentActiveChatUser) return;
+
+      const textValue = inputEl.value.trim();
+      if (!textValue) return;
+
+      withButtonLock(submitBtn, async () => {
+        inputEl.value = "";
+        try {
+          await adminFetch("/admin/chat-send", { targetUserId: currentActiveChatUser, text: textValue });
+          await refreshChatMessages(bodyEl, currentActiveChatUser);
+        } catch (err) {
+          toast(err.message || "Falha ao enviar mensagem ao visitante.", "error");
+          inputEl.value = textValue; // devolve o texto — não perde a mensagem
         }
-
-        snapshot.forEach((childSnapshot) => {
-            const userId = childSnapshot.key;
-            
-            // Tenta achar o usuário na lista global (db.users)
-            const registeredUser = userById(userId);
-            let displayName = userId.length > 15 ? userId.substring(0, 10) + '...' : userId;
-            let displayEmail = 'Visitante não logado';
-
-            if (registeredUser) {
-                displayName = registeredUser.name;
-                displayEmail = registeredUser.email;
-            } else {
-                displayName = `Visitante (${displayName})`;
-            }
-            
-            const userBtn = document.createElement('button');
-            userBtn.style.cssText = "width: 100%; text-align: left; padding: 16px; border: none; border-bottom: 1px solid var(--border-soft); background: transparent; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: background 0.2s;";
-            
-            // Renderiza Nome e E-mail na lista lateral
-            userBtn.innerHTML = `
-                <span style="font-size: 14px; font-weight: 600; color: var(--navy-900);">👤 ${escapeHtml(displayName)}</span>
-                <span style="font-size: 12px; color: #666; font-weight: 400;">${escapeHtml(displayEmail)}</span>
-            `;
-            
-            userBtn.onmouseover = () => { if(currentActiveChatUser !== userId) userBtn.style.background = '#f0f0f5'; };
-            userBtn.onmouseout = () => { if(currentActiveChatUser !== userId) userBtn.style.background = 'transparent'; };
-
-            userBtn.onclick = () => {
-                Array.from(listEl.children).forEach(btn => btn.style.background = 'transparent');
-                userBtn.style.background = '#e2e8f0';
-                openChatWithUser(userId, displayName, displayEmail);
-            };
-
-            if(currentActiveChatUser === userId) {
-                userBtn.style.background = '#e2e8f0';
-            }
-
-            listEl.appendChild(userBtn);
-        });
+      });
     });
 
-    // Abre o histórico recebendo o Nome e Email do usuário
-    function openChatWithUser(userId, displayName, displayEmail) {
-        currentActiveChatUser = userId;
-        
-        // Renderiza o Nome e Email no topo da janela do chat
-        activeUserEl.innerHTML = `Atendendo: <strong>${escapeHtml(displayName)}</strong> <span style="font-size: 13px; color: #666; font-weight: normal; margin-left: 8px;">${escapeHtml(displayEmail)}</span>`;
-        
-        inputEl.disabled = false;
-        submitBtn.disabled = false;
-        inputEl.focus();
-
-        const userMessagesRef = ref(rtdb, `chats/${userId}/messages`);
-        
-        onValue(userMessagesRef, (snapshot) => {
-            if(currentActiveChatUser !== userId) return; 
-
-            bodyEl.innerHTML = ''; 
-            
-            if (!snapshot.exists()) {
-                bodyEl.innerHTML = '<p style="text-align: center; color: #888; margin-top: auto; margin-bottom: auto; font-size: 14px;">Nenhuma mensagem recebida ainda.</p>';
-                return;
-            }
-
-            snapshot.forEach((childSnapshot) => {
-                const msg = childSnapshot.val();
-                
-                const msgDiv = document.createElement('div');
-                msgDiv.style.cssText = "max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-wrap: break-word;";
-                
-                if (msg.sender === 'admin') {
-                    msgDiv.style.alignSelf = "flex-end";
-                    msgDiv.style.background = "var(--blue-600)";
-                    msgDiv.style.color = "white";
-                    msgDiv.style.borderBottomRightRadius = "4px";
-                } else {
-                    msgDiv.style.alignSelf = "flex-start";
-                    msgDiv.style.background = "#e5e5ea";
-                    msgDiv.style.color = "#333";
-                    msgDiv.style.borderBottomLeftRadius = "4px";
-                }
-
-                msgDiv.innerText = msg.text;
-                bodyEl.appendChild(msgDiv);
-            });
-
-            bodyEl.scrollTop = bodyEl.scrollHeight;
-        });
+    function startChatListPolling(listEl) {
+      refreshChatList(listEl);
+      clearInterval(chatListPollTimer);
+      chatListPollTimer = setInterval(() => refreshChatList(listEl), CHAT_POLL_INTERVAL_MS);
     }
 
-    formEl.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (!currentActiveChatUser) return;
-        
-        const textValue = inputEl.value.trim();
-        if (!textValue) return;
+    async function refreshChatList(listEl) {
+      let chats;
+      try {
+        const result = await adminFetch("/admin/chat-list", {});
+        chats = result.chats || [];
+      } catch (err) {
+        console.error("Falha ao listar conversas:", err);
+        return;
+      }
 
-        inputEl.value = ''; 
+      listEl.innerHTML = "";
 
-        const userMessagesRef = ref(rtdb, `chats/${currentActiveChatUser}/messages`);
-        
-        try {
-            await push(userMessagesRef, {
-                text: textValue,
-                sender: 'admin',
-                timestamp: serverTimestamp()
-            });
-        } catch (error) {
-            console.error("Erro ao enviar resposta:", error);
-            toast("Falha ao enviar mensagem ao visitante.", "error");
+      if (chats.length === 0) {
+        listEl.innerHTML = '<p style="padding: 16px; font-size: 13px; color: #888; text-align: center;">Nenhuma conversa encontrada.</p>';
+        return;
+      }
+
+      chats.forEach((chat) => {
+        const displayName = chat.name || `Visitante (${chat.uid.slice(0, 10)}...)`;
+        const displayEmail = chat.email || "Visitante não logado";
+
+        const userBtn = document.createElement("button");
+        userBtn.style.cssText =
+          "width: 100%; text-align: left; padding: 16px; border: none; border-bottom: 1px solid var(--border-soft); background: transparent; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: background 0.2s;";
+
+        userBtn.innerHTML = `
+          <span style="font-size: 14px; font-weight: 600; color: var(--navy-900);">👤 ${escapeHtml(displayName)}</span>
+          <span style="font-size: 12px; color: #666; font-weight: 400;">${escapeHtml(displayEmail)}</span>
+        `;
+
+        userBtn.onmouseover = () => { if (currentActiveChatUser !== chat.uid) userBtn.style.background = "#f0f0f5"; };
+        userBtn.onmouseout = () => { if (currentActiveChatUser !== chat.uid) userBtn.style.background = "transparent"; };
+
+        userBtn.onclick = () => {
+          Array.from(listEl.children).forEach((btn) => (btn.style.background = "transparent"));
+          userBtn.style.background = "#e2e8f0";
+          openChatWithUser(chat.uid, displayName, displayEmail);
+        };
+
+        if (currentActiveChatUser === chat.uid) {
+          userBtn.style.background = "#e2e8f0";
         }
-    });
+
+        listEl.appendChild(userBtn);
+      });
+    }
+
+    function openChatWithUser(userId, displayName, displayEmail) {
+      currentActiveChatUser = userId;
+
+      activeUserEl.innerHTML = `Atendendo: <strong>${escapeHtml(displayName)}</strong> <span style="font-size: 13px; color: #666; font-weight: normal; margin-left: 8px;">${escapeHtml(displayEmail)}</span>`;
+
+      inputEl.disabled = false;
+      submitBtn.disabled = false;
+      inputEl.focus();
+
+      refreshChatMessages(bodyEl, userId);
+      clearInterval(chatMessagesPollTimer);
+      chatMessagesPollTimer = setInterval(() => {
+        if (currentActiveChatUser === userId) refreshChatMessages(bodyEl, userId);
+      }, CHAT_POLL_INTERVAL_MS);
+    }
+
+    async function refreshChatMessages(bodyEl, userId) {
+      let messages;
+      try {
+        const result = await adminFetch("/admin/chat-messages", { targetUserId: userId });
+        messages = result.messages || [];
+      } catch (err) {
+        console.error("Falha ao carregar mensagens:", err);
+        return;
+      }
+
+      if (currentActiveChatUser !== userId) return; // usuário trocou de conversa enquanto isso carregava
+
+      const wasAtBottom = bodyEl.scrollTop + bodyEl.clientHeight >= bodyEl.scrollHeight - 20;
+
+      bodyEl.innerHTML = "";
+
+      if (messages.length === 0) {
+        bodyEl.innerHTML = '<p style="text-align: center; color: #888; margin-top: auto; margin-bottom: auto; font-size: 14px;">Nenhuma mensagem recebida ainda.</p>';
+        return;
+      }
+
+      messages.forEach((msg) => {
+        const msgDiv = document.createElement("div");
+        msgDiv.style.cssText = "max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-wrap: break-word;";
+
+        if (msg.sender === "admin") {
+          msgDiv.style.alignSelf = "flex-end";
+          msgDiv.style.background = "var(--blue-600)";
+          msgDiv.style.color = "white";
+          msgDiv.style.borderBottomRightRadius = "4px";
+        } else {
+          msgDiv.style.alignSelf = "flex-start";
+          msgDiv.style.background = "#e5e5ea";
+          msgDiv.style.color = "#333";
+          msgDiv.style.borderBottomLeftRadius = "4px";
+        }
+
+        msgDiv.innerText = msg.text;
+        bodyEl.appendChild(msgDiv);
+      });
+
+      if (wasAtBottom) bodyEl.scrollTop = bodyEl.scrollHeight;
+    }
   }
 
   /* ---------------------------------------------------------
