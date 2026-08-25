@@ -452,18 +452,18 @@ body:not(.is-admin) .admin-only{display:none !important}
   .dash-shell{grid-template-columns:210px 1fr}
 }
 
-/* === SOLUÇÃO: PROTEÇÃO CONTRA O "GRID BLOWOUT" NO CELULAR === */
+/* === CORREÇÃO DEFINITIVA DO MOBILE (TÍTULOS COBERTOS) === */
 @media (max-width:900px){
-  /* O dash-shell deve ser contido dentro da largura da tela */
   .dash-shell{grid-template-columns:1fr; min-width:0; max-width:100vw;}
   
   /* Menu Carrossel Mobile */
   .dash-sidebar{
-    position:relative; height:auto; display:flex; flex-direction:row; overflow-x:auto; gap:8px; padding:16px;
+    position:relative; 
+    top:0;
+    height:auto; display:flex; flex-direction:row; overflow-x:auto; gap:8px; padding:16px;
     -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
     white-space:nowrap; border-right:none;
     background:var(--navy-950);
-    /* ESSA É A REGRA DE OURO QUE IMPEDE A TELA DE ESTICAR: */
     width:100%; min-width:0; max-width:100vw; 
   }
   .dash-sidebar::-webkit-scrollbar { display: none; }
@@ -484,6 +484,11 @@ body:not(.is-admin) .admin-only{display:none !important}
   }
   .dash-sidebar::before{left:0;order:-1;background:linear-gradient(90deg, var(--navy-950), transparent)}
   .dash-sidebar::after{right:0;background:linear-gradient(270deg, var(--navy-950), transparent)}
+
+  /* Pula o conteúdo para baixo da barra de menu, fazendo o H1 aparecer 100% */
+  .dash-main{
+    padding-top: 24px !important;
+  }
 }
 
 @media (max-width:480px){
@@ -492,7 +497,6 @@ body:not(.is-admin) .admin-only{display:none !important}
 
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;margin-bottom:34px}
 
-/* Proteção contra vazamento de layout (nomes/emails longos) */
 .stat-card{
   background:linear-gradient(165deg,#ffffff, #f7f9fe); border:1px solid var(--border);border-radius:var(--radius-md);
   padding:22px;transition:box-shadow .18s ease, border-color .18s ease;
