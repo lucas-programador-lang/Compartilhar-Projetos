@@ -160,6 +160,7 @@
       <button data-section="comunidade">Comunidade</button>
       <button data-section="indicacoes">Indicações &amp; comissões</button>
       <button data-section="saques">Saques</button>
+      <button data-section="ranking">Ranking</button>
       <button data-section="chat">Atendimento</button>
     </div>
     <div class="admin-back">
@@ -250,6 +251,27 @@
         <thead><tr><th>Usuário</th><th>Valor</th><th>Chave Pix</th><th>Solicitado em</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody></tbody>
       </table></div></div>
+    </section>
+
+    <!-- RANKING E PREMIAÇÃO -->
+    <section class="section-block" id="sec-ranking">
+      <div class="admin-head"><div><h1>Ranking e premiação</h1><p>Fechamento mensal automático e controle de entrega do prêmio.</p></div></div>
+      <div class="panel" style="max-width:420px">
+        <div class="panel-head"><h3>Fechamento manual (teste)</h3></div>
+        <p class="muted" style="font-size:13px;margin-bottom:12px">Deixe em branco pra fechar o mês anterior. Sobrescreve o prêmio se o mês já tiver sido fechado.</p>
+        <div class="flex gap-1">
+          <input type="text" id="forceCloseMonthInput" class="search-input" placeholder="AAAA-MM (opcional)">
+          <button class="btn btn-sm btn-danger" id="forceCloseRankingBtn">Fechar agora</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table class="data-table" id="rankingPrizesTable">
+            <thead><tr><th>Mês</th><th>Categoria</th><th>Vencedor</th><th>Pontuação</th><th>Status</th><th>Ação</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ATENDIMENTO (CHAT ADMIN) -->
