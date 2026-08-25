@@ -1,5 +1,5 @@
-import { db } from './firebase-config.js'; 
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"; // Adapte a versão/URL se necessário para bater com o seu firebase-config.js
+import { rtdb } from './firebase-config.js'; 
+import { ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Mapear Elementos da Tela
@@ -24,31 +24,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 3. Sistema de Sessão do Usuário
-    // Se o usuário não tem um ID salvo, gera um aleatório e salva no localStorage
     let currentUserId = localStorage.getItem('chat_session_id');
     if (!currentUserId) {
         currentUserId = Math.random().toString(36).substring(2, 11);
         localStorage.setItem('chat_session_id', currentUserId);
     }
 
-    // 4. Conexão em Tempo Real com o Firebase
-    const chatCollectionRef = collection(db, `chats/${currentUserId}/messages`);
-    const q = query(chatCollectionRef, orderBy("timestamp", "asc"));
+    // 4. Conexão em Tempo Real com o Firebase (RTDB)
+    const chatRef = ref(rtdb, `chats/${currentUserId}/messages`);
 
-    onSnapshot(q, (snapshot) => {
-        // Limpa as mensagens antigas para não duplicar
+    onValue(chatRef, (snapshot) => {
+        // Limpa as mensagens antigas da tela para não duplicar
         document.querySelectorAll('.chat-msg').forEach(e => e.remove());
 
-        if (snapshot.docs.length > 0) {
-            emptyMsg.style.display = 'none'; // Esconde a mensagem de boas-vindas
+        if (snapshot.exists()) {
+            emptyMsg.style.display = 'none'; // Esconde a mensagem inicial
+            
+            // O RTDB devolve os dados em um formato diferente, iteramos por cada nó
+            snapshot.forEach((childSnapshot) => {
+                const msgData = childSnapshot.val();
+                renderMessage(msgData.text, msgData.sender);
+            });
         }
 
-        snapshot.docs.forEach((doc) => {
-            const msgData = doc.data();
-            renderMessage(msgData.text, msgData.sender);
-        });
-
-        // Rola para o final
+        // Rola o scroll para a última mensagem
         chatBody.scrollTop = chatBody.scrollHeight;
     });
 
@@ -60,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sender === 'user') {
             msgDiv.classList.add('msg-right');
         } else {
-            msgDiv.classList.add('msg-left'); // Quando você responder pelo painel Admin
+            msgDiv.classList.add('msg-left'); // Para quando o Admin responder
         }
 
         msgDiv.textContent = text;
@@ -77,14 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.value = ''; // Limpa rápido pro usuário
 
         try {
-            await addDoc(chatCollectionRef, {
+            await push(chatRef, {
                 text: textValue,
                 sender: 'user',
                 timestamp: serverTimestamp()
             });
         } catch (error) {
             console.error("Erro ao enviar mensagem:", error);
-            alert("Erro ao conectar com o suporte. Tente novamente.");
+            alert("Erro ao conectar com o banco de dados. Tente novamente.");
         }
     });
 });
