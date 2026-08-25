@@ -1,6 +1,6 @@
-import { rtdb, auth } from './firebase-config.js'; // Importamos a Autenticação também
-import { ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js"; // Observador de Login
+import { rtdb, auth } from './firebase-config.js';
+import { ref, push, onValue, off, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Mapear Elementos
@@ -15,52 +15,74 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Lógica de Abrir/Fechar
     triggerBtn.addEventListener('click', () => {
         chatWindow.classList.add('active');
-        triggerBtn.style.display = 'none'; 
+        triggerBtn.style.display = 'none';
         chatInput.focus();
     });
 
     closeBtn.addEventListener('click', () => {
         chatWindow.classList.remove('active');
-        triggerBtn.style.display = 'flex'; 
+        triggerBtn.style.display = 'flex';
     });
 
-    // 3. ID de Sessão Inicial (Caso não esteja logado)
-    let currentUserId = localStorage.getItem('chat_session_id');
-    if (!currentUserId) {
-        currentUserId = Math.random().toString(36).substring(2, 11);
-        localStorage.setItem('chat_session_id', currentUserId);
-    }
+    // Enquanto não há uid autenticado (real ou anônimo), o formulário
+    // fica bloqueado — a regra do RTDB exige auth.uid === $uid, então
+    // não existe leitura/escrita válida sem isso.
+    let currentUserId = null;
+    let activeChatRef = null;
+    let activeListenerCallback = null;
 
-    let chatRef = ref(rtdb, `chats/${currentUserId}/messages`);
+    chatInput.disabled = true;
+    chatForm.querySelector('button[type="submit"]').disabled = true;
 
-    // 4. Se o usuário estiver logado na plataforma, trocamos para o ID real dele!
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUserId = user.uid; // Pega o ID verdadeiro do cliente
-            chatRef = ref(rtdb, `chats/${currentUserId}/messages`);
+    // 3. Garante sessão autenticada — real (login) ou anônima.
+    //    A regra do RTDB exige auth.uid === $uid; o antigo ID
+    //    aleatório do localStorage não satisfaz isso mais.
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Falha ao autenticar visitante:", error);
+            }
+            return; // onAuthStateChanged dispara de novo quando a sessão anônima completar
         }
 
-        // Reconecta a leitura do banco de dados na pasta correta
-        onValue(chatRef, (snapshot) => {
-            // Limpa mensagens antigas da tela
+        currentUserId = user.uid;
+        chatInput.disabled = false;
+        chatForm.querySelector('button[type="submit"]').disabled = false;
+
+        // Desconecta o listener da conversa anterior, se havia uma
+        // (ex.: usuário estava anônimo e acabou de logar de verdade —
+        // troca de uid, então troca de referência no banco).
+        if (activeChatRef && activeListenerCallback) {
+            off(activeChatRef, 'value', activeListenerCallback);
+        }
+
+        activeChatRef = ref(rtdb, `chats/${currentUserId}/messages`);
+        activeListenerCallback = (snapshot) => {
             document.querySelectorAll('.chat-msg-wrapper').forEach(e => e.remove());
 
             if (snapshot.exists()) {
-                emptyMsg.style.display = 'none'; 
-                
+                emptyMsg.style.display = 'none';
+
                 snapshot.forEach((childSnapshot) => {
                     const msgData = childSnapshot.val();
                     renderMessage(msgData.text, msgData.sender);
                 });
+            } else {
+                emptyMsg.style.display = 'block';
             }
 
             chatBody.scrollTop = chatBody.scrollHeight;
+        };
+
+        onValue(activeChatRef, activeListenerCallback, (error) => {
+            console.error("Erro ao ler mensagens:", error);
         });
     });
 
-    // 5. Função para Desenhar a Mensagem com Etiquetas "Equipe de Suporte"
+    // 4. Função para Desenhar a Mensagem com Etiquetas "Equipe de Suporte"
     function renderMessage(text, sender) {
-        // Criamos um "embrulho" (wrapper) para segurar a etiqueta e o balão
         const wrapper = document.createElement('div');
         wrapper.classList.add('chat-msg-wrapper');
         wrapper.style.display = 'flex';
@@ -69,15 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('chat-msg');
-        
+
         if (sender === 'user') {
-            wrapper.style.alignItems = 'flex-end'; // Alinha o balão dele pra direita
+            wrapper.style.alignItems = 'flex-end';
             msgDiv.classList.add('msg-right');
         } else {
-            wrapper.style.alignItems = 'flex-start'; // Alinha a sua resposta à esquerda
+            wrapper.style.alignItems = 'flex-start';
             msgDiv.classList.add('msg-left');
-            
-            // Adiciona a etiqueta de "Equipe de Suporte" em cima do balão
+
             const label = document.createElement('span');
             label.textContent = "Equipe de Suporte";
             label.style.fontSize = "11px";
@@ -92,23 +113,29 @@ document.addEventListener('DOMContentLoaded', () => {
         chatBody.appendChild(wrapper);
     }
 
-    // 6. Envio de Nova Mensagem
+    // 5. Envio de Nova Mensagem
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
+        if (!currentUserId || !activeChatRef) return; // ainda autenticando
+
         const textValue = chatInput.value.trim();
         if (!textValue) return;
 
-        chatInput.value = ''; 
+        chatInput.value = '';
 
         try {
-            await push(chatRef, {
+            // sender é sempre 'user' aqui — a regra do RTDB só aceita
+            // esse valor em escritas de usuário; 'admin' só é gravado
+            // pelo Worker, nunca pelo client.
+            await push(activeChatRef, {
                 text: textValue,
                 sender: 'user',
                 timestamp: serverTimestamp()
             });
         } catch (error) {
             console.error("Erro ao enviar mensagem:", error);
+            chatInput.value = textValue; // devolve o texto — não perde a mensagem
             alert("Erro ao conectar com o banco de dados. Tente novamente.");
         }
     });
