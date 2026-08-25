@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ref, push, onValue, serverTimestamp, off } from 'firebase/database';
-import { rtdb, auth } from './firebaseConfig'; // Ajuste o caminho para a sua configuração do Firebase
+import { ref, push, onValue, serverTimestamp } from 'firebase/database';
+import { rtdb, auth } from './firebase-config'; // corrigido: era './firebaseConfig'
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import './ChatWidget.css';
 
@@ -45,6 +45,11 @@ export default function ChatWidget({ userId }) {
 
     const chatRef = ref(rtdb, `chats/${currentUserId}/messages`);
 
+    // onValue() já retorna a própria função de "desinscrever" (SDK v9+).
+    // Antes o código chamava off(chatRef, 'value', unsubscribe) passando
+    // essa função de retorno como se fosse o callback original — isso
+    // não remove o listener de verdade, e a cada remount do componente
+    // um novo listener se acumulava (causando mensagens duplicadas).
     const unsubscribe = onValue(
       chatRef,
       (snapshot) => {
@@ -63,7 +68,7 @@ export default function ChatWidget({ userId }) {
       }
     );
 
-    return () => off(chatRef, 'value', unsubscribe);
+    return () => unsubscribe();
   }, [currentUserId]);
 
   useEffect(() => {
