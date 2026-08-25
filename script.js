@@ -366,10 +366,9 @@ import { uid, nowISO } from "./seed.js";
             <thead><tr><th>Mês</th><th>Categoria</th><th>Vencedor</th><th>Pontuação</th><th>Prêmio</th></tr></thead>
             <tbody>${
               prizes.map((p) => {
-                  const winner = p.winnerId ? userById(p.winnerId) : null;
-                  const catLabel = p.category === "indicacoes" ? "Mais indicações" : "Mais assinantes";
-                  return `<tr><td>${escapeHtml(p.month)}</td><td>${catLabel}</td><td>${winner ? escapeHtml(winner.name) : "—"}</td><td>${p.score}</td><td><span class="badge ${p.delivered ? "badge-success" : "badge-warning"}">${p.delivered ? "Entregue" : "Pendente"}</span></td></tr>`;
-                }).join("") || `<tr><td colspan="5" class="muted text-center">Nenhum mês fechado ainda.</td></tr>`
+                const catLabel = p.category === "indicacoes" ? "Mais indicações" : "Mais assinantes";
+                return `<tr><td>${escapeHtml(p.month)}</td><td>${catLabel}</td><td>${p.winnerName ? escapeHtml(p.winnerName) : "—"}</td><td>${p.score}</td><td><span class="badge ${p.delivered ? "badge-success" : "badge-warning"}">${p.delivered ? "Entregue" : "Pendente"}</span></td></tr>`;
+              }).join("") || `<tr><td colspan="5" class="muted text-center">Nenhum mês fechado ainda.</td></tr>`
             }</tbody>
           </table></div>
         </div>
