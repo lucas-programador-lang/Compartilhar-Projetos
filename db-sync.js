@@ -85,8 +85,7 @@ import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/fi
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const DB_PATH = "database";
-const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications"];
-
+const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications", "rankingPrizes"];
 let cache = emptyCache();
 const listeners = [];
 // true só depois que todos os nós responderam (sucesso OU erro) pelo
@@ -103,6 +102,7 @@ function emptyCache() {
     commissions: [],
     withdrawals: [],
     notifications: [],
+    rankingPrizes: [],
   };
 }
 
