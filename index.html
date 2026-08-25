@@ -64,7 +64,8 @@
       </button>
     </div>
   </div>
-  <nav class="mobile-nav" id="mobileNav">
+  <!-- CORREÇÃO AQUI: overflow-y: auto e padding-bottom adicionados para permitir rolagem no celular -->
+  <nav class="mobile-nav" id="mobileNav" style="overflow-y: auto; max-height: 100vh; padding-bottom: 80px;">
     <a href="#/explorar">Explorar projetos</a>
     <a href="#/comunidade">Comunidade</a>
     <a href="#/planos">Planos</a>
@@ -120,18 +121,6 @@
 
 <script type="module" src="script.js"></script>
 <script>
-  // Fade lateral em tabelas (.table-wrap) que indica overflow horizontal —
-  // versão para SPA: como o conteúdo de #app é trocado dinamicamente pelo
-  // script.js conforme a rota (painel, comunidade, etc.), não dá pra só
-  // procurar as tabelas uma vez no carregamento da página, como no
-  // admin.html. Aqui a gente faz duas coisas:
-  //
-  // 1) Observa mudanças dentro de #app e recalcula o fade sempre que uma
-  //    nova .table-wrap aparecer (ex: ao entrar em #/painel).
-  // 2) Escuta o evento de scroll em modo "captura", porque rolagem dentro
-  //    de um elemento não se propaga (bubble) até o document — só assim dá
-  //    pra pegar o scroll de qualquer tabela sem precisar re-adicionar o
-  //    listener toda vez que uma tabela nova surgir.
   (function () {
     function updateFade(wrap) {
       wrap.classList.toggle('is-scrollable-left', wrap.scrollLeft > 4);
@@ -142,22 +131,19 @@
       document.querySelectorAll('.table-wrap').forEach(updateFade);
     }
 
-    // Scroll dentro de qualquer .table-wrap, existente agora ou no futuro
     document.addEventListener('scroll', function (e) {
       if (e.target.classList && e.target.classList.contains('table-wrap')) {
         updateFade(e.target);
       }
-    }, true); // true = fase de captura, necessário pro scroll ser pego
+    }, true); 
 
-    // Recalcula quando o conteúdo de #app muda (troca de rota) ou a janela
-    // é redimensionada (a tabela pode passar a caber ou deixar de caber)
     var appEl = document.getElementById('app');
     if (appEl) {
       new MutationObserver(updateAllFades).observe(appEl, { childList: true, subtree: true });
     }
     window.addEventListener('resize', updateAllFades);
 
-    updateAllFades(); // caso já exista alguma tabela ao carregar
+    updateAllFades(); 
   })();
 </script>
 
