@@ -1,45 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ref, push, onValue, serverTimestamp, off } from 'firebase/database';
 import { rtdb, auth } from './firebaseConfig'; // Ajuste o caminho para a sua configuração do Firebase
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import './ChatWidget.css';
-
-// Gera um ID de sessão de forma estável, uma única vez, e só se necessário.
-// Fica fora do componente para não ser recriado a cada render.
-function getOrCreateSessionId() {
-  let sessionId = localStorage.getItem('chat_session_id');
-  if (!sessionId) {
-    sessionId = crypto.randomUUID
-      ? crypto.randomUUID()
-      : Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-    localStorage.setItem('chat_session_id', sessionId);
-  }
-  return sessionId;
-}
 
 export default function ChatWidget({ userId }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [sendError, setSendError] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(userId || getOrCreateSessionId());
+  const [currentUserId, setCurrentUserId] = useState(userId || null);
 
   const messagesEndRef = useRef(null);
 
-  // Se não veio userId por prop, observa o login real do Firebase Auth
-  // e troca o ID de sessão temporário pelo UID assim que disponível.
+  // Garante uma sessão autenticada — real (login) ou anônima. A regra
+  // do RTDB exige $uid === auth.uid, então sem isso nenhum visitante
+  // consegue ler/escrever no próprio chat.
   useEffect(() => {
     if (userId) {
       setCurrentUserId(userId);
       return;
     }
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setCurrentUserId(user ? user.uid : getOrCreateSessionId());
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUserId(user.uid);
+        return;
+      }
+      // Sem sessão nenhuma — cria uma anônima. onAuthStateChanged
+      // dispara de novo assim que ela completa, com o uid definido.
+      try {
+        await signInAnonymously(auth);
+      } catch (error) {
+        console.error('Falha ao autenticar visitante:', error);
+        setSendError('Não foi possível iniciar o chat. Recarregue a página.');
+      }
     });
+
     return () => unsubscribeAuth();
   }, [userId]);
 
-  // Lê as mensagens do RTDB para o usuário atual
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -53,7 +53,6 @@ export default function ChatWidget({ userId }) {
           setMessages([]);
           return;
         }
-        // RTDB retorna um objeto { pushId: {...} }, não um array
         const messagesData = Object.entries(data)
           .map(([id, value]) => ({ id, ...value }))
           .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
@@ -81,6 +80,9 @@ export default function ChatWidget({ userId }) {
 
     try {
       const chatRef = ref(rtdb, `chats/${currentUserId}/messages`);
+      // sender é sempre 'user' aqui — a regra do RTDB só aceita esse
+      // valor para escritas de usuário; 'admin' só é gravado pelo
+      // Worker, com service account, nunca pelo client.
       await push(chatRef, {
         text: msgText,
         sender: 'user',
@@ -89,7 +91,7 @@ export default function ChatWidget({ userId }) {
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       setSendError('Não foi possível enviar. Tente novamente.');
-      setInputText(msgText); // devolve o texto pro usuário não perder a mensagem
+      setInputText(msgText);
     }
   };
 
@@ -133,8 +135,9 @@ export default function ChatWidget({ userId }) {
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Digite sua dúvida..."
               autoFocus
+              disabled={!currentUserId}
             />
-            <button type="submit" disabled={!inputText.trim()}>
+            <button type="submit" disabled={!inputText.trim() || !currentUserId}>
               Enviar
             </button>
           </form>
