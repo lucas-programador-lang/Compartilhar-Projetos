@@ -5,9 +5,9 @@
    passa pelo Worker (/admin/*).
    ========================================================= */
 
-import { auth, rtdb } from "./firebase-config.js"; // <--- Importação do rtdb adicionada
+import { auth, rtdb } from "./firebase-config.js"; 
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; // <--- Importação do chat adicionada
+import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
 import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
 (function () {
@@ -135,16 +135,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     });
   }
 
-  function availableCommission(userId) {
-    const earned = db.commissions
-      .filter((c) => c.referrerId === userId && c.status === "available")
-      .reduce((s, c) => s + c.amount, 0);
-    const withdrawn = db.withdrawals
-      .filter((w) => w.userId === userId && (w.status === "approved" || w.status === "pending"))
-      .reduce((s, w) => s + w.amount, 0);
-    return Math.max(0, Math.round((earned - withdrawn) * 100) / 100);
-  }
-
   /* ---------------------------------------------------------
      WORKER — chamadas administrativas autenticadas
   --------------------------------------------------------- */
@@ -219,7 +209,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     qs("#adminShell").style.display = "grid";
     bindNav();
     bindForms();
-    bindChat(); // Inicializa o chat quando o painel carrega
+    bindChat(); // Inicializa o chat admin
     renderAll();
   }
 
@@ -708,7 +698,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   /* ---------------------------------------------------------
-     CHAT ADMIN (Lógica de Atendimento)
+     CHAT ADMIN (Lógica de Atendimento com Nome/Email)
   --------------------------------------------------------- */
   function bindChat() {
     if (chatBound) return;
@@ -721,7 +711,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     const activeUserEl = qs("#adminChatActiveUser");
 
     if (!listEl || !formEl) return;
-    chatBound = true; // Impede que o listener se multiplique
+    chatBound = true; 
 
     // Escuta a lista de usuários que mandaram mensagem
     const allChatsRef = ref(rtdb, 'chats');
@@ -736,11 +726,26 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         snapshot.forEach((childSnapshot) => {
             const userId = childSnapshot.key;
             
-            const userBtn = document.createElement('button');
-            userBtn.style.cssText = "width: 100%; text-align: left; padding: 16px; border: none; border-bottom: 1px solid var(--border-soft); background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--navy-900); transition: background 0.2s;";
+            // Tenta achar o usuário na lista global (db.users)
+            const registeredUser = userById(userId);
+            let displayName = userId.length > 15 ? userId.substring(0, 10) + '...' : userId;
+            let displayEmail = 'Visitante não logado';
+
+            if (registeredUser) {
+                displayName = registeredUser.name;
+                displayEmail = registeredUser.email;
+            } else {
+                displayName = `Visitante (${displayName})`;
+            }
             
-            const displayName = userId.length > 15 ? userId.substring(0, 10) + '...' : userId;
-            userBtn.innerText = `💬 Visitante: ${displayName}`;
+            const userBtn = document.createElement('button');
+            userBtn.style.cssText = "width: 100%; text-align: left; padding: 16px; border: none; border-bottom: 1px solid var(--border-soft); background: transparent; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: background 0.2s;";
+            
+            // Renderiza Nome e E-mail na lista lateral
+            userBtn.innerHTML = `
+                <span style="font-size: 14px; font-weight: 600; color: var(--navy-900);">👤 ${escapeHtml(displayName)}</span>
+                <span style="font-size: 12px; color: #666; font-weight: 400;">${escapeHtml(displayEmail)}</span>
+            `;
             
             userBtn.onmouseover = () => { if(currentActiveChatUser !== userId) userBtn.style.background = '#f0f0f5'; };
             userBtn.onmouseout = () => { if(currentActiveChatUser !== userId) userBtn.style.background = 'transparent'; };
@@ -748,7 +753,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
             userBtn.onclick = () => {
                 Array.from(listEl.children).forEach(btn => btn.style.background = 'transparent');
                 userBtn.style.background = '#e2e8f0';
-                openChatWithUser(userId);
+                openChatWithUser(userId, displayName, displayEmail);
             };
 
             if(currentActiveChatUser === userId) {
@@ -759,10 +764,12 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         });
     });
 
-    // Abre o histórico específico do usuário selecionado
-    function openChatWithUser(userId) {
+    // Abre o histórico recebendo o Nome e Email do usuário
+    function openChatWithUser(userId, displayName, displayEmail) {
         currentActiveChatUser = userId;
-        activeUserEl.innerText = `Atendendo: ${userId}`;
+        
+        // Renderiza o Nome e Email no topo da janela do chat
+        activeUserEl.innerHTML = `Atendendo: <strong>${escapeHtml(displayName)}</strong> <span style="font-size: 13px; color: #666; font-weight: normal; margin-left: 8px;">${escapeHtml(displayEmail)}</span>`;
         
         inputEl.disabled = false;
         submitBtn.disabled = false;
@@ -771,7 +778,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         const userMessagesRef = ref(rtdb, `chats/${userId}/messages`);
         
         onValue(userMessagesRef, (snapshot) => {
-            if(currentActiveChatUser !== userId) return; // Evita conflito se clicar rápido em vários
+            if(currentActiveChatUser !== userId) return; 
 
             bodyEl.innerHTML = ''; 
             
@@ -806,7 +813,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         });
     }
 
-    // Função de envio do administrador
     formEl.addEventListener('submit', async (e) => {
         e.preventDefault();
         
