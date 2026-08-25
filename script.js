@@ -84,7 +84,6 @@ import { uid, nowISO } from "./seed.js";
   function containsLink(str) { return LINK_PATTERN.test(str || ""); }
   function friendlyError(err, fallbackMsg) { const raw = (err && err.message) || String(err || ""); if (/permission_denied/i.test(raw) || /PERMISSION_DENIED/.test(raw)) return fallbackMsg || "Erro de permissão."; return raw || fallbackMsg; }
 
-  // Moderação Automática
   const PROHIBITED_TERMS = [ "cassino", "casino", "aposta", "apostas", "bet365", "betano", "roleta", "blaze", "jogo do tigrinho", "sportsbook", "bookmaker" ];
   function normalizeForMatch(str) { return (str || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
   function findProhibitedTerm(text) { const normalized = normalizeForMatch(text); return PROHIBITED_TERMS.find((term) => normalized.includes(normalizeForMatch(term))) || null; }
@@ -96,7 +95,6 @@ import { uid, nowISO } from "./seed.js";
     return { status: "pending", rejectReason: null };
   }
 
-  // QR Code
   let qrCodeLibPromise = null;
   function ensureQRCodeLib() {
     if (window.QRCode) return Promise.resolve();
@@ -106,7 +104,6 @@ import { uid, nowISO } from "./seed.js";
   }
   function renderQRCode(container, text) { container.innerHTML = ""; ensureQRCodeLib().then(() => { new QRCode(container, { text: text || "", width: 220, height: 220, correctLevel: window.QRCode.CorrectLevel.M, }); }).catch(() => { container.innerHTML = `<span class="muted" style="font-size:12px;display:block;padding:12px">Não foi possível gerar o QR Code. Use o código copia e cola abaixo.</span>`; }); }
 
-  // PIX Pagamento
   async function startPixPayment(planId, documentOverride) {
     const user = currentUser(); if (!user) throw new Error("Você precisa entrar na sua conta.");
     const plan = PLANS[planId]; if (!plan) throw new Error("Plano inválido.");
@@ -148,7 +145,6 @@ import { uid, nowISO } from "./seed.js";
     qs("#pixCloseBtn", overlay).addEventListener("click", () => { overlay.remove(); handled = true; if (typeof stopWatching === "function") stopWatching(); });
   }
 
-  // Projetos & Negócio
   async function publishProject(data) {
     const user = currentUser(); if (!user) throw new Error("Você precisa entrar na sua conta.");
     if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
@@ -169,6 +165,40 @@ import { uid, nowISO } from "./seed.js";
     return saved;
   }
 
+  // --- FUNÇÕES DA COMUNIDADE (RESTAURADAS) ---
+  function createPost(content) {
+    const user = currentUser();
+    if (!user) throw new Error("Entre na sua conta para publicar.");
+    if (!content || content.trim().length < 2) throw new Error("Escreva algo antes de publicar.");
+    if (containsLink(content)) throw new Error("Não é permitido incluir links nas publicações da comunidade.");
+    const post = { id: uid("post"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), comments: [] };
+    return addPost(post);
+  }
+
+  function createComment(postId, content) {
+    const user = currentUser();
+    if (!user) throw new Error("Entre na sua conta para comentar.");
+    if (!content || !content.trim()) throw new Error("Escreva um comentário.");
+    if (containsLink(content)) throw new Error("Não é permitido incluir links nos comentários.");
+    const post = db.posts.find((p) => p.id === postId);
+    if (!post) throw new Error("Publicação não encontrada.");
+    const comment = { id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] };
+    return addComment(postId, comment);
+  }
+
+  function createReply(postId, commentId, content) {
+    const user = currentUser();
+    if (!user) throw new Error("Entre na sua conta para responder.");
+    if (!content || !content.trim()) throw new Error("Escreva uma resposta.");
+    if (containsLink(content)) throw new Error("Não é permitido incluir links nas respostas.");
+    const post = db.posts.find((p) => p.id === postId);
+    const comment = post && post.comments.find((c) => c.id === commentId);
+    if (!comment) throw new Error("Comentário não encontrado.");
+    const reply = { id: uid("rp"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO() };
+    return addReply(postId, commentId, reply);
+  }
+
+  // --- FUNÇÕES DE SAQUE (RESTAURADA lastPixKey) ---
   function requestWithdrawal(amount, pixKey) {
     const user = currentUser(); if (!user) throw new Error("Entre na sua conta.");
     const available = availableCommission(user.id);
@@ -185,6 +215,11 @@ import { uid, nowISO } from "./seed.js";
   }
   function pendingCommission(userId) { return db.commissions.filter((c) => c.referrerId === userId && c.status === "pending").reduce((s, c) => s + c.amount, 0); }
   function totalEarnings(userId) { return db.commissions.filter((c) => c.referrerId === userId).reduce((s, c) => s + c.amount, 0); }
+  
+  function lastPixKey(userId) {
+    const mine = db.withdrawals.filter((w) => w.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return mine.length ? mine[0].pixKey || "" : "";
+  }
 
   function myNotifications(userId) { return db.notifications.filter((n) => n.userId === userId && !n.resolved).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); }
   function unreadNotificationsCount(userId) { return myNotifications(userId).filter((n) => !n.read).length; }
@@ -259,9 +294,6 @@ import { uid, nowISO } from "./seed.js";
 
   document.addEventListener("focusout", () => { if (!pendingDataRender) return; setTimeout(() => { if (!hasActiveFormField()) render({ navigation: false }); }, 0); });
 
-  /* ---------------------------------------------------------
-     RANKING E EVENTO QUINZENAL
-  --------------------------------------------------------- */
   function monthRangeForBRT(date = new Date()) {
     const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" });
     const parts = fmt.formatToParts(date).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
