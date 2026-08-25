@@ -562,7 +562,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
           const author = userById(p.authorId);
           return `<tr>
           <td>${escapeHtml(author ? author.name : "—")}</td>
-          <td style="max-width:320px">${escapeHtml(p.content).slice(0, 140)}${p.content.length > 140 ? "…" : ""}</td>
+          <td style="max-width:320px">$<td style="max-width:320px">${escapeHtml(p.content.slice(0, 140))}${p.content.length > 140 ? "…" : ""}</td>escapeHtml(p.content).slice(0, 140)}${p.content.length > 140 ? "…" : ""}</td>
           <td>${p.comments.length}</td>
           <td>${fmtDate(p.createdAt)}</td>
           <td><button class="btn btn-sm btn-danger" data-delpost="${p.id}">Excluir</button></td>
