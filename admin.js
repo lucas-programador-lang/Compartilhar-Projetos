@@ -31,8 +31,8 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   let currentActiveChatUser = null;
 
   function currentUser() {
-    if (!db || !firebaseUser) return null;
-    return db.users.find((u) => u.id === firebaseUser.uid) || null;
+    if (!firebaseUser || !db || !db.myProfile) return null;
+    return db.myProfile.id === firebaseUser.uid ? db.myProfile : null;
   }
 
   /* ---------- utils ---------- */
@@ -512,10 +512,26 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         })
       );
     }
+    
+    const backfillBtn = qs("#backfillProfilesBtn");
+    if (backfillBtn && !backfillBtn.dataset.bound) {
+      backfillBtn.dataset.bound = "1";
+      backfillBtn.addEventListener("click", () =>
+        withButtonLock(backfillBtn, async () => {
+          const ok = await confirmAction(
+            "Isso copia todos os usuários existentes para os nós publicProfiles/myProfile. Seguro rodar mais de uma vez. Continuar?",
+            { title: "Backfill de perfis", confirmLabel: "Sim, rodar agora", neutral: true }
+          );
+          if (!ok) return;
+          const result = await adminFetch("/admin/backfill-profiles", {});
+          toast(`Migrados ${result.migrated} de ${result.total} usuários.`, "success");
+        })
+      );
+    }
   }
 
   /* ---------------------------------------------------------
-     FORMULÁRIOS E CHAT (Resumidos por espaço)
+     FORMULÁRIOS E CHAT
   --------------------------------------------------------- */
   function bindForms() {
     bindRejectModal();
