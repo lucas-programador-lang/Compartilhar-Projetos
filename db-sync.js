@@ -85,6 +85,7 @@ import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/fi
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const DB_PATH = "database";
+const WORKER_URL = "https://api.compartilhar-projetos.com.br";
 const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications", "rankingPrizes"];
 let cache = emptyCache();
 const listeners = [];
@@ -143,19 +144,28 @@ export function isDBSynced() {
   return synced;
 }
 
-function userIndexById(userId) {
-  const idx = cache.users.findIndex((u) => u && u.id === userId);
-  if (idx === -1) throw new Error("Usuário não encontrado: " + userId);
-  return idx;
-}
+// ATUALIZAÇÃO DO PERFIL VIA WORKER (Mais segurança)
+export async function updateUserProfile(userId, { name, bio, document } = {}) {
+  if (!auth.currentUser) throw new Error("Você precisa estar logado.");
+  const idToken = await auth.currentUser.getIdToken();
+  
+  const payload = {};
+  if (name != null) payload.name = name;
+  if (bio != null) payload.bio = bio;
+  if (document != null) payload.document = document;
 
-export function updateUserProfile(userId, { name, bio, document } = {}) {
-  const idx = userIndexById(userId);
-  const updates = {};
-  if (name != null) updates[`${DB_PATH}/users/${idx}/name`] = name;
-  if (bio != null) updates[`${DB_PATH}/users/${idx}/bio`] = bio;
-  if (document != null) updates[`${DB_PATH}/users/${idx}/document`] = document;
-  return update(ref(rtdb), updates);
+  const res = await fetch(`${WORKER_URL}/update-profile`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + idToken
+    },
+    body: JSON.stringify(payload)
+  });
+  
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || "Erro ao atualizar perfil");
+  return data;
 }
 
 export function addProject(project) {
