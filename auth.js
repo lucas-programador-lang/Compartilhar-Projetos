@@ -11,11 +11,12 @@
    criar o perfil completo.
    ========================================================= */
 
-import { auth } from "./firebase-config.js";
+import { auth, rtdb } from "./firebase-config.js";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { ref, get } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 import { getDB, onDBChange } from "./db-sync.js";
 
 (function () {
@@ -123,12 +124,17 @@ import { getDB, onDBChange } from "./db-sync.js";
 
   async function loginUser(email, password) {
     const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
-    const db = getDB();
-    const user = db && db.users.find((u) => u.id === cred.user.uid);
-    if (user && user.suspended) {
+    
+    // PARTE 4: Busca o perfil diretamente na gaveta blindada (myProfile)
+    const profileSnap = await get(ref(rtdb, `myProfile/${cred.user.uid}`));
+    const profile = profileSnap.val();
+    
+    if (profile && profile.suspended) {
+      await auth.signOut(); // Desloga o usuário suspenso imediatamente
       throw { message: "Sua conta foi suspensa. Entre em contato com o suporte." };
     }
-    return user;
+    
+    return profile;
   }
 
   /* ---------- inicialização por página ---------- */
