@@ -166,7 +166,6 @@
       <button data-section="indicacoes">Indicações &amp; comissões</button>
       <button data-section="saques">Saques</button>
       <button data-section="ranking">Ranking</button>
-      <button data-section="chat">Atendimento</button>
     </div>
     <div class="admin-back">
       <a href="index.html">← Voltar ao site</a>
@@ -261,6 +260,14 @@
     <!-- RANKING E PREMIAÇÃO -->
     <section class="section-block" id="sec-ranking">
       <div class="admin-head"><div><h1>Ranking e premiação</h1><p>Fechamento mensal automático e controle de entrega do prêmio.</p></div></div>
+      
+      <!-- BOTÃO TEMPORÁRIO DE BACKFILL -->
+      <div class="panel" style="max-width:420px;border-color:var(--gold-400); margin-bottom: 22px;">
+        <div class="panel-head"><h3>Backfill de perfis (temporário)</h3></div>
+        <p class="muted" style="font-size:13px;margin-bottom:12px">Copia usuários existentes para publicProfiles/myProfile. Rode uma vez, depois pode remover este botão.</p>
+        <button class="btn btn-sm btn-gold" id="backfillProfilesBtn">Rodar backfill agora</button>
+      </div>
+
       <div class="panel" style="max-width:420px">
         <div class="panel-head"><h3>Fechamento manual (teste)</h3></div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">Deixe em branco pra fechar o mês anterior. Sobrescreve o prêmio se o mês já tiver sido fechado.</p>
@@ -275,41 +282,6 @@
             <thead><tr><th>Mês</th><th>Categoria</th><th>Vencedor</th><th>Pontuação</th><th>Status</th><th>Ação</th></tr></thead>
             <tbody></tbody>
           </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ATENDIMENTO (CHAT ADMIN) -->
-    <section class="section-block" id="sec-chat">
-      <div class="admin-head"><div><h1>Atendimento (Chat)</h1><p>Responda as dúvidas dos visitantes em tempo real.</p></div></div>
-      
-      <div class="chat-admin-container" style="display: grid; grid-template-columns: 260px 1fr; gap: 0; height: 65vh; min-height: 500px; background: #fff; border-radius: var(--admin-radius); box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid var(--border-soft);">
-        
-        <!-- Lista de Conversas -->
-        <div class="chat-admin-list" style="border-right: 1px solid var(--border-soft); background: #f9f9fa; display: flex; flex-direction: column;">
-          <div style="padding: 16px; border-bottom: 1px solid var(--border-soft); background: #fff;">
-            <h3 style="font-size: 14px; margin: 0; color: var(--navy-900);">Conversas Ativas</h3>
-          </div>
-          <div id="adminChatList" style="flex: 1; overflow-y: auto;">
-            <!-- Os contatos vão aparecer aqui via JS -->
-            <p style="padding: 16px; font-size: 13px; color: #888; text-align: center;">Nenhuma conversa encontrada.</p>
-          </div>
-        </div>
-
-        <!-- Janela de Mensagens -->
-        <div class="chat-admin-window" style="display: flex; flex-direction: column; background: #fff;">
-          <div style="padding: 16px; border-bottom: 1px solid var(--border-soft); background: #fff;">
-            <h3 id="adminChatActiveUser" style="font-size: 14px; margin: 0; color: var(--navy-900);">Selecione uma conversa ao lado</h3>
-          </div>
-          
-          <div id="adminChatBody" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f9f9fa;">
-             <p style="text-align: center; color: #888; margin-top: auto; margin-bottom: auto; font-size: 14px;">Aguardando seleção...</p>
-          </div>
-
-          <form id="adminChatForm" style="display: flex; padding: 16px; border-top: 1px solid var(--border-soft); background: #fff; gap: 10px;">
-             <input type="text" id="adminChatInput" placeholder="Digite sua resposta..." style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; outline: none; font-family: inherit;" disabled>
-             <button type="submit" class="btn btn-primary" id="adminChatSubmitBtn" disabled>Enviar</button>
-          </form>
         </div>
       </div>
     </section>
