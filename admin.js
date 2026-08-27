@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v7 + CHAT + RANKING QUINZENAL)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v7 + RANKING QUINZENAL)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
    passa pelo Worker (/admin/*).
@@ -26,13 +26,11 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   let currentUserFilter = "";
   let currentProjectFilter = "";
 
-  // Variáveis de estado do Chat Admin
-  let chatBound = false;
-  let currentActiveChatUser = null;
-
+  // CORREÇÃO: "Plano B" para conseguir entrar no painel antes do backfill rodar
   function currentUser() {
-    if (!firebaseUser || !db || !db.myProfile) return null;
-    return db.myProfile.id === firebaseUser.uid ? db.myProfile : null;
+    if (!firebaseUser || !db) return null;
+    if (db.myProfile && db.myProfile.id === firebaseUser.uid) return db.myProfile;
+    return db.users.find((u) => u && u.id === firebaseUser.uid) || null;
   }
 
   /* ---------- utils ---------- */
@@ -48,7 +46,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
   function qs(sel, root) { return (root || document).querySelector(sel); }
   function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
-  function userById(id) { return db.users.find((u) => u.id === id); }
+  function userById(id) { return db.users.find((u) => u && u.id === id); }
   function isSubActive(u) { return !!(u.subscription && u.subscription.active && new Date(u.subscription.expiresAt) > new Date()); }
   function toast(msg, type) {
     const stack = document.getElementById("toastStack");
@@ -149,7 +147,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     qs("#adminShell").style.display = "grid";
     bindNav();
     bindForms();
-    bindChat();
     renderAll();
   }
 
@@ -208,7 +205,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
 
   function estimateRevenue() {
     return db.users.reduce((sum, u) => {
-      if (u.subscription && u.subscription.plan) { return sum + (PLAN_PRICES[u.subscription.plan] || 0); }
+      if (u && u.subscription && u.subscription.plan) { return sum + (PLAN_PRICES[u.subscription.plan] || 0); }
       return sum;
     }, 0);
   }
@@ -221,7 +218,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   --------------------------------------------------------- */
   function renderUsers(filter) {
     filter = (filter || "").toLowerCase();
-    const list = db.users.filter((u) => !filter || u.name.toLowerCase().includes(filter) || u.email.toLowerCase().includes(filter));
+    const list = db.users.filter((u) => u && (!filter || u.name.toLowerCase().includes(filter) || u.email.toLowerCase().includes(filter)));
     qs("#usersTable tbody").innerHTML = list
       .map((u) => {
         const active = isSubActive(u);
@@ -291,7 +288,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   }
 
   function renderSubscriptions() {
-    const subbed = db.users.filter((u) => u.subscription && u.subscription.plan);
+    const subbed = db.users.filter((u) => u && u.subscription && u.subscription.plan);
     const active = subbed.filter(isSubActive).length;
     qs("#subStatGrid").innerHTML = [ stat("Assinaturas ativas", active), stat("Assinaturas expiradas", subbed.length - active), stat("Receita estimada", fmtBRL(estimateRevenue()), true) ].join("");
 
@@ -307,7 +304,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   function renderProjects(filter) {
     filter = (filter || "").toLowerCase();
     const list = db.projects
-      .filter((p) => !filter || p.title.toLowerCase().includes(filter))
+      .filter((p) => p && (!filter || p.title.toLowerCase().includes(filter)))
       .sort((a, b) => {
         if (a.status === "pending" && b.status !== "pending") return -1;
         if (b.status === "pending" && a.status !== "pending") return 1;
@@ -377,7 +374,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     qs("#catsTable tbody").innerHTML = db.categories.map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${db.projects.filter((p) => p.categoryId === c.id).length}</td><td><button class="btn btn-sm btn-danger" data-delcat="${c.id}">Remover</button></td></tr>`).join("");
     qsa("[data-delcat]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => {
         const id = btn.getAttribute("data-delcat");
-        if (db.projects.some((p) => p.categoryId === id)) {
+        if (db.projects.some((p) => p && p.categoryId === id)) {
           const ok = await confirmAction("Existem projetos usando essa categoria. Remover mesmo assim?", { title: "Remover categoria" });
           if (!ok) return;
         }
@@ -390,7 +387,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
   function renderCommunity() {
     qs("#communityTable tbody").innerHTML = db.posts.map((p) => {
         const author = userById(p.authorId);
-        return `<tr><td>${escapeHtml(author ? author.name : "—")}</td><td style="max-width:320px">${escapeHtml(p.content.slice(0, 140))}${p.content.length > 140 ? "…" : ""}</td><td>${p.comments.length}</td><td>${fmtDate(p.createdAt)}</td><td><button class="btn btn-sm btn-danger" data-delpost="${p.id}">Excluir</button></td></tr>`;
+        return `<tr><td>${escapeHtml(author ? author.name : "—")}</td><td style="max-width:320px">${escapeHtml(p.content.slice(0, 140))}${p.content.length > 140 ? "…" : ""}</td><td>${p.comments ? p.comments.length : 0}</td><td>${fmtDate(p.createdAt)}</td><td><button class="btn btn-sm btn-danger" data-delpost="${p.id}">Excluir</button></td></tr>`;
       }).join("") || `<tr><td colspan="5" class="muted text-center">Nenhuma publicação na comunidade.</td></tr>`;
     qsa("[data-delpost]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => {
         const ok = await confirmAction("Excluir esta publicação e todos os comentários?", { title: "Excluir publicação" });
@@ -426,7 +423,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     const table = qs("#rankingPrizesTable");
     if (!table) return; 
     
-    // Tratativa importante: rankingPrizes é um OBJETO no Firebase
     const prizes = Object.values(db.rankingPrizes || {}).sort((a, b) => b.month.localeCompare(a.month) || a.category.localeCompare(b.category));
       
     qs("tbody", table).innerHTML = prizes.map((p) => {
@@ -451,9 +447,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         toast("Status atualizado.", "success"); renderAll();
     })));
 
-    // -------------------------------------------------------
-    // INJEÇÃO DA TABELA QUINZENAL LOGO ABAIXO DO MENSAL
-    // -------------------------------------------------------
     let bwPanel = qs("#biweeklyPanel");
     if (!bwPanel) {
       bwPanel = document.createElement("div");
@@ -513,6 +506,7 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
       );
     }
     
+    // BOTÃO DE BACKFILL (MIGRAR PERFIS)
     const backfillBtn = qs("#backfillProfilesBtn");
     if (backfillBtn && !backfillBtn.dataset.bound) {
       backfillBtn.dataset.bound = "1";
@@ -530,9 +524,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     }
   }
 
-  /* ---------------------------------------------------------
-     FORMULÁRIOS E CHAT
-  --------------------------------------------------------- */
   function bindForms() {
     bindRejectModal();
     const userSearch = qs("#userSearch");
@@ -551,63 +542,6 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         });
       });
     }
-  }
-
-  function bindChat() {
-    if (chatBound) return;
-    const listEl = qs("#adminChatList"); const bodyEl = qs("#adminChatBody"); const formEl = qs("#adminChatForm"); const inputEl = qs("#adminChatInput"); const submitBtn = qs("#adminChatSubmitBtn"); const activeUserEl = qs("#adminChatActiveUser");
-    if (!listEl || !formEl) return;
-    chatBound = true; 
-
-    onValue(ref(rtdb, 'chats'), (snapshot) => {
-        listEl.innerHTML = ''; 
-        if (!snapshot.exists()) { listEl.innerHTML = '<p style="padding: 16px; font-size: 13px; color: #888; text-align: center;">Nenhuma conversa encontrada.</p>'; return; }
-        snapshot.forEach((childSnapshot) => {
-            const userId = childSnapshot.key;
-            const registeredUser = userById(userId);
-            let displayName = registeredUser ? registeredUser.name : `Visitante (${userId.slice(0, 10)}...)`;
-            let displayEmail = registeredUser ? registeredUser.email : 'Visitante não logado';
-            
-            const userBtn = document.createElement('button');
-            userBtn.style.cssText = "width: 100%; text-align: left; padding: 16px; border: none; border-bottom: 1px solid var(--border-soft); background: transparent; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: background 0.2s;";
-            userBtn.innerHTML = `<span style="font-size: 14px; font-weight: 600; color: var(--navy-900);">👤 ${escapeHtml(displayName)}</span><span style="font-size: 12px; color: #666; font-weight: 400;">${escapeHtml(displayEmail)}</span>`;
-            userBtn.onmouseover = () => { if(currentActiveChatUser !== userId) userBtn.style.background = '#f0f0f5'; };
-            userBtn.onmouseout = () => { if(currentActiveChatUser !== userId) userBtn.style.background = 'transparent'; };
-            userBtn.onclick = () => { Array.from(listEl.children).forEach(btn => btn.style.background = 'transparent'); userBtn.style.background = '#e2e8f0'; openChatWithUser(userId, displayName, displayEmail); };
-            if(currentActiveChatUser === userId) { userBtn.style.background = '#e2e8f0'; }
-            listEl.appendChild(userBtn);
-        });
-    });
-
-    function openChatWithUser(userId, displayName, displayEmail) {
-        currentActiveChatUser = userId;
-        activeUserEl.innerHTML = `Atendendo: <strong>${escapeHtml(displayName)}</strong> <span style="font-size: 13px; color: #666; font-weight: normal; margin-left: 8px;">${escapeHtml(displayEmail)}</span>`;
-        inputEl.disabled = false; submitBtn.disabled = false; inputEl.focus();
-
-        onValue(ref(rtdb, `chats/${userId}/messages`), (snapshot) => {
-            if(currentActiveChatUser !== userId) return; 
-            bodyEl.innerHTML = ''; 
-            if (!snapshot.exists()) { bodyEl.innerHTML = '<p style="text-align: center; color: #888; margin-top: auto; margin-bottom: auto; font-size: 14px;">Nenhuma mensagem recebida ainda.</p>'; return; }
-            snapshot.forEach((childSnapshot) => {
-                const msg = childSnapshot.val();
-                const msgDiv = document.createElement('div');
-                msgDiv.style.cssText = "max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-wrap: break-word;";
-                if (msg.sender === 'admin') { msgDiv.style.alignSelf = "flex-end"; msgDiv.style.background = "var(--blue-600)"; msgDiv.style.color = "white"; msgDiv.style.borderBottomRightRadius = "4px"; } 
-                else { msgDiv.style.alignSelf = "flex-start"; msgDiv.style.background = "#e5e5ea"; msgDiv.style.color = "#333"; msgDiv.style.borderBottomLeftRadius = "4px"; }
-                msgDiv.innerText = msg.text; bodyEl.appendChild(msgDiv);
-            });
-            bodyEl.scrollTop = bodyEl.scrollHeight;
-        });
-    }
-
-    formEl.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!currentActiveChatUser || !inputEl.value.trim()) return;
-        const textValue = inputEl.value.trim();
-        inputEl.value = ''; 
-        try { await push(ref(rtdb, `chats/${currentActiveChatUser}/messages`), { text: textValue, sender: 'admin', timestamp: serverTimestamp() }); } 
-        catch (error) { toast("Falha ao enviar mensagem.", "error"); }
-    });
   }
 
   /* ---------------------------------------------------------
