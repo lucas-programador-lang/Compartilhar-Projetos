@@ -88,8 +88,6 @@ const DB_PATH = "database";
 const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications", "rankingPrizes"];
 let cache = emptyCache();
 const listeners = [];
-// true só depois que todos os nós responderam (sucesso OU erro) pelo
-// menos uma vez desde a última mudança de login/logout. Ver nota v5.
 let synced = false;
 
 function emptyCache() {
@@ -103,6 +101,8 @@ function emptyCache() {
     withdrawals: [],
     notifications: [],
     rankingPrizes: [],
+    publicProfiles: [],
+    myProfile: null,
   };
 }
 
@@ -110,11 +110,6 @@ function clean(val) {
   return Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {}).filter(Boolean);
 }
 
-// Como clean(), mas preserva a chave real do Firebase de cada item em
-// "_fbKey" — necessário para posts (e comments/replies dentro deles),
-// já que são criados com push() e não têm índice sequencial confiável.
-// Sem isso, escrever de volta usando a posição no array aponta para o
-// nó errado no banco (ver nota v6 acima).
 function cleanKeyed(val) {
   if (val == null) return [];
   if (Array.isArray(val)) {
@@ -133,9 +128,6 @@ function notify() {
 
 export function onDBChange(cb) {
   listeners.push(cb);
-  // só dispara de imediato se já houve pelo menos um sync completo —
-  // caso contrário quem está ouvindo receberia um cache vazio e
-  // marcaria erroneamente "pronto, mas sem dados" (ver nota v5).
   if (synced) cb(cache);
   return () => {
     const i = listeners.indexOf(cb);
@@ -147,25 +139,16 @@ export function getDB() {
   return cache;
 }
 
-// Permite quem consome o módulo checar o estado de sync sem precisar
-// registrar um listener (ex.: admin.js decidindo mostrar loading).
 export function isDBSynced() {
   return synced;
 }
 
-/* ---------------------------------------------------------
-   Helpers internos
---------------------------------------------------------- */
 function userIndexById(userId) {
   const idx = cache.users.findIndex((u) => u && u.id === userId);
   if (idx === -1) throw new Error("Usuário não encontrado: " + userId);
   return idx;
 }
 
-/* ---------------------------------------------------------
-   PERFIL — users/$idx/name, users/$idx/bio e users/$idx/document
-   (document = CPF ou CNPJ, exigido pela VizzionPay para gerar Pix)
---------------------------------------------------------- */
 export function updateUserProfile(userId, { name, bio, document } = {}) {
   const idx = userIndexById(userId);
   const updates = {};
@@ -175,20 +158,11 @@ export function updateUserProfile(userId, { name, bio, document } = {}) {
   return update(ref(rtdb), updates);
 }
 
-/* ---------------------------------------------------------
-   PROJETOS — adiciona em users/.../ e na lista projects
---------------------------------------------------------- */
 export function addProject(project) {
   const newRef = push(ref(rtdb, `${DB_PATH}/projects`));
   return set(newRef, project).then(() => project);
 }
 
-// Atualiza um projeto EXISTENTE (usado no fluxo "Editar e reenviar" de
-// um projeto rejeitado) — nunca cria um registro novo. Usa a chave
-// real do Firebase (project._fbKey), não o id de negócio nem o índice
-// do array local — ver nota v8 no cabeçalho do arquivo. `updates` é
-// um objeto parcial: só os campos passados são sobrescritos, o resto
-// do projeto (createdAt original, ownerId, id, etc.) permanece intacto.
 export function updateProject(projectId, updates) {
   const project = cache.projects.find((p) => p && p.id === projectId);
   if (!project || !project._fbKey) throw new Error("Projeto não encontrado: " + projectId);
@@ -199,13 +173,6 @@ export function updateProject(projectId, updates) {
   return update(ref(rtdb), patch).then(() => ({ ...project, ...updates }));
 }
 
-/* ---------------------------------------------------------
-   COMUNIDADE — posts, comentários, respostas
-
-   addComment()/addReply() usam a chave real do Firebase
-   (post._fbKey / comment._fbKey), nunca o índice do array local —
-   ver nota v6 no cabeçalho do arquivo para o porquê disso importar.
---------------------------------------------------------- */
 export function addPost(post) {
   const newRef = push(ref(rtdb, `${DB_PATH}/posts`));
   return set(newRef, post).then(() => post);
@@ -228,101 +195,48 @@ export function addReply(postId, commentId, reply) {
 }
 
 /* ---------------------------------------------------------
-   INDICAÇÕES E SAQUES
+   SAQUES
 --------------------------------------------------------- */
-export function addReferral(referral) {
-  const newRef = push(ref(rtdb, `${DB_PATH}/referrals`));
-  return set(newRef, referral).then(() => referral);
-}
-
 export function addWithdrawalRequest(withdrawal) {
   const newRef = push(ref(rtdb, `${DB_PATH}/withdrawals`));
   return set(newRef, withdrawal).then(() => withdrawal);
 }
 
-/* ---------------------------------------------------------
-   NOTIFICAÇÕES — o Worker cria (via Service Account, quando um
-   projeto é reprovado — ver handleModerateProject no worker.js),
-   o cliente só marca como lida. O Worker usa o comprimento da
-   lista como índice ao gravar (não push()), então a chave real no
-   Firebase de uma notificação é simplesmente sua posição no nó —
-   por isso usamos o índice do array local diretamente, sem
-   depender de _fbKey (diferente de posts/comments, que usam
-   push() e por isso precisam de cleanKeyed — ver nota v6).
---------------------------------------------------------- */
 export function markNotificationRead(notificationId) {
   const idx = cache.notifications.findIndex((n) => n && n.id === notificationId);
   if (idx === -1) throw new Error("Notificação não encontrada: " + notificationId);
   return update(ref(rtdb), { [`${DB_PATH}/notifications/${idx}/read`]: true });
 }
 
-/* ---------------------------------------------------------
-   NOTA: subscription, role e commissions NÃO têm função de
-   escrita aqui de propósito — só o Worker (com a Service
-   Account) pode alterar esses campos, via webhook de pagamento
-   confirmado ou ações administrativas. Isso é reforçado pelas
-   Regras do Firebase. O mesmo vale para o CONTEÚDO de uma
-   notificação (só o campo "read" é editável pelo cliente).
---------------------------------------------------------- */
-
-/* ---------------------------------------------------------
-   Assinatura em tempo real — um listener por nó de primeiro
-   nível, porque o nó raiz "database" não pode ser lido de uma
-   vez só (".read": false nas regras). Cada nó filho tem sua
-   própria regra de leitura.
-
-   Os listeners são recriados sempre que o estado de auth muda,
-   pra evitar o problema do onValue() "morrer" depois de um
-   permission_denied e nunca mais voltar a escutar sozinho.
-
-   IMPORTANTE: cada um dos nós tem seu próprio listener, e eles
-   resolvem em momentos diferentes — os públicos (categories,
-   projects, posts) costumam responder quase na hora, enquanto
-   users/referrals/commissions/withdrawals/notifications dependem
-   do token de auth mais recente e demoram um pouco mais. Se
-   notify() disparasse a cada nó individualmente, o primeiro aviso
-   (ex.: vindo de "categories") já marcaria os dados como "prontos"
-   em quem escuta onDBChange, mesmo com "users" ainda vazio — e isso
-   reintroduz o mesmo problema de redirecionar pro login antes da
-   hora. Por isso agora notify() só é chamado depois que TODOS os
-   nós tiverem respondido (com sucesso OU erro) pelo menos uma vez
-   desde a última mudança de login/logout. O mesmo critério agora
-   também controla o flag `synced` (ver v5 no cabeçalho do arquivo).
---------------------------------------------------------- */
 let syncGeneration = 0;
 
 function subscribeAll() {
   syncGeneration += 1;
   const gen = syncGeneration;
+  const uid = auth.currentUser ? auth.currentUser.uid : null;
+
+  const allKeys = [...TOP_LEVEL_KEYS, "publicProfiles", "myProfile"];
   const loadedKeys = new Set();
   let fullySynced = false;
-  // nova geração (login/logout) = precisa sincronizar tudo de novo
-  // antes de considerar o cache confiável outra vez.
   synced = false;
 
   function markLoaded(key) {
     loadedKeys.add(key);
-    if (!fullySynced && loadedKeys.size === TOP_LEVEL_KEYS.length) {
+    if (!fullySynced && loadedKeys.size === allKeys.length) {
       fullySynced = true;
-      synced = true; // libera onDBChange()/isDBSynced() só a partir daqui
+      synced = true;
     }
     if (fullySynced) notify();
   }
 
   TOP_LEVEL_KEYS.forEach((key) => {
     const nodeRef = ref(rtdb, `${DB_PATH}/${key}`);
-
-    // remove qualquer listener anterior nesse nó antes de recriar,
-    // pra não acumular listeners duplicados a cada login/logout
     off(nodeRef);
-
     onValue(
       nodeRef,
       (snapshot) => {
-        if (gen !== syncGeneration) return; // listener de uma geração antiga — ignora
+        if (gen !== syncGeneration) return;
         if (key === "posts") {
-          // posts (e comments/replies dentro deles) precisam da chave
-          // real do Firebase preservada em "_fbKey" — ver nota v6.
           cache.posts = cleanKeyed(snapshot.exists() ? snapshot.val() : {});
           cache.posts.forEach((p) => {
             p.comments = cleanKeyed(p.comments);
@@ -331,11 +245,6 @@ function subscribeAll() {
             });
           });
         } else if (key === "projects") {
-          // projects também precisa da chave real (_fbKey) — necessário
-          // para updateProject() escrever no registro certo ao reenviar
-          // um projeto rejeitado, em vez de depender do índice do array
-          // local (que muda se qualquer projeto anterior for excluído).
-          // Ver nota v8.
           cache.projects = cleanKeyed(snapshot.exists() ? snapshot.val() : {});
         } else {
           cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
@@ -344,26 +253,62 @@ function subscribeAll() {
       },
       (err) => {
         if (gen !== syncGeneration) return;
-        // Normal enquanto o usuário não está logado: users, referrals,
-        // commissions, withdrawals e notifications exigem auth != null
-        // nas regras. categories/projects/posts são de leitura pública
-        // e não devem cair aqui. Quando o usuário logar, subscribeAll()
-        // roda de novo via onAuthStateChanged e o listener é recriado.
         console.error(`Erro ao ler ${key} do Firebase:`, err);
-        cache[key] = []; // evita vazar dado de uma sessão anterior
+        cache[key] = [];
         markLoaded(key);
       }
     );
   });
+
+  const publicProfilesRef = ref(rtdb, "publicProfiles");
+  off(publicProfilesRef);
+  onValue(
+    publicProfilesRef,
+    (snapshot) => {
+      if (gen !== syncGeneration) return;
+      if (!snapshot.exists()) {
+        cache.publicProfiles = [];
+      } else {
+        const val = snapshot.val();
+        cache.publicProfiles = Object.entries(val)
+          .filter(([, v]) => v != null)
+          .map(([uid, v]) => ({ id: uid, ...v }));
+      }
+      markLoaded("publicProfiles");
+    },
+    (err) => {
+      if (gen !== syncGeneration) return;
+      console.error("Erro ao ler publicProfiles do Firebase:", err);
+      cache.publicProfiles = [];
+      markLoaded("publicProfiles");
+    }
+  );
+
+  if (uid) {
+    const myProfileRef = ref(rtdb, `myProfile/${uid}`);
+    off(myProfileRef);
+    onValue(
+      myProfileRef,
+      (snapshot) => {
+        if (gen !== syncGeneration) return;
+        cache.myProfile = snapshot.exists() ? snapshot.val() : null;
+        markLoaded("myProfile");
+      },
+      (err) => {
+        if (gen !== syncGeneration) return;
+        console.error("Erro ao ler myProfile do Firebase:", err);
+        cache.myProfile = null;
+        markLoaded("myProfile");
+      }
+    );
+  } else {
+    cache.myProfile = null;
+    markLoaded("myProfile");
+  }
 }
 
-// primeira assinatura (cobre o caso de página já carregar sem auth,
-// ex.: categories/projects/posts, que são públicos)
 subscribeAll();
 
-// reconecta TODOS os listeners sempre que o login muda — é isso que
-// garante que "users" (e os outros nós que exigem auth) voltem a
-// ser lidos assim que o Firebase confirmar o login do usuário
 onAuthStateChanged(auth, () => {
   subscribeAll();
 });
