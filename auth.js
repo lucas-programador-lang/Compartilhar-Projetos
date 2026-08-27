@@ -66,7 +66,7 @@ import { getDB, onDBChange } from "./db-sync.js";
     const map = {
       "auth/email-already-in-use": "Este e-mail já está cadastrado.",
       "auth/invalid-email": "Informe um e-mail válido.",
-      "auth/weak-password": "A senha deve ter ao menos 6 caracteres.",
+      "auth/weak-password": "A senha deve ter ao menos 8 caracteres.",
       "auth/invalid-credential": "E-mail ou senha incorretos.",
       "auth/wrong-password": "E-mail ou senha incorretos.",
       "auth/user-not-found": "E-mail ou senha incorretos.",
@@ -81,7 +81,7 @@ import { getDB, onDBChange } from "./db-sync.js";
     email = email.trim().toLowerCase();
     if (!name || name.trim().length < 2) throw { message: "Informe seu nome completo." };
     if (!isValidEmail(email)) throw { message: "Informe um e-mail válido." };
-    if (!password || password.length < 6) throw { message: "A senha deve ter ao menos 6 caracteres." };
+    if (!password || password.length < 8) throw { message: "A senha deve ter ao menos 8 caracteres." };
 
     // 1. cria a conta de autenticação de verdade no Firebase
     const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -125,7 +125,7 @@ import { getDB, onDBChange } from "./db-sync.js";
   async function loginUser(email, password) {
     const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
     
-    // PARTE 4: Busca o perfil diretamente na gaveta blindada (myProfile)
+    // Busca o perfil diretamente na gaveta blindada (myProfile)
     const profileSnap = await get(ref(rtdb, `myProfile/${cred.user.uid}`));
     const profile = profileSnap.val();
     
