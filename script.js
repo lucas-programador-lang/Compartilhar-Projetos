@@ -159,7 +159,6 @@ import { uid, nowISO } from "./seed.js";
     return saved;
   }
 
-  // --- FUNÇÕES DA COMUNIDADE ---
   function createPost(content) {
     const user = currentUser();
     if (!user) throw new Error("Entre na sua conta para publicar.");
@@ -192,7 +191,6 @@ import { uid, nowISO } from "./seed.js";
     return addReply(postId, commentId, reply);
   }
 
-  // --- FUNÇÕES DE SAQUE ---
   function requestWithdrawal(amount, pixKey) {
     const user = currentUser(); if (!user) throw new Error("Entre na sua conta.");
     const available = availableCommission(user.id);
@@ -284,6 +282,11 @@ import { uid, nowISO } from "./seed.js";
     app.innerHTML = html;
     if (isNavigation) { window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" }); }
     bindPageEvents(path);
+    
+    // NOVO: Avisa o aplicativo Android em qual rota o usuário está agora
+    if (typeof Android !== "undefined" && Android.atualizarRota) {
+        Android.atualizarRota(path);
+    }
   }
 
   document.addEventListener("focusout", () => { if (!pendingDataRender) return; setTimeout(() => { if (!hasActiveFormField()) render({ navigation: false }); }, 0); });
@@ -543,7 +546,7 @@ import { uid, nowISO } from "./seed.js";
     if (hamburger) { hamburger.addEventListener("click", () => { mobileNav.classList.toggle("open"); }); qsa("#mobileNav a, #mobileNav button").forEach((el) => el.addEventListener("click", () => mobileNav.classList.remove("open"))); }
   }
 
- onAuthStateChanged(auth, (user) => { firebaseUser = user; authReady = true; dbReady = false; render({ navigation: true }); });
+  onAuthStateChanged(auth, (user) => { firebaseUser = user; authReady = true; dbReady = false; render({ navigation: true }); });
   onDBChange((newDb) => { db = newDb; dbReady = true; render({ navigation: false }); });
   window.addEventListener("hashchange", () => render({ navigation: true }));
   
@@ -561,14 +564,14 @@ import { uid, nowISO } from "./seed.js";
   window.tentarAcessarPainel = function(event) {
     event.preventDefault();
     if (typeof Android !== "undefined") {
-        Android.solicitarBiometria(); // Chama a tela do celular
+        Android.solicitarBiometria(); 
     } else {
-        navigate("/painel"); // Computador entra direto
+        navigate("/painel"); 
     }
   };
 
   window.biometriaAprovada = function() {
-      navigate("/painel"); // Aplicativo entra após sucesso
+      navigate("/painel"); 
   };
   
   window.alertaSemInternet = function() {
