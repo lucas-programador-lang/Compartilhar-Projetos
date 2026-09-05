@@ -1,57 +1,128 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Termos de Uso | Compartilhar Projetos</title>
-  
-  <!-- Fontes do seu projeto -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <!-- Seu arquivo CSS -->
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Termos de Uso — Compartilhar Projetos</title>
+<meta name="description" content="Termos de Uso da plataforma Compartilhar Projetos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
+<style>
+  /* Ajustes pontuais só desta página — nada aqui redefine tokens do
+     design system, só compõe com o que já existe em style.css. */
+  .legal-doc h2{
+    font-family:var(--font-display); font-size:19px; color:var(--navy-900);
+    margin-top:32px; margin-bottom:12px;
+  }
+  .legal-doc h2:first-child{ margin-top:0; }
+  .legal-doc p{ color:var(--ink-700); font-size:15px; line-height:1.7; margin-bottom:6px; }
+  .legal-doc ul{ margin:0 0 18px 20px; padding:0; }
+  .legal-doc li{ color:var(--ink-700); font-size:15px; line-height:1.7; margin-bottom:8px; list-style:disc; }
+  .legal-doc strong{ color:var(--navy-900); }
+</style>
 </head>
-<body style="padding: 40px 20px; background-color: var(--bg-color); color: var(--text-color); font-family: 'Inter', sans-serif;">
-  
-  <div class="container" style="max-width: 800px; margin: 0 auto; background: var(--surface-color); padding: 40px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-    
-    <a href="index.html" style="color: var(--gold, #FFD700); text-decoration: none; font-weight: 500; font-family: 'Sora', sans-serif;">&larr; Voltar para o site</a>
-    
-    <h1 style="margin-top: 30px; margin-bottom: 10px; font-family: 'Sora', sans-serif;">Termos de Uso</h1>
-    <p style="opacity: 0.7; margin-bottom: 40px; font-size: 0.9rem;">Última atualização: Agosto de 2026</p>
-    
-    <div style="line-height: 1.6;">
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">1. Aceitação dos Termos</h2>
-      <p style="margin-bottom: 20px;">Ao acessar e utilizar a plataforma Compartilhar Projetos, você concorda em cumprir e ficar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não deverá utilizar nossos serviços.</p>
+<body>
 
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">2. Descrição do Serviço</h2>
-      <p style="margin-bottom: 20px;">O Compartilhar Projetos é uma plataforma digital de assinatura que permite aos usuários (desenvolvedores, designers e criadores) publicar, descobrir e interagir com projetos e ideias da comunidade.</p>
-
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">3. Contas de Usuário</h2>
-      <p style="margin-bottom: 20px;">Para publicar projetos e acessar recursos exclusivos, você deve criar uma conta. Você é responsável por manter a confidencialidade das suas credenciais de login e por todas as atividades que ocorrerem sob sua conta. Contas com informações falsas ou que violem nossas diretrizes poderão ser suspensas ou encerradas a nosso critério.</p>
-
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">4. Pagamentos e Assinaturas</h2>
-      <p style="margin-bottom: 20px;">Os serviços premium da plataforma exigem uma assinatura paga. Atualmente, os pagamentos são processados exclusivamente via Pix. O acesso aos recursos pagos é liberado após a confirmação do recebimento. Não oferecemos reembolsos para períodos de assinatura já iniciados e parcialmente utilizados, exceto quando exigido por lei.</p>
-
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">5. Propriedade Intelectual e Conteúdo do Usuário</h2>
-      <p style="margin-bottom: 20px;">Você mantém todos os direitos de propriedade intelectual sobre os projetos, códigos e imagens que publicar na plataforma. Ao enviar conteúdo, você concede ao Compartilhar Projetos uma licença não exclusiva para exibir e distribuir esse conteúdo dentro do ambiente da plataforma. É estritamente proibido publicar materiais protegidos por direitos autorais de terceiros sem a devida autorização.</p>
-
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">6. Uso Aceitável</h2>
-      <p style="margin-bottom: 20px;">Você concorda em não utilizar a plataforma para atividades ilegais, envio de spam, distribuição de malware, ofensas ou qualquer ação que comprometa a integridade do sistema ou a segurança de outros usuários.</p>
-
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">7. Limitação de Responsabilidade</h2>
-      <p style="margin-bottom: 20px;">A plataforma é fornecida "no estado em que se encontra", sem garantias de operação ininterrupta ou livre de erros. Não nos responsabilizamos por perdas de dados, lucros cessantes ou danos indiretos decorrentes do uso do serviço.</p>
-
-      <h2 style="font-family: 'Sora', sans-serif; margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem;">8. Legislação Aplicável e Foro</h2>
-      <p style="margin-bottom: 20px;">Estes termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da Comarca de Porto Velho, Estado de Rondônia, para dirimir quaisquer controvérsias decorrentes da utilização da plataforma, com renúncia expressa a qualquer outro, por mais privilegiado que seja.</p>
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner container">
+    <a href="index.html#/" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html#/explorar">Explorar</a>
+      <a href="index.html#/comunidade">Comunidade</a>
+      <a href="index.html#/planos">Planos</a>
+      <a href="index.html#/ranking">Ranking</a>
+      <a href="apk.html">Baixar app</a>
+    </nav>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-ghost btn-sm">Voltar ao site</a>
     </div>
   </div>
+</header>
+
+<!-- ===== CONTEÚDO ===== -->
+<section class="section" style="padding-top:52px">
+  <div class="container" style="max-width:760px">
+    <span class="tag-label">Documento legal</span>
+    <h1 style="margin-bottom:6px;color:var(--navy-900)">Termos de Uso</h1>
+    <p class="muted" style="margin-bottom:34px;font-size:13.5px">Última atualização: Agosto de 2026</p>
+
+    <div class="panel legal-doc">
+      <h2>1. Aceitação dos Termos</h2>
+      <p>Ao acessar e utilizar a plataforma Compartilhar Projetos, você concorda em cumprir e ficar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não deverá utilizar nossos serviços.</p>
+
+      <h2>2. Descrição do Serviço</h2>
+      <p>O Compartilhar Projetos é uma plataforma digital de assinatura que permite aos usuários (desenvolvedores, designers e criadores) publicar, descobrir e interagir com projetos e ideias da comunidade.</p>
+
+      <h2>3. Contas de Usuário</h2>
+      <p>Para publicar projetos e acessar recursos exclusivos, você deve criar uma conta. Você é responsável por manter a confidencialidade das suas credenciais de login e por todas as atividades que ocorrerem sob sua conta. Contas com informações falsas ou que violem nossas diretrizes poderão ser suspensas ou encerradas a nosso critério.</p>
+
+      <h2>4. Pagamentos e Assinaturas</h2>
+      <p>Os serviços premium da plataforma exigem uma assinatura paga. Atualmente, os pagamentos são processados exclusivamente via Pix. O acesso aos recursos pagos é liberado após a confirmação do recebimento. Não oferecemos reembolsos para períodos de assinatura já iniciados e parcialmente utilizados, exceto quando exigido por lei.</p>
+
+      <h2>5. Propriedade Intelectual e Conteúdo do Usuário</h2>
+      <p>Você mantém todos os direitos de propriedade intelectual sobre os projetos, códigos e imagens que publicar na plataforma. Ao enviar conteúdo, você concede ao Compartilhar Projetos uma licença não exclusiva para exibir e distribuir esse conteúdo dentro do ambiente da plataforma. É estritamente proibido publicar materiais protegidos por direitos autorais de terceiros sem a devida autorização.</p>
+
+      <h2>6. Uso Aceitável</h2>
+      <p>Você concorda em não utilizar a plataforma para atividades ilegais, envio de spam, distribuição de malware, ofensas ou qualquer ação que comprometa a integridade do sistema ou a segurança de outros usuários.</p>
+
+      <h2>7. Limitação de Responsabilidade</h2>
+      <p>A plataforma é fornecida "no estado em que se encontra", sem garantias de operação ininterrupta ou livre de erros. Não nos responsabilizamos por perdas de dados, lucros cessantes ou danos indiretos decorrentes do uso do serviço.</p>
+
+      <h2>8. Legislação Aplicável e Foro</h2>
+      <p>Estes termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da Comarca de Porto Velho, Estado de Rondônia, para dirimir quaisquer controvérsias decorrentes da utilização da plataforma, com renúncia expressa a qualquer outro, por mais privilegiado que seja.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+      <p>A plataforma de assinatura para publicar e descobrir projetos incríveis.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Plataforma</h4>
+      <a href="index.html#/explorar">Explorar projetos</a>
+      <a href="index.html#/comunidade">Comunidade</a>
+      <a href="index.html#/planos">Planos de assinatura</a>
+      <a href="index.html#/ranking">Ranking</a>
+      <a href="https://chat.whatsapp.com/KsJrAm9H20b8qG1CrsIZKn" target="_blank" rel="noopener noreferrer">Canal no WhatsApp</a>
+    </div>
+    <div class="footer-col">
+      <h4>Conta</h4>
+      <a href="login.html">Entrar</a>
+      <a href="register.html">Criar conta</a>
+      <a href="index.html#/indicacoes">Programa de indicação</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <a href="admin.html">Área administrativa</a>
+      <a href="index.html#/">Sobre</a>
+      <a href="termos.html" class="active">Termos de Uso</a>
+      <a href="privacidade.html">Política de Privacidade</a>
+      <a href="apk.html">Baixar app</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© 2026 Compartilhar Projetos. Todos os direitos reservados.</span>
+  </div>
+</footer>
 
 </body>
 </html>
