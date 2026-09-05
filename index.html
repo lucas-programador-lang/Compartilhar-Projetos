@@ -55,7 +55,8 @@
           <span class="avatar-circle" id="avatarInitial">?</span>
         </button>
         <div class="user-menu" id="userMenu">
-          <a href="#/painel">Meu painel</a>
+          <!-- BIOMETRIA NO MENU PRINCIPAL -->
+          <a href="#" onclick="tentarAcessarPainel(event)">Meu painel</a>
           <a href="#/perfil">Meu perfil</a>
           <a href="#/indicacoes">Indicações</a>
           <a href="#/ranking">Ranking</a>
@@ -69,14 +70,18 @@
       </button>
     </div>
   </div>
-  <!-- CORREÇÃO AQUI: overflow-y: auto e padding-bottom adicionados para permitir rolagem no celular -->
- <nav class="mobile-nav" id="mobileNav" style="overflow-y: auto; max-height: 100vh; padding-bottom: 80px; position: fixed; top: 60px; left: 0; width: 100%; background-color: #ffffff; z-index: 99999; box-shadow: 0 10px 15px rgba(0,0,0,0.1);">
+  
+  <!-- MENU MOBILE COM BIOMETRIA E CORREÇÃO DE SCROLL -->
+  <nav class="mobile-nav" id="mobileNav" style="overflow-y: auto; max-height: 100vh; padding-bottom: 80px; position: fixed; top: 60px; left: 0; width: 100%; background-color: #ffffff; z-index: 99999; box-shadow: 0 10px 15px rgba(0,0,0,0.1);">
     <a href="#/explorar">Explorar projetos</a>
     <a href="#/comunidade">Comunidade</a>
     <a href="#/planos">Planos</a>
     <a href="#/ranking">Ranking</a>
     <a href="#/indicacoes" class="auth-only">Indicações</a>
-    <a href="#/painel" class="auth-only">Meu painel</a>
+    
+    <!-- BIOMETRIA NO MENU MOBILE -->
+    <a href="#" onclick="tentarAcessarPainel(event)" class="auth-only">Meu painel</a>
+    
     <a href="#/perfil" class="auth-only">Meu perfil</a>
     <a href="https://whatsapp.com/channel/0029VbDjmlVKwqSc2MKU9R2t" target="_blank" rel="noopener noreferrer">Canal WhatsApp</a>
     <button id="logoutBtnMobile" class="auth-only">Sair</button>
