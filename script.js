@@ -565,7 +565,7 @@ import { uid, nowISO } from "./seed.js";
       }
   });
 
-  // --- INÍCIO DAS PONTES NATIVAS (ANDROID) ---
+ // --- INÍCIO DAS PONTES NATIVAS (ANDROID) ---
   window.tentarAcessarPainel = function(event) {
     event.preventDefault();
     if (typeof Android !== "undefined") {
@@ -591,6 +591,19 @@ import { uid, nowISO } from "./seed.js";
       } else {
           navigator.clipboard.writeText(url).then(() => toast("Link copiado!", "success")); 
       }
+  };
+
+  window.salvarTokenPush = async function(token) {
+      setTimeout(async () => {
+          const user = currentUser();
+          if (user && user.fcmToken !== token) {
+              try {
+                  await updateUserProfile(user.id, { fcmToken: token });
+              } catch (err) {
+                  console.error("Erro ao salvar token", err);
+              }
+          }
+      }, 3000);
   };
   // --- FIM DAS PONTES NATIVAS ---
 })();
