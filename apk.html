@@ -66,7 +66,7 @@
       <h1>Leve a <span class="accent">Compartilhar Projetos</span> no seu bolso.</h1>
       <p class="lead" style="margin-left:auto;margin-right:auto">Publique projetos, acompanhe suas indicações e receba notificações de moderação direto pelo celular.</p>
       <div class="hero-cta">
-        <a href="app.apk" download class="btn btn-gold btn-lg" id="downloadApkBtn">⬇ Baixar APK</a>
+        <a href="compartilhar-projetos.apk" download class="btn btn-gold btn-lg" id="downloadApkBtn">⬇ Baixar APK</a>
         <a href="#instalar" class="btn btn-ghost btn-lg" style="border-color:rgba(255,255,255,.35);color:#fff">Como instalar</a>
       </div>
       <div class="apk-meta">
@@ -145,7 +145,7 @@
   <div class="cta-band">
     <h2>Pronto para instalar?</h2>
     <p>Baixe agora e leve a plataforma para onde você for.</p>
-    <a href="app.apk" download class="btn btn-gold btn-lg">⬇ Baixar APK</a>
+    <a href="compartilhar-projetos.apk" download class="btn btn-gold btn-lg">⬇ Baixar APK</a>
   </div>
 </section>
 
@@ -182,7 +182,7 @@
   (function () {
     const sizeEl = document.getElementById("apkSize");
     if (!sizeEl) return;
-    fetch("app.apk", { method: "HEAD" })
+    fetch("compartilhar-projetos.apk", { method: "HEAD" })
       .then((res) => {
         const bytes = res.headers.get("Content-Length");
         if (!bytes) return;
