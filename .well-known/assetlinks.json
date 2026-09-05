@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "br.com.compartilharprojetos.app",
+    "sha256_cert_fingerprints": [
+      "COLE_AQUI_O_CODIGO_SHA256_QUE_VOCE_COPIOU"
+    ]
+  }
+}]
