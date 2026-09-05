@@ -546,9 +546,18 @@ import { uid, nowISO } from "./seed.js";
  onAuthStateChanged(auth, (user) => { firebaseUser = user; authReady = true; dbReady = false; render({ navigation: true }); });
   onDBChange((newDb) => { db = newDb; dbReady = true; render({ navigation: false }); });
   window.addEventListener("hashchange", () => render({ navigation: true }));
-  document.addEventListener("DOMContentLoaded", () => { bindGlobalUI(); render({ navigation: true }); });
+  
+  document.addEventListener("DOMContentLoaded", () => { 
+      bindGlobalUI(); 
+      render({ navigation: true }); 
+      
+      // Libera a tela de abertura do app nativo (Splash Screen)
+      if (typeof Android !== "undefined" && Android.siteTotalmenteCarregado) {
+          Android.siteTotalmenteCarregado();
+      }
+  });
 
-  // --- INÍCIO DA PONTE DE BIOMETRIA ---
+  // --- INÍCIO DAS PONTES NATIVAS (ANDROID) ---
   window.tentarAcessarPainel = function(event) {
     event.preventDefault();
     if (typeof Android !== "undefined") {
@@ -561,5 +570,9 @@ import { uid, nowISO } from "./seed.js";
   window.biometriaAprovada = function() {
       navigate("/painel"); // Aplicativo entra após sucesso
   };
-  // --- FIM DA PONTE DE BIOMETRIA ---
+  
+  window.alertaSemInternet = function() {
+      toast("Conexão perdida. O aplicativo recarregará quando a rede voltar.", "error");
+  };
+  // --- FIM DAS PONTES NATIVAS ---
 })();
