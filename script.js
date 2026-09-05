@@ -543,8 +543,23 @@ import { uid, nowISO } from "./seed.js";
     if (hamburger) { hamburger.addEventListener("click", () => { mobileNav.classList.toggle("open"); }); qsa("#mobileNav a, #mobileNav button").forEach((el) => el.addEventListener("click", () => mobileNav.classList.remove("open"))); }
   }
 
-  onAuthStateChanged(auth, (user) => { firebaseUser = user; authReady = true; dbReady = false; render({ navigation: true }); });
+ onAuthStateChanged(auth, (user) => { firebaseUser = user; authReady = true; dbReady = false; render({ navigation: true }); });
   onDBChange((newDb) => { db = newDb; dbReady = true; render({ navigation: false }); });
   window.addEventListener("hashchange", () => render({ navigation: true }));
   document.addEventListener("DOMContentLoaded", () => { bindGlobalUI(); render({ navigation: true }); });
+
+  // --- INÍCIO DA PONTE DE BIOMETRIA ---
+  window.tentarAcessarPainel = function(event) {
+    event.preventDefault();
+    if (typeof Android !== "undefined") {
+        Android.solicitarBiometria(); // Chama a tela do celular
+    } else {
+        navigate("/painel"); // Computador entra direto
+    }
+  };
+
+  window.biometriaAprovada = function() {
+      navigate("/painel"); // Aplicativo entra após sucesso
+  };
+  // --- FIM DA PONTE DE BIOMETRIA ---
 })();
