@@ -283,7 +283,6 @@ import { uid, nowISO } from "./seed.js";
     if (isNavigation) { window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" }); }
     bindPageEvents(path);
     
-    // NOVO: Avisa o aplicativo Android em qual rota o usuário está agora
     if (typeof Android !== "undefined" && Android.atualizarRota) {
         Android.atualizarRota(path);
     }
@@ -435,7 +434,7 @@ import { uid, nowISO } from "./seed.js";
 
   function viewProjectDetail(id) {
     const p = db.projects.find((pj) => pj.id === id); if (!p) return view404(); const img = (p.images && p.images[0]) || "";
-    return `<div class="project-detail container"><div class="breadcrumb"><a href="#/explorar">Explorar</a> / ${escapeHtml(categoryName(p.categoryId))} / <span>${escapeHtml(p.title)}</span></div><div class="pd-grid"><div><div class="pd-gallery">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}">` : `<span class="muted">Sem imagem</span>`}</div>${p.images && p.images.length > 1 ? `<div class="pd-thumbs">${p.images.map((im, i) => `<img src="${im}" class="${i === 0 ? "active" : ""}" alt="">`).join("")}</div>` : ""}</div><aside class="pd-side"><h4>Sobre o projeto</h4><div class="pd-row"><span>Responsável</span><span>${escapeHtml(p.ownerName)}</span></div><div class="pd-row"><span>Contato</span><span>${escapeHtml(p.contact)}</span></div><div class="pd-row"><span>Categoria</span><span>${escapeHtml(categoryName(p.categoryId))}</span></div><div class="pd-row"><span>Publicado em</span><span>${fmtDate(p.createdAt)}</span></div><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">Acessar projeto ↗</a></aside></div><div style="margin-top:36px;max-width:760px"><span class="pd-cat-badge">${escapeHtml(categoryName(p.categoryId))}</span><h1 class="pd-title">${escapeHtml(p.title)}</h1><div class="pd-desc">${escapeHtml(p.description)}</div></div></div>`;
+    return `<div class="project-detail container"><div class="breadcrumb"><a href="#/explorar">Explorar</a> / ${escapeHtml(categoryName(p.categoryId))} / <span>${escapeHtml(p.title)}</span></div><div class="pd-grid"><div><div class="pd-gallery">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}">` : `<span class="muted">Sem imagem</span>`}</div>${p.images && p.images.length > 1 ? `<div class="pd-thumbs">${p.images.map((im, i) => `<img src="${im}" class="${i === 0 ? "active" : ""}" alt="">`).join("")}</div>` : ""}</div><aside class="pd-side"><h4>Sobre o projeto</h4><div class="pd-row"><span>Responsável</span><span>${escapeHtml(p.ownerName)}</span></div><div class="pd-row"><span>Contato</span><span>${escapeHtml(p.contact)}</span></div><div class="pd-row"><span>Categoria</span><span>${escapeHtml(categoryName(p.categoryId))}</span></div><div class="pd-row"><span>Publicado em</span><span>${fmtDate(p.createdAt)}</span></div><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">Acessar projeto ↗</a><button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', '${location.origin}/#/projeto/${p.id}')">Compartilhar projeto</button></aside></div><div style="margin-top:36px;max-width:760px"><span class="pd-cat-badge">${escapeHtml(categoryName(p.categoryId))}</span><h1 class="pd-title">${escapeHtml(p.title)}</h1><div class="pd-desc">${escapeHtml(p.description)}</div></div></div>`;
   }
 
   function viewPublish(params) {
@@ -530,7 +529,14 @@ import { uid, nowISO } from "./seed.js";
     const profileForm = qs("#profileForm");
     if (profileForm) { profileForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(profileForm); const user = currentUser(); const rawDoc = fd.get("document"); const digits = onlyDigits(rawDoc); if (digits && !isValidDocument(digits)) { toast("CPF/CNPJ inválido.", "error"); return; } updateUserProfile(user.id, { name: fd.get("name").trim() || user.name, bio: sanitizeText(fd.get("bio") || ""), document: digits || user.document || "", }).then(() => toast("Perfil atualizado!", "success")).catch((err) => toast(err.message, "error")); }); }
 
-    const copyBtn = qs("#copyRefLink"); if (copyBtn) { copyBtn.addEventListener("click", () => { navigator.clipboard?.writeText(qs("#refLinkText").textContent).then(() => toast("Link copiado!", "success"), () => toast("Copie manualmente.", "error")); }); }
+    const copyBtn = qs("#copyRefLink"); 
+    if (copyBtn) { 
+        copyBtn.addEventListener("click", () => { 
+            const linkText = qs("#refLinkText").textContent;
+            window.compartilharConteudo("Meu Convite", "Vem publicar seus projetos na plataforma e fazer networking!", linkText);
+        }); 
+    }
+    
     const withdrawForm = qs("#withdrawForm"); if (withdrawForm) { withdrawForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(withdrawForm); Promise.resolve().then(() => requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey"))).then(() => { toast("Saque enviado!", "success"); render({ navigation: false }); }).catch((err) => toast(err.message, "error")); }); }
   }
 
@@ -554,7 +560,6 @@ import { uid, nowISO } from "./seed.js";
       bindGlobalUI(); 
       render({ navigation: true }); 
       
-      // Libera a tela de abertura do app nativo (Splash Screen)
       if (typeof Android !== "undefined" && Android.siteTotalmenteCarregado) {
           Android.siteTotalmenteCarregado();
       }
@@ -576,6 +581,16 @@ import { uid, nowISO } from "./seed.js";
   
   window.alertaSemInternet = function() {
       toast("Conexão perdida. O aplicativo recarregará quando a rede voltar.", "error");
+  };
+
+  window.compartilharConteudo = function(titulo, texto, url) {
+      if (typeof Android !== "undefined" && Android.compartilhar) {
+          Android.compartilhar(titulo, texto, url); 
+      } else if (navigator.share) {
+          navigator.share({ title: titulo, text: texto, url: url }).catch(console.error); 
+      } else {
+          navigator.clipboard.writeText(url).then(() => toast("Link copiado!", "success")); 
+      }
   };
   // --- FIM DAS PONTES NATIVAS ---
 })();
