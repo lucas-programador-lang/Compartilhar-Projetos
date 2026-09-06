@@ -126,35 +126,45 @@ import { uid, nowISO } from "./seed.js";
   }
 
   // --- MUDANÇA CRÍTICA DO MODAL PIX ---
-  function showPixModal({ pix }) {
+ function showPixModal({ pix }) {
     const overlay = document.createElement("div"); overlay.className = "modal-overlay open";
-    // Injeção de CSS forçado para a biblioteca qrcode.js + display block para garantir rolagem no Android
+    
+    // Injeção de CSS que corrige o corte no topo e impede o esmagamento da imagem
     overlay.innerHTML = `
       <style>
-        /* Trava absoluta de tamanho para imagem gerada e container */
+        /* 1. Muda o alinhamento para o topo. Isso evita que o botão de fechar suma da tela */
+        .modal-overlay.open {
+          align-items: flex-start !important;
+          overflow-y: auto !important;
+          padding: 30px 20px !important;
+        }
+        /* 2. Remove a trava de altura e usa margem automática para centralizar com segurança */
+        .pix-modal-wrapper {
+          display: block !important;
+          margin: auto !important;
+          max-height: none !important;
+        }
+        /* 3. Força o QR Code a ser um quadrado perfeito, impossível de esmagar */
         #pixQrCode img, #pixQrCode canvas {
           width: 220px !important;
           height: 220px !important;
           min-width: 220px !important;
           min-height: 220px !important;
-          flex-shrink: 0 !important;
-          object-fit: contain !important;
-        }
-        .pix-modal-wrapper {
-          display: block !important;
-          overflow-y: auto !important;
+          aspect-ratio: 1 / 1 !important;
+          margin: 0 auto !important;
         }
       </style>
       <div class="modal-box pix-modal-wrapper" style="max-width:400px;text-align:center;">
         <button type="button" class="modal-close" id="pixCloseBtn" aria-label="Fechar">×</button>
         <h2>Pague com Pix para ativar sua assinatura</h2>
-        <div id="pixQrCode" style="margin:16px auto; min-height: 220px; display:flex; align-items:center; justify-content:center;">
+        <div id="pixQrCode" style="margin:16px auto; display:flex; align-items:center; justify-content:center;">
           <span class="muted" style="font-size:12px">Gerando QR Code…</span>
         </div>
         <textarea readonly style="width:100%;font-size:11px;padding:8px" rows="4">${pix.code || ""}</textarea>
         <button id="pixCopyBtn" class="btn btn-primary btn-sm mt-2">Copiar código</button>
         <p class="muted mt-2" style="font-size:13px">Assim que o pagamento for confirmado, sua assinatura ativa automaticamente — não precisa recarregar a página.</p>
       </div>`;
+      
     document.body.appendChild(overlay); renderQRCode(qs("#pixQrCode", overlay), pix.code);
     let handled = false; let stopWatching = null;
     const unsubscribe = onDBChange(() => {
