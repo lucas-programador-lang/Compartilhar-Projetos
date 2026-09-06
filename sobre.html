@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sobre nós — Compartilhar Projetos</title>
+<meta name="description" content="Conheça a Compartilhar Projetos: a vitrine de assinatura para desenvolvedores, designers e criadores publicarem projetos e ganharem visibilidade.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
+<style>
+  .sobre-hero{ padding:72px 0 76px; }
+  .sobre-hero .hero-inner{ grid-template-columns:1fr; text-align:center; }
+  .sobre-hero .hero-cta{ justify-content:center; }
+  .value-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  @media (max-width:800px){ .value-grid{ grid-template-columns:1fr; } }
+  .faq-item{ margin-bottom:14px; }
+  .faq-item h3{ font-size:16px; margin-bottom:8px; color:var(--navy-900) }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner container">
+    <a href="index.html#/" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html#/explorar">Explorar</a>
+      <a href="index.html#/comunidade">Comunidade</a>
+      <a href="index.html#/planos">Planos</a>
+      <a href="index.html#/ranking">Ranking</a>
+      <a href="sobre.html" class="active">Sobre</a>
+      <a href="como-funciona.html">Como funciona</a>
+    </nav>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-ghost btn-sm">Voltar ao site</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero sobre-hero">
+  <div class="container hero-inner">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> Sobre nós</span>
+      <h1>Um lugar para <span class="accent">mostrar</span> o que você constrói.</h1>
+      <p class="lead" style="margin-left:auto;margin-right:auto">A Compartilhar Projetos é uma vitrine de assinatura para desenvolvedores, designers e criadores publicarem projetos, receberem feedback e ganharem visibilidade real.</p>
+      <div class="hero-cta">
+        <a href="register.html" class="btn btn-gold btn-lg">Criar conta grátis</a>
+        <a href="como-funciona.html" class="btn btn-ghost btn-lg" style="border-color:rgba(255,255,255,.35);color:#fff">Ver como funciona</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== QUEM SOMOS ===== -->
+<section class="section">
+  <div class="container" style="max-width:760px">
+    <span class="tag-label">Quem somos</span>
+    <h2 style="margin-bottom:16px;color:var(--navy-900)">Feita para quem constrói coisas</h2>
+    <p style="color:var(--ink-700);font-size:15.5px;line-height:1.75;margin-bottom:16px">
+      Todo mundo que já publicou um projeto sabe da dificuldade: ninguém vê, ninguém comenta,
+      e é difícil saber se o que você fez tem valor pra alguém além de você. A Compartilhar
+      Projetos nasceu pra resolver isso — uma vitrine onde criadores publicam o que estão
+      construindo, organizado por categoria, com uma comunidade que de fato interage.
+    </p>
+    <p style="color:var(--ink-700);font-size:15.5px;line-height:1.75">
+      Diferente de um feed qualquer, aqui todo projeto passa por revisão antes de aparecer
+      publicamente — o objetivo é manter a vitrine útil e confiável, tanto pra quem publica
+      quanto pra quem está buscando inspiração ou parceiros.
+    </p>
+  </div>
+</section>
+
+<!-- ===== VALORES ===== -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head">
+      <div><span class="tag-label">O que buscamos</span><h2>Como pensamos a plataforma</h2></div>
+    </div>
+    <div class="value-grid">
+      <div class="step-card">
+        <h3>Visibilidade de verdade</h3>
+        <p>Uma vitrine organizada por categoria, feita para que o projeto certo chegue às pessoas certas — não apenas mais um feed sem curadoria.</p>
+      </div>
+      <div class="step-card">
+        <h3>Qualidade acima de volume</h3>
+        <p>A revisão de cada projeto antes da publicação existe para manter a vitrine confiável, tanto para quem publica quanto para quem explora.</p>
+      </div>
+      <div class="step-card">
+        <h3>Comunidade que participa</h3>
+        <p>Espaço para pedir feedback, trocar ideias e acompanhar o que outros criadores estão construindo, com ou sem assinatura ativa.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PERGUNTAS FREQUENTES ===== -->
+<section class="section">
+  <div class="container" style="max-width:760px">
+    <div class="section-head">
+      <div><span class="tag-label">Dúvidas comuns</span><h2>Perguntas frequentes</h2></div>
+    </div>
+    <div class="panel faq-item">
+      <h3>Preciso pagar pra explorar os projetos?</h3>
+      <p class="muted">Não. Explorar o catálogo, buscar por categoria e participar da comunidade é gratuito. Só a publicação de projetos exige assinatura ativa.</p>
+    </div>
+    <div class="panel faq-item">
+      <h3>Meu projeto aparece na hora que eu publico?</h3>
+      <p class="muted">Não. Todo projeto passa por revisão antes de ficar visível publicamente — primeiro um filtro automático, depois aprovação manual de um administrador. Veja os detalhes em <a href="como-funciona.html" class="link">Como funciona</a>.</p>
+    </div>
+    <div class="panel faq-item">
+      <h3>Meu projeto foi recusado. E agora?</h3>
+      <p class="muted">Você recebe uma notificação explicando o motivo (no sino do site e na seção de notificações do painel) e pode editar e reenviar o mesmo projeto com as correções, sem precisar publicar do zero.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA FINAL ===== -->
+<section class="section-tight">
+  <div class="cta-band">
+    <h2>Pronto para publicar seu primeiro projeto?</h2>
+    <p>Crie sua conta gratuita e conheça a comunidade antes de assinar.</p>
+    <a href="register.html" class="btn btn-gold btn-lg">Cadastrar grátis</a>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+      <p>A plataforma de assinatura para publicar e descobrir projetos incríveis.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Plataforma</h4>
+      <a href="index.html#/explorar">Explorar projetos</a>
+      <a href="index.html#/comunidade">Comunidade</a>
+      <a href="index.html#/planos">Planos de assinatura</a>
+      <a href="index.html#/ranking">Ranking</a>
+      <a href="https://chat.whatsapp.com/KsJrAm9H20b8qG1CrsIZKn" target="_blank" rel="noopener noreferrer">Canal no WhatsApp</a>
+    </div>
+    <div class="footer-col">
+      <h4>Conta</h4>
+      <a href="login.html">Entrar</a>
+      <a href="register.html">Criar conta</a>
+      <a href="index.html#/indicacoes">Programa de indicação</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <a href="admin.html">Área administrativa</a>
+      <a href="sobre.html" class="active">Sobre</a>
+      <a href="como-funciona.html">Como funciona</a>
+      <a href="termos.html">Termos de Uso</a>
+      <a href="privacidade.html">Política de Privacidade</a>
+      <a href="apk.html">Baixar app</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© 2026 Compartilhar Projetos. Todos os direitos reservados.</span>
+  </div>
+</footer>
+
+</body>
+</html>
