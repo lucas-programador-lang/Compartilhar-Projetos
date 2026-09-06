@@ -62,5 +62,25 @@
 </main>
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 <script type="module" src="auth.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // Como o UserAgent nativo foi restaurado para evitar bloqueios do Cloudflare,
+      // verificamos a ausência de propriedades nativas de navegadores desktop
+      const isAndroidApp = window.Android !== undefined || /wv/.test(navigator.userAgent);
+
+      if (isAndroidApp) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      } else {
+        navigator.serviceWorker.register('/sw.js')
+          .catch(err => console.error('Falha no SW:', err));
+      }
+    });
+  }
+</script>
 </body>
 </html>
