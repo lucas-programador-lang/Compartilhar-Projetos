@@ -158,17 +158,30 @@
   })();
 </script>
 
-<!-- ===== SERVICE WORKER REGISTRATION ===== -->
+<!-- ===== SERVICE WORKER REGISTRATION (CORRIGIDO PARA O APP) ===== -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('Service Worker registrado:', registration.scope);
-        })
-        .catch(err => {
-          console.error('Falha no Service Worker:', err);
+      // Verifica se está rodando dentro do nosso App Android
+      const isAndroidApp = navigator.userAgent.includes('CompartilharProjetosApp');
+
+      if (isAndroidApp) {
+        // Se estiver no app, DESINSTALA o Service Worker para evitar a tela preta ERR_FAILED
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
         });
+      } else {
+        // Se estiver no navegador normal, instala o Service Worker
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registrado:', registration.scope);
+          })
+          .catch(err => {
+            console.error('Falha no Service Worker:', err);
+          });
+      }
     });
   }
 </script>
