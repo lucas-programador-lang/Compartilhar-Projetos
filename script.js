@@ -125,8 +125,7 @@ import { uid, nowISO } from "./seed.js";
     });
   }
 
-  // --- MUDANÇA CRÍTICA DO MODAL PIX ---
- function showPixModal({ pix }) {
+  function showPixModal({ pix }) {
     const overlay = document.createElement("div"); overlay.className = "modal-overlay open";
     
     // Injeção de CSS que corrige o corte no topo e impede o esmagamento da imagem
@@ -589,7 +588,23 @@ import { uid, nowISO } from "./seed.js";
     if (hamburger) { hamburger.addEventListener("click", () => { mobileNav.classList.toggle("open"); }); qsa("#mobileNav a, #mobileNav button").forEach((el) => el.addEventListener("click", () => mobileNav.classList.remove("open"))); }
   }
 
-  onAuthStateChanged(auth, (user) => { firebaseUser = user; authReady = true; dbReady = false; render({ navigation: true }); });
+  // Garante que o token suba para o banco assim que você fizer login
+  onAuthStateChanged(auth, async (user) => { 
+      firebaseUser = user; 
+      authReady = true; 
+      dbReady = false; 
+      
+      if (user) {
+          const savedToken = localStorage.getItem("fcm_token_temp");
+          // Verifica se há um token na memória e salva no perfil do usuário
+          if (savedToken && (!db || !db.myProfile || db.myProfile.fcmToken !== savedToken)) {
+              try { await updateUserProfile(user.uid, { fcmToken: savedToken }); } catch(e){}
+          }
+      }
+      
+      render({ navigation: true }); 
+  });
+
   onDBChange((newDb) => { db = newDb; dbReady = true; render({ navigation: false }); });
   window.addEventListener("hashchange", () => render({ navigation: true }));
   
@@ -631,6 +646,9 @@ import { uid, nowISO } from "./seed.js";
   };
 
   window.salvarTokenPush = async function(token) {
+      // Salva na memória do celular temporariamente
+      localStorage.setItem("fcm_token_temp", token);
+      
       setTimeout(async () => {
           const user = currentUser();
           if (user && user.fcmToken !== token) {
