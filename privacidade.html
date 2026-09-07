@@ -24,13 +24,24 @@
   .legal-doc li{ color:var(--ink-700); font-size:15px; line-height:1.7; margin-bottom:8px; list-style:disc; }
   .legal-doc strong{ color:var(--navy-900); }
 </style>
+
+<!-- ===== MATA O SERVICE WORKER ANTIGO PARA EVITAR ERR_FAILED ===== -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for (let registration of registrations) {
+        registration.unregister();
+      }
+    });
+  }
+</script>
 </head>
 <body>
 
 <!-- ===== HEADER ===== -->
 <header class="site-header" id="siteHeader">
   <div class="header-inner container">
-    <a href="index.html#/" class="brand">
+    <a href="#/" class="brand">
       <span class="brand-mark" aria-hidden="true">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
           <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
@@ -40,14 +51,14 @@
       <span class="brand-name">Compartilhar<em>Projetos</em></span>
     </a>
     <nav class="main-nav">
-      <a href="index.html#/explorar">Explorar</a>
-      <a href="index.html#/comunidade">Comunidade</a>
-      <a href="index.html#/planos">Planos</a>
-      <a href="index.html#/ranking">Ranking</a>
+      <a href="#/explorar">Explorar</a>
+      <a href="#/comunidade">Comunidade</a>
+      <a href="#/planos">Planos</a>
+      <a href="#/ranking">Ranking</a>
       <a href="apk.html">Baixar app</a>
     </nav>
     <div class="header-actions">
-      <a href="index.html" class="btn btn-ghost btn-sm">Voltar ao site</a>
+      <a href="/" class="btn btn-ghost btn-sm">Voltar ao site</a>
     </div>
   </div>
 </header>
@@ -112,17 +123,17 @@
     </div>
     <div class="footer-col">
       <h4>Plataforma</h4>
-      <a href="index.html#/explorar">Explorar projetos</a>
-      <a href="index.html#/comunidade">Comunidade</a>
-      <a href="index.html#/planos">Planos de assinatura</a>
-      <a href="index.html#/ranking">Ranking</a>
+      <a href="#/explorar">Explorar projetos</a>
+      <a href="#/comunidade">Comunidade</a>
+      <a href="#/planos">Planos de assinatura</a>
+      <a href="#/ranking">Ranking</a>
       <a href="https://chat.whatsapp.com/KsJrAm9H20b8qG1CrsIZKn" target="_blank" rel="noopener noreferrer">Canal no WhatsApp</a>
     </div>
     <div class="footer-col">
       <h4>Conta</h4>
       <a href="login.html">Entrar</a>
       <a href="register.html">Criar conta</a>
-      <a href="index.html#/indicacoes">Programa de indicação</a>
+      <a href="#/indicacoes">Programa de indicação</a>
     </div>
     <div class="footer-col">
       <h4>Empresa</h4>
