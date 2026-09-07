@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v8.1 - FCM Adicionado)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v8.2 - FCM + Notificações Corrigidas)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -55,35 +55,13 @@
    eliminando a race condition de duas escritas simultâneas colidirem
    no mesmo índice.
 
-   v7: NOTIFICAÇÕES. Novo nó de primeiro nível "notifications" — é
-   onde o Worker grava um aviso quando um projeto é reprovado na
-   moderação (ver handleModerateProject no worker.js), lido pelo
-   script.js para mostrar o sino no header e a lista no painel do
-   usuário. O Worker grava usando notificationsList.length como
-   índice (não push()), então diferente de posts/comments a chave
-   real do Firebase É o índice — não precisa de _fbKey/cleanKeyed,
-   clean() padrão já basta. markNotificationRead() é a única escrita
-   client-side sobre este nó (o usuário marcando a própria
-   notificação como lida) — criar/editar o conteúdo da notificação
-   continua sendo exclusividade do Worker, como subscription/role.
-
-   v8: EDITAR E REENVIAR PROJETO REJEITADO. "projects" passou a usar
-   cleanKeyed() (mesmo tratamento de "posts") — sem isso,
-   updateProject() teria que escrever usando o índice do array local,
-   e esse índice muda toda vez que um projeto é excluído em qualquer
-   posição anterior à dele, fazendo a escrita ir parar no projeto
-   errado (o mesmo bug de fundo que a v6 corrigiu para
-   addComment/addReply). Nova função updateProject() permite ao
-   dono de um projeto "rejected" reenviá-lo com os campos corrigidos
-   SEM criar um registro novo — o script.js usa isso no fluxo de
-   "Editar e reenviar" para não duplicar o projeto (antes, reenviar
-   chamava addProject() de novo e o projeto rejeitado antigo ficava
-   perdido no banco, nunca mais visível em lugar nenhum).
+   v7/v8.2: NOTIFICAÇÕES & FCM. Novo nó de primeiro nível "notifications".
+   Agora processado via cleanKeyed() para evitar erros de índice ("PERMISSION_DENIED")
+   ao marcar como lida. Inclui suporte para Push Notifications (FCM).
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-// IMPORTANTE: Adicionado import do Messaging
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 
@@ -215,10 +193,30 @@ export function addWithdrawalRequest(withdrawal) {
   return set(newRef, withdrawal).then(() => withdrawal);
 }
 
+/* ---------------------------------------------------------
+   NOTIFICAÇÕES
+--------------------------------------------------------- */
 export function markNotificationRead(notificationId) {
-  const idx = cache.notifications.findIndex((n) => n && n.id === notificationId);
-  if (idx === -1) throw new Error("Notificação não encontrada: " + notificationId);
-  return update(ref(rtdb), { [`${DB_PATH}/notifications/${idx}/read`]: true });
+  const notification = cache.notifications.find((n) => n && n.id === notificationId);
+  if (!notification || !notification._fbKey) throw new Error("Notificação não encontrada: " + notificationId);
+  
+  return update(ref(rtdb), { [`${DB_PATH}/notifications/${notification._fbKey}/read`]: true });
+}
+
+export function markAllNotificationsRead() {
+  if (!auth.currentUser) return Promise.reject(new Error("Usuário não logado"));
+  const uid = auth.currentUser.uid;
+  const patch = {};
+  
+  cache.notifications.forEach((n) => {
+    // Filtra apenas as não lidas pertencentes ao usuário logado
+    if (n && n._fbKey && !n.read && (n.userId === uid || n.ownerId === uid || n.id === uid)) {
+      patch[`${DB_PATH}/notifications/${n._fbKey}/read`] = true;
+    }
+  });
+  
+  if (Object.keys(patch).length === 0) return Promise.resolve(); // Nada para atualizar
+  return update(ref(rtdb), patch);
 }
 
 let syncGeneration = 0;
@@ -257,8 +255,8 @@ function subscribeAll() {
               c.replies = cleanKeyed(c.replies);
             });
           });
-        } else if (key === "projects") {
-          cache.projects = cleanKeyed(snapshot.exists() ? snapshot.val() : {});
+        } else if (key === "projects" || key === "notifications") {
+          cache[key] = cleanKeyed(snapshot.exists() ? snapshot.val() : {});
         } else {
           cache[key] = snapshot.exists() ? clean(snapshot.val()) : [];
         }
@@ -342,7 +340,7 @@ async function requestNotificationPermission(user) {
       });
       
       if (currentToken) {
-        // >>> MUDANÇA AQUI: Busca SOMENTE o usuário logado (Seguro) <<<
+        // Busca SOMENTE o usuário logado (Seguro)
         const usersRef = ref(rtdb, 'database/users');
         const usersQuery = query(usersRef, orderByChild('id'), equalTo(user.uid));
         const snapshot = await get(usersQuery);
