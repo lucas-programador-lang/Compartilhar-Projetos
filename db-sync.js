@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v7)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v8.1 - FCM Adicionado)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -81,8 +81,11 @@
    perdido no banco, nunca mais visível em lugar nenhum).
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
-import { ref, set, update, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import { ref, set, update, push, onValue, off, get, child } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+// IMPORTANTE: Adicionado import do Messaging
+import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
+import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 
 const DB_PATH = "database";
 const WORKER_URL = "https://api.compartilhar-projetos.com.br";
@@ -317,8 +320,55 @@ function subscribeAll() {
   }
 }
 
+// NOVA FUNÇÃO: Pede permissão e salva o token do FCM
+async function requestNotificationPermission(user) {
+  try {
+    const appInstance = getApp();
+    const messaging = getMessaging(appInstance);
+    
+    // Pede permissão do usuário
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      console.log('Permissão concedida para Push Notifications.');
+      
+      const currentToken = await getToken(messaging);
+      
+      if (currentToken) {
+        // Encontra a chave interna do Firebase para este usuário
+        const dbRef = ref(rtdb);
+        const snapshot = await get(child(dbRef, `database/users`));
+        
+        if (snapshot.exists()) {
+          const users = snapshot.val();
+          for (const key in users) {
+            if (users[key] && users[key].id === user.uid) {
+              // Se o token já for o mesmo que está salvo, não faz nada
+              if (users[key].fcmToken !== currentToken) {
+                await update(ref(rtdb, `database/users/${key}`), { fcmToken: currentToken });
+                console.log('fcmToken atualizado no banco de dados!');
+              }
+              break;
+            }
+          }
+        }
+      } else {
+        console.log('Token indisponível. Configuração do FCM pode estar incompleta.');
+      }
+    } else {
+      console.log('Permissão para notificações negada pelo usuário.');
+    }
+  } catch (error) {
+    console.error('Erro ao lidar com permissão de notificação FCM:', error);
+  }
+}
+
 subscribeAll();
 
-onAuthStateChanged(auth, () => {
+onAuthStateChanged(auth, (user) => {
   subscribeAll();
+  
+  // Se o usuário logou (ou já estava logado ao recarregar a página), pedimos o token
+  if (user) {
+    requestNotificationPermission(user);
+  }
 });
