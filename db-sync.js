@@ -321,6 +321,7 @@ function subscribeAll() {
 }
 
 // NOVA FUNÇÃO: Pede permissão e salva o token do FCM
+// NOVA FUNÇÃO: Pede permissão e salva o token do FCM
 async function requestNotificationPermission(user) {
   try {
     const appInstance = getApp();
@@ -331,7 +332,10 @@ async function requestNotificationPermission(user) {
     if (permission === 'granted') {
       console.log('Permissão concedida para Push Notifications.');
       
-      const currentToken = await getToken(messaging);
+      // >>> A MUDANÇA ESTÁ AQUI: ADICIONANDO A VAPID KEY <<<
+      const currentToken = await getToken(messaging, { 
+        vapidKey: 'BANECLiu3BpgSo-_DMH8JzoOl1PgybZSzy2yeXyTepmSAN2m53AcVr9LvAXHkv1M21_iO-XoeNIQHkohPAf7t7g' 
+      });
       
       if (currentToken) {
         // Encontra a chave interna do Firebase para este usuário
