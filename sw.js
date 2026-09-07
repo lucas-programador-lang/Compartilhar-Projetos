@@ -1,57 +1,28 @@
-const CACHE_NAME = "compartilhar-projetos-v1";
-const ASSETS_TO_CACHE = [
-  "/",
-  "/index.html",
-  "/style.css", 
-  "/script.js", 
-  "/offline.html"
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
+// FORÇA A DESINSTALAÇÃO E LIMPEZA DE CACHE
+self.addEventListener('install', (event) => {
+  // Pula a fila e ativa imediatamente
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
+    // Pega todos os caches antigos salvos no celular
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((name) => {
-          if (name !== CACHE_NAME) {
-            return caches.delete(name);
-          }
+        cacheNames.map((cacheName) => {
+          // Deleta todos sem exceção
+          return caches.delete(cacheName);
         })
       );
+    }).then(() => {
+      // Desinstala o Service Worker permanentemente
+      self.registration.unregister();
     })
   );
   self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  // Ignora requisições dinâmicas para o Firebase e Worker
-  if (event.request.url.includes("firebaseio.com") || 
-      event.request.url.includes("googleapis.com") || 
-      event.request.url.includes("api.compartilhar-projetos.com.br")) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse; // Retorna da memória instantaneamente
-      }
-      return fetch(event.request).then((networkResponse) => {
-        return networkResponse;
-      });
-    }).catch(() => {
-        // Fallback offline genérico se a rede falhar
-        if (event.request.mode === "navigate") {
-            return caches.match("/offline.html");
-        }
-    })
-  );
+self.addEventListener('fetch', (event) => {
+  // Ignora todas as interceptações de rede e deixa o app/site seguir o fluxo normal da web
+  return;
 });
