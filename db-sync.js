@@ -378,3 +378,29 @@ onAuthStateChanged(auth, (user) => {
     requestNotificationPermission(user);
   }
 });
+
+// =========================================================
+// RECEBE O TOKEN NATIVO DO APLICATIVO ANDROID (WEBVIEW)
+// =========================================================
+window.salvarTokenPush = async function(token) {
+  if (!auth.currentUser) return;
+  
+  try {
+    const usersRef = ref(rtdb, 'database/users');
+    const usersQuery = query(usersRef, orderByChild('id'), equalTo(auth.currentUser.uid));
+    const snapshot = await get(usersQuery);
+    
+    if (snapshot.exists()) {
+      const users = snapshot.val();
+      for (const key in users) {
+        if (users[key].fcmToken !== token) {
+          await update(ref(rtdb, `database/users/${key}`), { fcmToken: token });
+          console.log('Token do App Android salvo com sucesso no banco de dados!');
+        }
+        break; 
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao salvar token nativo:', error);
+  }
+};
