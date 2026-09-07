@@ -321,28 +321,28 @@ function subscribeAll() {
 }
 
 // NOVA FUNÇÃO: Pede permissão e salva o token do FCM
+// NOVA FUNÇÃO: Pede permissão e salva o token do FCM
 async function requestNotificationPermission(user) {
   try {
     const appInstance = getApp();
     const messaging = getMessaging(appInstance);
     
-    // Pede permissão do usuário
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       console.log('Permissão concedida para Push Notifications.');
       
-      // >>> PASSO EXTRA: Registra o Service Worker manualmente <<<
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('Service Worker do Firebase registrado com sucesso!');
       
-      // Gera o token usando a VAPID e informando o registration que acabamos de fazer
+      // >>> LINHA QUE FALTAVA: Aguarda o Service Worker ficar pronto <<<
+      await navigator.serviceWorker.ready;
+      console.log('Service Worker do Firebase registrado e ativo!');
+      
       const currentToken = await getToken(messaging, { 
         vapidKey: 'BANECLiu3BpgSo-_DMH8JzoOl1PgybZSzy2yeXyTepmSAN2m53AcVr9LvAXHkv1M21_iO-XoeNIQHkohPAf7t7g',
         serviceWorkerRegistration: registration
       });
       
       if (currentToken) {
-        // Encontra a chave interna do Firebase para este usuário
         const dbRef = ref(rtdb);
         const snapshot = await get(child(dbRef, `database/users`));
         
@@ -350,7 +350,6 @@ async function requestNotificationPermission(user) {
           const users = snapshot.val();
           for (const key in users) {
             if (users[key] && users[key].id === user.uid) {
-              // Se o token já for o mesmo que está salvo, não faz nada
               if (users[key].fcmToken !== currentToken) {
                 await update(ref(rtdb, `database/users/${key}`), { fcmToken: currentToken });
                 console.log('fcmToken atualizado no banco de dados!');
