@@ -373,9 +373,14 @@ subscribeAll();
 onAuthStateChanged(auth, (user) => {
   subscribeAll();
   
-  // Se o usuário logou (ou já estava logado ao recarregar a página), pedimos o token
   if (user) {
+    // 1. Tenta pedir notificação do navegador (Chrome/Edge/Desktop)
     requestNotificationPermission(user);
+
+    // 2. Avisa o Android que o usuário já logou e pode entregar o token nativo!
+    if (window.Android && typeof window.Android.solicitarTokenFCM === 'function') {
+      window.Android.solicitarTokenFCM();
+    }
   }
 });
 
