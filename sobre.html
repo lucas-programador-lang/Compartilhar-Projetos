@@ -22,17 +22,6 @@
   .faq-item{ margin-bottom:14px; }
   .faq-item h3{ font-size:16px; margin-bottom:8px; color:var(--navy-900) }
 </style>
-
-<!-- ===== MATA O SERVICE WORKER ANTIGO PARA EVITAR ERR_FAILED ===== -->
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for (let registration of registrations) {
-        registration.unregister();
-      }
-    });
-  }
-</script>
 </head>
 <body>
 
