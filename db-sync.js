@@ -321,7 +321,6 @@ function subscribeAll() {
 }
 
 // NOVA FUNÇÃO: Pede permissão e salva o token do FCM
-// NOVA FUNÇÃO: Pede permissão e salva o token do FCM
 async function requestNotificationPermission(user) {
   try {
     const appInstance = getApp();
@@ -332,9 +331,14 @@ async function requestNotificationPermission(user) {
     if (permission === 'granted') {
       console.log('Permissão concedida para Push Notifications.');
       
-      // >>> A MUDANÇA ESTÁ AQUI: ADICIONANDO A VAPID KEY <<<
+      // >>> PASSO EXTRA: Registra o Service Worker manualmente <<<
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('Service Worker do Firebase registrado com sucesso!');
+      
+      // Gera o token usando a VAPID e informando o registration que acabamos de fazer
       const currentToken = await getToken(messaging, { 
-        vapidKey: 'BANECLiu3BpgSo-_DMH8JzoOl1PgybZSzy2yeXyTepmSAN2m53AcVr9LvAXHkv1M21_iO-XoeNIQHkohPAf7t7g' 
+        vapidKey: 'BANECLiu3BpgSo-_DMH8JzoOl1PgybZSzy2yeXyTepmSAN2m53AcVr9LvAXHkv1M21_iO-XoeNIQHkohPAf7t7g',
+        serviceWorkerRegistration: registration
       });
       
       if (currentToken) {
@@ -365,7 +369,6 @@ async function requestNotificationPermission(user) {
     console.error('Erro ao lidar com permissão de notificação FCM:', error);
   }
 }
-
 subscribeAll();
 
 onAuthStateChanged(auth, (user) => {
