@@ -81,7 +81,7 @@
    perdido no banco, nunca mais visível em lugar nenhum).
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
-import { ref, set, update, push, onValue, off, get, child } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 // IMPORTANTE: Adicionado import do Messaging
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
@@ -321,7 +321,6 @@ function subscribeAll() {
 }
 
 // NOVA FUNÇÃO: Pede permissão e salva o token do FCM
-// NOVA FUNÇÃO: Pede permissão e salva o token do FCM
 async function requestNotificationPermission(user) {
   try {
     const appInstance = getApp();
@@ -333,7 +332,7 @@ async function requestNotificationPermission(user) {
       
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       
-      // >>> LINHA QUE FALTAVA: Aguarda o Service Worker ficar pronto <<<
+      // Aguarda o Service Worker ficar pronto
       await navigator.serviceWorker.ready;
       console.log('Service Worker do Firebase registrado e ativo!');
       
@@ -343,20 +342,23 @@ async function requestNotificationPermission(user) {
       });
       
       if (currentToken) {
-        const dbRef = ref(rtdb);
-        const snapshot = await get(child(dbRef, `database/users`));
+        // >>> MUDANÇA AQUI: Busca SOMENTE o usuário logado (Seguro) <<<
+        const usersRef = ref(rtdb, 'database/users');
+        const usersQuery = query(usersRef, orderByChild('id'), equalTo(user.uid));
+        const snapshot = await get(usersQuery);
         
         if (snapshot.exists()) {
           const users = snapshot.val();
           for (const key in users) {
-            if (users[key] && users[key].id === user.uid) {
-              if (users[key].fcmToken !== currentToken) {
-                await update(ref(rtdb, `database/users/${key}`), { fcmToken: currentToken });
-                console.log('fcmToken atualizado no banco de dados!');
-              }
-              break;
+            // A busca já filtrou, então garantimos que é ele mesmo
+            if (users[key].fcmToken !== currentToken) {
+              await update(ref(rtdb, `database/users/${key}`), { fcmToken: currentToken });
+              console.log('fcmToken atualizado no banco de dados!');
             }
+            break; // Só precisa atualizar uma vez
           }
+        } else {
+          console.log('Usuário não encontrado no nó de busca.');
         }
       } else {
         console.log('Token indisponível. Configuração do FCM pode estar incompleta.');
