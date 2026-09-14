@@ -820,47 +820,66 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
    BANNER DE CONSENTIMENTO DE COOKIES (LGPD)
    ========================================================= */
 #cookieConsentBanner{
-  position:fixed;left:0;right:0;bottom:0;z-index:9999;
-  background:linear-gradient(180deg,var(--navy-900),var(--navy-950));
-  color:#dfe6f6;
-  border-top:1px solid rgba(220,174,44,.18);
-  box-shadow:0 -18px 44px rgba(4,11,26,.35);
-  padding:18px clamp(14px,4vw,24px) calc(18px + env(safe-area-inset-bottom, 0px));
-  transition:opacity .25s ease, transform .25s ease;
+  position:fixed;left:24px;bottom:24px;z-index:9999;
+  max-width:400px;width:calc(100% - 48px);
+  transition:opacity .28s ease, transform .28s ease;
 }
 #cookieConsentBanner.cookie-consent-hidden{
-  opacity:0;transform:translateY(16px);pointer-events:none;
+  opacity:0;transform:translateY(16px) scale(.98);pointer-events:none;
 }
-.cookie-consent-inner{
-  max-width:var(--container-max);margin:0 auto;
-  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;
+.cookie-consent-card{
+  display:flex;align-items:flex-start;gap:14px;
+  background:linear-gradient(165deg,var(--navy-900),var(--navy-950));
+  border:1px solid rgba(220,174,44,.22);
+  border-radius:var(--radius-lg);
+  box-shadow:0 24px 56px rgba(4,11,26,.45), 0 0 0 1px rgba(255,255,255,.02) inset;
+  padding:22px;
+  animation:cookieCardIn .35s cubic-bezier(.2,.8,.3,1.15);
+}
+@keyframes cookieCardIn{
+  from{opacity:0;transform:translateY(18px) scale(.97)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.cookie-consent-icon{
+  flex:none;width:42px;height:42px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--gold-vibrant-1),var(--gold-vibrant-2));
+  color:var(--navy-950);
+  box-shadow:0 8px 18px rgba(200,147,10,.32);
+}
+.cookie-consent-body{flex:1;min-width:0}
+.cookie-consent-title{
+  font-family:var(--font-display);font-size:15.5px;font-weight:700;
+  color:#fff;margin-bottom:8px;letter-spacing:-.01em;
 }
 .cookie-consent-text{
-  flex:1 1 340px;margin:0;font-size:13.5px;line-height:1.6;color:#c3cdea;
+  margin:0 0 18px;font-size:13.5px;line-height:1.65;color:#b7c1e0;
 }
-.cookie-consent-text a{color:var(--gold-300);font-weight:600;text-decoration:underline}
+.cookie-consent-text a{color:var(--gold-300);font-weight:600;text-decoration:underline;text-underline-offset:2px}
 .cookie-consent-text a:hover{color:var(--gold-vibrant-1)}
-.cookie-consent-actions{display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.cookie-consent-actions{display:flex;flex-direction:column;gap:8px}
 .cookie-consent-btn{
   display:inline-flex;align-items:center;justify-content:center;
-  border:none;border-radius:var(--radius-pill);
-  padding:11px 20px;font-size:13.5px;font-weight:700;font-family:var(--font-body);
-  transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
-  white-space:nowrap;
+  border:none;border-radius:var(--radius-pill);width:100%;
+  padding:11px 18px;font-size:13.5px;font-weight:700;font-family:var(--font-body);
+  transition:transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
 }
 .cookie-consent-btn-primary{
   background:linear-gradient(135deg,var(--gold-vibrant-1),var(--gold-vibrant-2));
   color:var(--navy-950);
-  box-shadow:0 10px 24px rgba(200,147,10,.30);
+  box-shadow:0 10px 22px rgba(200,147,10,.30);
+  order:-1;
 }
-.cookie-consent-btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 32px rgba(200,147,10,.38)}
+.cookie-consent-btn-primary:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(200,147,10,.38)}
 .cookie-consent-btn-ghost{
-  background:transparent;color:#dfe6f6;border:1.5px solid rgba(255,255,255,.22);
+  background:transparent;color:#c3cdea;border:1.5px solid rgba(255,255,255,.16);
 }
-.cookie-consent-btn-ghost:hover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.06)}
+.cookie-consent-btn-ghost:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.05);color:#fff}
 
 @media (max-width:600px){
-  #cookieConsentBanner{padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
-  .cookie-consent-actions{width:100%}
-  .cookie-consent-btn{flex:1}
+  #cookieConsentBanner{
+    left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+    width:auto;max-width:none;
+  }
+  .cookie-consent-card{padding:18px}
 }
