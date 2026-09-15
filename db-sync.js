@@ -67,6 +67,7 @@ import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.
 
 const DB_PATH = "database";
 const WORKER_URL = "https://api.compartilhar-projetos.com.br";
+const NOTIFY_WORKER_URL = "https://worker-notificacoes.lucas-dev-programador.workers.dev";
 const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications", "rankingPrizes"];
 let cache = emptyCache();
 const listeners = [];
@@ -147,6 +148,34 @@ export async function updateUserProfile(userId, { name, bio, document } = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || "Erro ao atualizar perfil");
   return data;
+}
+
+/**
+ * Envia uma notificação push via o Worker dedicado de notificações
+ * (worker-notificacoes). Aceita "targetUserId" (um usuário) ou
+ * "targetUserIds" (vários — só funciona se quem está logado for admin,
+ * o próprio Worker confere isso).
+ *
+ * Nunca lança erro para quem chamou: notificação push é um "extra" que
+ * não pode travar a ação principal (comentar, aprovar saque etc.) caso
+ * o envio falhe por qualquer motivo (usuário sem token salvo, worker
+ * fora do ar, etc.).
+ */
+export async function enviarNotificacaoPush({ targetUserId, targetUserIds, title, body, data } = {}) {
+  if (!auth.currentUser) return;
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    await fetch(`${NOTIFY_WORKER_URL}/notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + idToken,
+      },
+      body: JSON.stringify({ targetUserId, targetUserIds, title, body, data }),
+    });
+  } catch (error) {
+    console.error("Erro ao enviar notificação push:", error);
+  }
 }
 
 export function addProject(project) {
