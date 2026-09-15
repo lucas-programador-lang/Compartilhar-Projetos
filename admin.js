@@ -8,7 +8,7 @@
 import { auth, rtdb } from "./firebase-config.js"; 
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
-import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
+import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush } from "./db-sync.js";
 
 (function () {
   "use strict";
@@ -412,8 +412,36 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
         return `<tr><td>${escapeHtml(userById(w.userId)?.name || "—")}</td><td>${fmtBRL(w.amount)}</td><td class="muted" style="font-family:var(--font-mono);font-size:12.5px">${escapeHtml(w.pixKey || "—")}</td><td>${fmtDate(w.createdAt)}</td><td><span class="badge ${label[0]}">${label[1]}</span></td><td class="flex gap-1">${w.status === "pending" ? `<button class="btn btn-sm btn-primary" data-approve="${w.id}">Aprovar</button><button class="btn btn-sm btn-danger" data-reject="${w.id}">Recusar</button>` : `<span class="muted" style="font-size:12px">Concluído</span>`}</td></tr>`;
       }).join("") || `<tr><td colspan="6" class="muted text-center">Nenhuma solicitação de saque (mínimo ${fmtBRL(MIN_WITHDRAW)}).</td></tr>`;
 
-    qsa("[data-approve]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => { await adminFetch("/admin/withdrawal-decision", { withdrawalId: btn.getAttribute("data-approve"), decision: "approved" }); toast("Saque aprovado.", "success"); renderAll(); })));
-    qsa("[data-reject]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => { await adminFetch("/admin/withdrawal-decision", { withdrawalId: btn.getAttribute("data-reject"), decision: "rejected" }); toast("Saque recusado.", "success"); renderAll(); })));
+    qsa("[data-approve]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => {
+      const withdrawalId = btn.getAttribute("data-approve");
+      const withdrawal = db.withdrawals.find((w) => w.id === withdrawalId);
+      await adminFetch("/admin/withdrawal-decision", { withdrawalId, decision: "approved" });
+      if (withdrawal) {
+        enviarNotificacaoPush({
+          targetUserId: withdrawal.userId,
+          title: "Saque aprovado",
+          body: `Seu saque de ${fmtBRL(withdrawal.amount)} foi aprovado.`,
+          data: { tipo: "saque_aprovado", withdrawalId },
+        });
+      }
+      toast("Saque aprovado.", "success");
+      renderAll();
+    })));
+    qsa("[data-reject]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => {
+      const withdrawalId = btn.getAttribute("data-reject");
+      const withdrawal = db.withdrawals.find((w) => w.id === withdrawalId);
+      await adminFetch("/admin/withdrawal-decision", { withdrawalId, decision: "rejected" });
+      if (withdrawal) {
+        enviarNotificacaoPush({
+          targetUserId: withdrawal.userId,
+          title: "Saque recusado",
+          body: `Seu saque de ${fmtBRL(withdrawal.amount)} foi recusado.`,
+          data: { tipo: "saque_recusado", withdrawalId },
+        });
+      }
+      toast("Saque recusado.", "success");
+      renderAll();
+    })));
   }
 
   /* ---------------------------------------------------------
@@ -528,6 +556,24 @@ import { getDB, onDBChange, isDBSynced } from "./db-sync.js";
     bindRejectModal();
     const userSearch = qs("#userSearch");
     if (userSearch && !userSearch.dataset.bound) { userSearch.dataset.bound = "1"; userSearch.addEventListener("input", (e) => { currentUserFilter = e.target.value; renderUsers(currentUserFilter); }); }
+    const notifyBtn = qs("#notifyBroadcastBtn");
+    if (notifyBtn && !notifyBtn.dataset.bound) {
+      notifyBtn.dataset.bound = "1";
+      notifyBtn.addEventListener("click", () =>
+        withButtonLock(notifyBtn, async () => {
+          const title = qs("#notifyTitle").value.trim();
+          const body = qs("#notifyBody").value.trim();
+          if (!title || !body) { toast("Preencha o título e a mensagem.", "error"); return; }
+          const ok = await confirmAction(`Enviar este aviso para todos os usuários (${db.users.length})?`, { title: "Enviar aviso geral", neutral: true, confirmLabel: "Sim, enviar" });
+          if (!ok) return;
+          const targetUserIds = db.users.filter((u) => u && u.id).map((u) => u.id);
+          await enviarNotificacaoPush({ targetUserIds, title, body, data: { tipo: "aviso_geral" } });
+          qs("#notifyTitle").value = "";
+          qs("#notifyBody").value = "";
+          toast("Aviso enviado.", "success");
+        })
+      );
+    }
     const projectSearch = qs("#projectSearch");
     if (projectSearch && !projectSearch.dataset.bound) { projectSearch.dataset.bound = "1"; projectSearch.addEventListener("input", (e) => { currentProjectFilter = e.target.value; renderProjects(currentProjectFilter); }); }
     const catForm = qs("#catForm");
