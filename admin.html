@@ -187,6 +187,15 @@
     <!-- USUÁRIOS -->
     <section class="section-block" id="sec-usuarios">
       <div class="admin-head"><div><h1>Usuários</h1><p>Gerencie contas, permissões e suspensões.</p></div></div>
+
+      <div class="panel" style="margin-bottom:22px">
+        <div class="panel-head"><h3>Enviar aviso geral (notificação push)</h3></div>
+        <p class="muted" style="font-size:13.5px;margin-bottom:16px">Envia uma notificação para todos os usuários que já têm o app/site com notificações ativadas.</p>
+        <div class="field"><label>Título</label><input type="text" id="notifyTitle" placeholder="Ex.: Novidade no Compartilhar Projetos"></div>
+        <div class="field"><label>Mensagem</label><textarea id="notifyBody" rows="3" placeholder="Escreva o texto do aviso…"></textarea></div>
+        <button class="btn btn-gold" id="notifyBroadcastBtn">Enviar para todos os usuários</button>
+      </div>
+
       <div class="toolbar"><input type="search" id="userSearch" class="search-input" placeholder="Buscar por nome ou e-mail…" style="max-width:320px"></div>
       <div class="panel"><div class="table-wrap"><table class="data-table" id="usersTable">
         <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Assinatura</th><th>Status</th><th>Ações</th></tr></thead>
@@ -346,5 +355,6 @@
     window.addEventListener('resize', update);
   });
 </script>
+<script src="/cookie-consent.js"></script>
 </body>
 </html>
