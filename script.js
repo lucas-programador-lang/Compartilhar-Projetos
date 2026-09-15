@@ -8,7 +8,7 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead,
+  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush,
 } from "./db-sync.js";
 import { uid, nowISO } from "./seed.js";
 
@@ -212,7 +212,17 @@ import { uid, nowISO } from "./seed.js";
     const post = db.posts.find((p) => p.id === postId);
     if (!post) throw new Error("Publicação não encontrada.");
     const comment = { id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] };
-    return addComment(postId, comment);
+    const resultado = addComment(postId, comment);
+    // Avisa o dono do post, se não for a mesma pessoa comentando no próprio post.
+    if (post.authorId && post.authorId !== user.id) {
+      enviarNotificacaoPush({
+        targetUserId: post.authorId,
+        title: "Novo comentário",
+        body: `${user.name} comentou na sua publicação.`,
+        data: { tipo: "comentario", postId },
+      });
+    }
+    return resultado;
   }
 
   function createReply(postId, commentId, content) {
@@ -224,7 +234,17 @@ import { uid, nowISO } from "./seed.js";
     const comment = post && post.comments.find((c) => c.id === commentId);
     if (!comment) throw new Error("Comentário não encontrado.");
     const reply = { id: uid("rp"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO() };
-    return addReply(postId, commentId, reply);
+    const resultado = addReply(postId, commentId, reply);
+    // Avisa o autor do comentário, se não for a mesma pessoa respondendo a si mesma.
+    if (comment.authorId && comment.authorId !== user.id) {
+      enviarNotificacaoPush({
+        targetUserId: comment.authorId,
+        title: "Nova resposta",
+        body: `${user.name} respondeu ao seu comentário.`,
+        data: { tipo: "resposta", postId },
+      });
+    }
+    return resultado;
   }
 
   function requestWithdrawal(amount, pixKey) {
