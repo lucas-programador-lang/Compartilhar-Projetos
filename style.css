@@ -1051,3 +1051,17 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 [data-theme="dark"] .empty-state {
   background-color: rgba(255,255,255,.02);
 }
+
+/* =========================================================
+   AJUSTES ESPECÍFICOS DO PAINEL ADMIN NO MODO ESCURO
+   ========================================================= */
+[data-theme="dark"] .admin-head h1 {
+  color: var(--ink-900);
+}
+
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .select-input {
+  background-color: #131b2b;
+  color: var(--ink-900);
+  border-color: rgba(255, 255, 255, 0.1);
+}
