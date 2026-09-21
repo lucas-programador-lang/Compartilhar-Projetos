@@ -885,37 +885,44 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MODO ESCURO (NIGHT MODE)
+   MODO ESCURO (NIGHT MODE) - VERDADEIRO (PRETO/GRAFITE)
    ========================================================= */
 [data-theme="dark"] {
-  /* Fundos escuros usando sua paleta Navy */
-  --bg: var(--navy-950);
-  --surface: var(--navy-900);
-  --surface-alt: var(--navy-800);
-  --surface-warm: #0a1224; 
+  /* Substitui o azul por Grafite/Preto elegante */
+  --bg: #09090b;
+  --surface: #141417;
+  --surface-alt: #1f1f24;
+  --surface-warm: #141417; 
   
   /* Textos claros para contraste */
-  --ink-900: #ffffff;
-  --ink-700: #c6d1ef;
-  --ink-600: #a9b7dd;
-  --ink-500: #8892ab;
-  --ink-400: #68748f;
+  --ink-900: #fafafa;
+  --ink-700: #a1a1aa;
+  --ink-600: #71717a;
+  --ink-500: #52525b;
+  --ink-400: #3f3f46;
   
-  /* Bordas translúcidas */
+  /* Bordas translúcidas sutis */
   --border: rgba(255, 255, 255, 0.12);
   --border-soft: rgba(255, 255, 255, 0.05);
+
+  /* Sobrescreve as variáveis navy globais para os cards que as usam */
+  --navy-950: #09090b;
+  --navy-900: #141417;
+  --navy-800: #1f1f24;
+  --navy-700: #27272a;
 }
 
 /* Ajustes específicos de componentes no Modo Escuro */
 [data-theme="dark"] body {
+  /* Tira o "brilho azul" de fundo e deixa mais neutro com leve toque de dourado */
   background-image: 
-    radial-gradient(1200px 680px at 6% -10%, rgba(26,73,214,.16), transparent 55%),
-    radial-gradient(950px 560px at 102% -4%, rgba(220,174,44,.15), transparent 52%),
-    linear-gradient(180deg, var(--navy-950) 0%, #050b18 100%);
+    radial-gradient(1200px 680px at 6% -10%, rgba(255,255,255,.03), transparent 55%),
+    radial-gradient(950px 560px at 102% -4%, rgba(220,174,44,.08), transparent 52%),
+    linear-gradient(180deg, #09090b 0%, #000000 100%);
 }
 
 [data-theme="dark"] .site-header {
-  background: rgba(8, 23, 54, 0.85); /* --navy-900 com transparência */
+  background: rgba(20, 20, 23, 0.85); /* Cinza muito escuro com transparência */
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -925,7 +932,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 [data-theme="dark"] .panel,
 [data-theme="dark"] .stat-card,
 [data-theme="dark"] .plan-card {
-  background: linear-gradient(180deg, var(--navy-900), var(--navy-950));
+  background: linear-gradient(180deg, #141417, #09090b);
 }
 
 [data-theme="dark"] input, 
@@ -934,11 +941,11 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 [data-theme="dark"] .modal-box,
 [data-theme="dark"] .mobile-nav,
 [data-theme="dark"] .user-menu {
-  background-color: var(--navy-900);
+  background-color: #141417;
   color: #ffffff;
 }
 
 [data-theme="dark"] .data-table--sticky-first td:first-child,
 [data-theme="dark"] .data-table--sticky-first th:first-child {
-  background-color: var(--navy-900);
+  background-color: #141417;
 }
