@@ -885,80 +885,83 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MODO ESCURO (NIGHT MODE) - VERDADEIRO (PRETO/GRAFITE)
+   MODO ESCURO (NIGHT MODE) - "MIDNIGHT PREMIUM"
    ========================================================= */
 [data-theme="dark"] {
-  /* Fundos principais (Grafite/Preto) */
-  --bg: #09090b;
-  --surface: #141417;
-  --surface-alt: #1f1f24;
-  --surface-warm: #141417; 
+  /* Fundos: Grafite escuro com um toque imperceptível de azul (Slate) */
+  --bg: #0b0f17;
+  --surface: #131b2b;
+  --surface-alt: #1a2335;
+  --surface-warm: #131b2b; 
   
-  /* Textos claros para contraste perfeito */
-  --ink-900: #fafafa;
-  --ink-700: #a1a1aa;
-  --ink-600: #71717a;
-  --ink-500: #52525b;
-  --ink-400: #3f3f46;
+  /* Tipografia: Tons de gelo e cinza (nunca branco puro) para não cansar a vista */
+  --ink-900: #f8fafc; /* Títulos (Gelo) */
+  --ink-700: #cbd5e1; /* Textos principais (Cinza claro) */
+  --ink-600: #94a3b8; /* Textos secundários (Cinza médio) */
+  --ink-500: #64748b; /* Textos de apoio */
+  --ink-400: #475569;
   
-  /* Bordas translúcidas sutis */
-  --border: rgba(255, 255, 255, 0.12);
-  --border-soft: rgba(255, 255, 255, 0.05);
+  /* Bordas ultra suaves estilo Apple */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-soft: rgba(255, 255, 255, 0.04);
+  --border-gold: rgba(220, 174, 44, 0.15);
 
-  /* Sobrescreve as variáveis navy globais para os fundos */
-  --navy-950: #09090b;
-  --navy-900: #141417;
-  --navy-800: #1f1f24;
-  --navy-700: #27272a;
-
-  /* Ajusta as cores de fundo de alertas/badges para o modo escuro */
-  --success-bg: rgba(14, 143, 96, 0.15);
-  --success: #4ade80;
-  --danger-bg: rgba(207, 53, 39, 0.15);
-  --danger: #f87171;
-  --warning-bg: rgba(150, 112, 11, 0.15);
-  --warning: #fbbf24;
-  --blue-100: rgba(26, 73, 214, 0.15);
-  --blue-700: #60a5fa;
-  --gold-100: rgba(220, 174, 44, 0.15);
-  --gold-700: #fcd34d;
+  /* Fundos de Alertas escurecidos para manter a harmonia */
+  --success-bg: rgba(14, 143, 96, 0.12);
+  --danger-bg: rgba(207, 53, 39, 0.12);
+  --warning-bg: rgba(150, 112, 11, 0.12);
+  --blue-100: rgba(26, 73, 214, 0.12);
+  --gold-100: rgba(220, 174, 44, 0.12);
 }
 
-/* CORREÇÃO DO TEXTO INVISÍVEL: 
-   Força os títulos e textos em negrito a ficarem brancos! */
+/* 
+  CORREÇÃO DE HIERARQUIA VISUAL
+  Redefine a cor dos títulos sem quebrar os fundos que usavam a mesma variável
+*/
+[data-theme="dark"] .brand-name,
 [data-theme="dark"] h1,
 [data-theme="dark"] h2,
 [data-theme="dark"] h3,
 [data-theme="dark"] h4,
 [data-theme="dark"] h5,
-[data-theme="dark"] h6,
 [data-theme="dark"] strong,
 [data-theme="dark"] .stat-value,
 [data-theme="dark"] .plan-price,
 [data-theme="dark"] .pd-row span:last-child {
-  color: #fafafa !important;
+  color: var(--ink-900);
 }
 
-/* Ajustes específicos de componentes no Modo Escuro */
+[data-theme="dark"] p,
+[data-theme="dark"] .sub,
+[data-theme="dark"] .pc-body p,
+[data-theme="dark"] .step-card p,
+[data-theme="dark"] .plan-features li {
+  color: var(--ink-700);
+}
+
+/* 
+  PROFUNDIDADE DOS CARDS E PAINÉIS 
+*/
 [data-theme="dark"] body {
   background-image: 
-    radial-gradient(1200px 680px at 6% -10%, rgba(255,255,255,.03), transparent 55%),
-    radial-gradient(950px 560px at 102% -4%, rgba(220,174,44,.08), transparent 52%),
-    linear-gradient(180deg, #09090b 0%, #000000 100%);
+    radial-gradient(1200px 680px at 6% -10%, rgba(26, 73, 214, 0.06), transparent 55%),
+    radial-gradient(950px 560px at 102% -4%, rgba(220, 174, 44, 0.06), transparent 52%),
+    linear-gradient(180deg, #0b0f17 0%, #07090e 100%);
 }
 
 [data-theme="dark"] .site-header {
-  background: rgba(20, 20, 23, 0.85);
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  background: rgba(11, 15, 23, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
-
-[data-theme="dark"] .brand-name { color: #ffffff !important; }
 
 [data-theme="dark"] .project-card,
 [data-theme="dark"] .panel,
 [data-theme="dark"] .stat-card,
-[data-theme="dark"] .plan-card {
-  background: linear-gradient(180deg, #141417, #09090b);
+[data-theme="dark"] .plan-card,
+[data-theme="dark"] .auth-card {
+  background: linear-gradient(180deg, #131b2b, #0e1420);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-color: var(--border);
 }
 
 [data-theme="dark"] input, 
@@ -967,11 +970,16 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 [data-theme="dark"] .modal-box,
 [data-theme="dark"] .mobile-nav,
 [data-theme="dark"] .user-menu {
-  background-color: #141417;
-  color: #ffffff;
+  background-color: #131b2b;
+  color: var(--ink-900);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme="dark"] .data-table--sticky-first td:first-child,
 [data-theme="dark"] .data-table--sticky-first th:first-child {
-  background-color: #141417;
+  background-color: #131b2b;
+}
+
+[data-theme="dark"] .empty-state {
+  background-color: rgba(255, 255, 255, 0.02);
 }
