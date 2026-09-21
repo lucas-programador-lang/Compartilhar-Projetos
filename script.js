@@ -589,7 +589,40 @@ import { uid, nowISO } from "./seed.js";
     if (copyBtn) { 
         copyBtn.addEventListener("click", () => { 
             const linkText = qs("#refLinkText").textContent;
-            window.compartilharConteudo("Meu Convite", "Vem publicar seus projetos na plataforma e fazer networking!", linkText);
+            
+            // Checa se é mobile para tentar abrir a aba de compartilhar nativa
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile && (typeof Android !== "undefined" || navigator.share)) {
+                window.compartilharConteudo("Meu Convite", "Vem publicar seus projetos na plataforma e fazer networking!", linkText);
+            } else {
+                // No PC, apenas copia o texto direto
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(linkText)
+                        .then(() => toast("Link copiado!", "success"))
+                        .catch(() => fallbackCopy(linkText));
+                } else {
+                    fallbackCopy(linkText);
+                }
+            }
+
+            // Fallback infalível para navegadores de computador
+            function fallbackCopy(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed"; // Evita que a tela role
+                textArea.style.opacity = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    toast("Link copiado!", "success");
+                } catch (err) {
+                    toast("Erro ao copiar o link.", "error");
+                }
+                document.body.removeChild(textArea);
+            }
         }); 
     }
     
