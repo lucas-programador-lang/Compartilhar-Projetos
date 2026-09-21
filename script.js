@@ -722,12 +722,93 @@ const copyBtn = qs("#copyRefLink");
   };
 
   window.compartilharConteudo = function(titulo, texto, url) {
-      if (typeof Android !== "undefined" && Android.compartilhar) {
-          Android.compartilhar(titulo, texto, url); 
-      } else if (navigator.share) {
-          navigator.share({ title: titulo, text: texto, url: url }).catch(console.error); 
-      } else {
-          navigator.clipboard.writeText(url).then(() => toast("Link copiado!", "success")); 
+      // Remove o modal anterior se existir
+      let existing = document.getElementById("customShareModal");
+      if (existing) existing.remove();
+
+      // Cria a tela de fundo escura do Modal
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay open";
+      overlay.id = "customShareModal";
+      
+      // Codifica os textos para funcionarem em links de URL
+      const encUrl = encodeURIComponent(url);
+      const encText = encodeURIComponent(texto);
+      const encWa = encodeURIComponent(texto + " " + url);
+
+      // Constrói o HTML do Modal com os ícones das redes sociais (SVG)
+      overlay.innerHTML = `
+        <div class="modal-box" style="max-width:380px; text-align:center; padding: 32px 24px;">
+          <button type="button" class="modal-close" id="shareCloseBtn" aria-label="Fechar">×</button>
+          <h2 style="font-size: 20px; margin-bottom: 8px;">Compartilhar</h2>
+          <p class="sub" style="margin-bottom: 24px;">Escolha onde deseja divulgar este link:</p>
+          
+          <!-- BOTÕES DAS REDES SOCIAIS -->
+          <div style="display:flex; justify-content:center; gap:16px; margin-bottom:28px;">
+              <!-- WhatsApp -->
+              <a href="https://api.whatsapp.com/send?text=${encWa}" target="_blank" aria-label="WhatsApp" style="width:48px; height:48px; border-radius:50%; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; transition: transform 0.2s;">
+                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.548 4.168 1.591 5.981L.065 23.498l5.632-1.478A11.97 11.97 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.844 17.279c-.18.508-.918.966-1.439 1.054-.42.072-1.002.164-2.857-.604-2.222-.921-3.64-3.21-3.712-3.305-.072-.096-.885-1.18-.885-2.253 0-1.073.557-1.602.753-1.819.196-.217.426-.271.574-.271.148 0 .295 0 .426.006.136.006.319-.053.492.366.18.434.623 1.52.678 1.635.056.114.092.247.018.397-.074.15-.114.247-.23.367-.115.12-.246.265-.344.355-.106.096-.219.204-.102.409.117.205.522.864 1.118 1.396.771.688 1.41 1.007 1.614 1.109.204.102.327.084.45-.054.123-.138.528-.616.669-.827.14-.211.282-.175.467-.102.185.072 1.18.558 1.384.66.204.102.34.156.39.246.049.09.049.522-.131 1.03z"/></svg>
+              </a>
+              <!-- Facebook -->
+              <a href="https://www.facebook.com/sharer/sharer.php?u=${encUrl}" target="_blank" aria-label="Facebook" style="width:48px; height:48px; border-radius:50%; background:#1877F2; color:#fff; display:flex; align-items:center; justify-content:center; transition: transform 0.2s;">
+                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </a>
+              <!-- Twitter (X) -->
+              <a href="https://twitter.com/intent/tweet?text=${encText}&url=${encUrl}" target="_blank" aria-label="X (Twitter)" style="width:48px; height:48px; border-radius:50%; background:#000000; color:#fff; display:flex; align-items:center; justify-content:center; transition: transform 0.2s;">
+                  <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+              </a>
+              <!-- LinkedIn -->
+              <a href="https://www.linkedin.com/shareArticle?mini=true&url=${encUrl}&title=${encodeURIComponent(titulo)}" target="_blank" aria-label="LinkedIn" style="width:48px; height:48px; border-radius:50%; background:#0A66C2; color:#fff; display:flex; align-items:center; justify-content:center; transition: transform 0.2s;">
+                  <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              </a>
+          </div>
+          
+          <!-- CAMPO COPIAR LINK -->
+          <div style="display:flex; gap:8px; align-items:center; background: var(--surface-alt); padding: 6px; border-radius: var(--radius-pill); border: 1px solid var(--border);">
+              <input type="text" readonly value="${url}" style="flex:1; border:none; background:transparent; font-size:12px; padding: 0 10px; color: var(--ink-700); outline:none;">
+              <button id="modalCopyBtn" class="btn btn-primary btn-sm" style="border-radius: var(--radius-pill); padding: 8px 16px;">Copiar</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      // Fecha o Modal ao clicar no [x]
+      document.getElementById("shareCloseBtn").addEventListener("click", () => overlay.remove());
+      
+      // Função de Copiar Link dentro do Modal
+      document.getElementById("modalCopyBtn").addEventListener("click", () => {
+          if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(url)
+                  .then(() => { toast("Link copiado!", "success"); overlay.remove(); })
+                  .catch(() => fallbackCopy(url));
+          } else {
+              fallbackCopy(url);
+          }
+      });
+
+      // Efeito de "Pulo" nos ícones ao passar o mouse
+      overlay.querySelectorAll("a").forEach(btn => {
+          btn.addEventListener("mouseenter", () => btn.style.transform = "scale(1.1)");
+          btn.addEventListener("mouseleave", () => btn.style.transform = "scale(1)");
+      });
+
+      // Método alternativo para copiar (caso o navegador bloqueie o moderno)
+      function fallbackCopy(text) {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.opacity = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+              document.execCommand('copy');
+              toast("Link copiado!", "success");
+              overlay.remove();
+          } catch (err) {
+              toast("Erro ao copiar.", "error");
+          }
+          document.body.removeChild(textArea);
       }
   };
 
