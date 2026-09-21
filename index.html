@@ -20,6 +20,14 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
 <link rel="manifest" href="/manifest.json">
+
+<!-- MEMÓRIA DE TEMA ANTI-PISCAR -->
+<script>
+  if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
 </head>
 <body>
 
@@ -46,6 +54,11 @@
     </nav>
 
     <div class="header-actions">
+      <!-- Botão de Tema -->
+      <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding: 6px 10px; margin-right: 8px; color: var(--text-main); display: flex; align-items: center; justify-content: center; border: none;">
+        <span id="themeIcon"></span>
+      </button>
+
       <div class="guest-only header-guest-actions">
         <a href="login.html" class="btn btn-ghost btn-sm">Entrar</a>
         <a href="register.html" class="btn btn-primary btn-sm">Cadastrar</a>
