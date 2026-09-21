@@ -584,8 +584,7 @@ import { uid, nowISO } from "./seed.js";
 
     const profileForm = qs("#profileForm");
     if (profileForm) { profileForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(profileForm); const user = currentUser(); const rawDoc = fd.get("document"); const digits = onlyDigits(rawDoc); if (digits && !isValidDocument(digits)) { toast("CPF/CNPJ inválido.", "error"); return; } updateUserProfile(user.id, { name: fd.get("name").trim() || user.name, bio: sanitizeText(fd.get("bio") || ""), document: digits || user.document || "", }).then(() => toast("Perfil atualizado!", "success")).catch((err) => toast(err.message, "error")); }); }
-
-    const copyBtn = qs("#copyRefLink"); 
+const copyBtn = qs("#copyRefLink"); 
     if (copyBtn) { 
         copyBtn.addEventListener("click", () => { 
             const linkText = qs("#refLinkText").textContent;
@@ -594,7 +593,11 @@ import { uid, nowISO } from "./seed.js";
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
             if (isMobile && (typeof Android !== "undefined" || navigator.share)) {
-                window.compartilharConteudo("Meu Convite", "Vem publicar seus projetos na plataforma e fazer networking!", linkText);
+                window.compartilharConteudo(
+                    "Convite: Compartilhar Projetos", 
+                    "Faça parte da nossa vitrine de criadores e desenvolvedores. Cadastre-se gratuitamente, publique seu portfólio e dê mais visibilidade às suas ideias!", 
+                    linkText
+                );
             } else {
                 // No PC, apenas copia o texto direto
                 if (navigator.clipboard && window.isSecureContext) {
@@ -625,7 +628,6 @@ import { uid, nowISO } from "./seed.js";
             }
         }); 
     }
-    
     const withdrawForm = qs("#withdrawForm"); if (withdrawForm) { withdrawForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(withdrawForm); Promise.resolve().then(() => requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey"))).then(() => { toast("Saque enviado!", "success"); render({ navigation: false }); }).catch((err) => toast(err.message, "error")); }); }
   }
 
