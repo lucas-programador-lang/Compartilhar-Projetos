@@ -14,6 +14,14 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
 <link rel="manifest" href="/manifest.json">
+
+<!-- MEMÓRIA DE TEMA ANTI-PISCAR -->
+<script>
+  if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
 </head>
 <body>
 <header class="site-header">
@@ -28,6 +36,11 @@
       <span class="brand-name">Compartilhar<em>Projetos</em></span>
     </a>
     <div class="header-actions">
+      <!-- Botão de Tema -->
+      <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding: 6px 10px; margin-right: 8px; color: var(--text-main); display: flex; align-items: center; justify-content: center; border: none;">
+        <span id="themeIcon"></span>
+      </button>
+
       <a href="register.html" class="btn btn-primary btn-sm">Criar conta grátis</a>
     </div>
   </div>
@@ -75,6 +88,38 @@
     });
   }
 </script>
+
+<!-- SCRIPT DO TEMA -->
+<script>
+  (function() {
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    if (!themeToggle || !themeIcon) return;
+
+    const iconSun = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+    const iconMoon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      themeIcon.innerHTML = iconSun;
+    } else {
+      themeIcon.innerHTML = iconMoon;
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      if (currentTheme === 'dark') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+        themeIcon.innerHTML = iconMoon;
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        themeIcon.innerHTML = iconSun;
+      }
+    });
+  })();
+</script>
+
 <script src="/cookie-consent.js"></script>
 </body>
 </html>
