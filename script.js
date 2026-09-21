@@ -721,7 +721,7 @@ const copyBtn = qs("#copyRefLink");
       toast("Conexão perdida. O aplicativo recarregará quando a rede voltar.", "error");
   };
 
-  window.compartilharConteudo = function(titulo, texto, url) {
+window.compartilharConteudo = function(titulo, texto, url) {
       // Remove o modal anterior se existir
       let existing = document.getElementById("customShareModal");
       if (existing) existing.remove();
@@ -736,7 +736,7 @@ const copyBtn = qs("#copyRefLink");
       const encText = encodeURIComponent(texto);
       const encWa = encodeURIComponent(texto + " " + url);
 
-      // Constrói o HTML do Modal com os ícones das redes sociais (SVG)
+      // Constrói o HTML do Modal com os ícones das redes sociais (SVG corrigido do WhatsApp)
       overlay.innerHTML = `
         <div class="modal-box" style="max-width:380px; text-align:center; padding: 32px 24px;">
           <button type="button" class="modal-close" id="shareCloseBtn" aria-label="Fechar">×</button>
@@ -747,7 +747,7 @@ const copyBtn = qs("#copyRefLink");
           <div style="display:flex; justify-content:center; gap:16px; margin-bottom:28px;">
               <!-- WhatsApp -->
               <a href="https://api.whatsapp.com/send?text=${encWa}" target="_blank" aria-label="WhatsApp" style="width:48px; height:48px; border-radius:50%; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; transition: transform 0.2s;">
-                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.548 4.168 1.591 5.981L.065 23.498l5.632-1.478A11.97 11.97 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.844 17.279c-.18.508-.918.966-1.439 1.054-.42.072-1.002.164-2.857-.604-2.222-.921-3.64-3.21-3.712-3.305-.072-.096-.885-1.18-.885-2.253 0-1.073.557-1.602.753-1.819.196-.217.426-.271.574-.271.148 0 .295 0 .426.006.136.006.319-.053.492.366.18.434.623 1.52.678 1.635.056.114.092.247.018.397-.074.15-.114.247-.23.367-.115.12-.246.265-.344.355-.106.096-.219.204-.102.409.117.205.522.864 1.118 1.396.771.688 1.41 1.007 1.614 1.109.204.102.327.084.45-.054.123-.138.528-.616.669-.827.14-.211.282-.175.467-.102.185.072 1.18.558 1.384.66.204.102.34.156.39.246.049.09.049.522-.131 1.03z"/></svg>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
               </a>
               <!-- Facebook -->
               <a href="https://www.facebook.com/sharer/sharer.php?u=${encUrl}" target="_blank" aria-label="Facebook" style="width:48px; height:48px; border-radius:50%; background:#1877F2; color:#fff; display:flex; align-items:center; justify-content:center; transition: transform 0.2s;">
@@ -792,7 +792,7 @@ const copyBtn = qs("#copyRefLink");
           btn.addEventListener("mouseleave", () => btn.style.transform = "scale(1)");
       });
 
-      // Método alternativo para copiar (caso o navegador bloqueie o moderno)
+      // Método alternativo para copiar
       function fallbackCopy(text) {
           const textArea = document.createElement("textarea");
           textArea.value = text;
@@ -811,7 +811,6 @@ const copyBtn = qs("#copyRefLink");
           document.body.removeChild(textArea);
       }
   };
-
   window.salvarTokenPush = async function(token) {
       // Salva na memória do celular temporariamente
       localStorage.setItem("fcm_token_temp", token);
