@@ -64,6 +64,16 @@
  .admin-back a#adminLogout{color:#ffb3ac}
  .admin-back a#adminLogout:hover{color:#ff9186;background:rgba(207,53,39,.12)}
 
+ /* Botão de tema específico para o admin */
+ #themeToggleAdmin {
+   display: flex; align-items: center; justify-content: center; gap: 8px;
+   width: 100%; margin-top: 12px; padding: 10px; border-radius: var(--admin-radius-sm);
+   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+   color: #cbd4ef; font-size: 13px; font-weight: 600; cursor: pointer;
+   transition: all 0.2s;
+ }
+ #themeToggleAdmin:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
  .admin-main{padding:clamp(22px,3.2vw,44px) clamp(18px,3.6vw,52px);min-width:0}
  .admin-head{
    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
@@ -135,6 +145,14 @@
    .admin-nav{scroll-snap-type:none}
  }
 </style>
+
+<!-- MEMÓRIA DE TEMA ANTI-PISCAR -->
+<script>
+  if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
 </head>
 <body>
 
@@ -167,9 +185,16 @@
       <button data-section="saques">Saques</button>
       <button data-section="ranking">Ranking</button>
     </div>
+    
     <div class="admin-back">
       <a href="index.html">← Voltar ao site</a>
       <a href="#" id="adminLogout">Sair da conta</a>
+      
+      <!-- BOTÃO DE MODO ESCURO/CLARO (MANTÉM OS MESMOS IDs PARA O JS) -->
+      <button id="themeToggle" id="themeToggleAdmin" class="btn btn-ghost" aria-label="Alternar tema" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; padding: 8px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--admin-radius-sm); color: #cbd4ef;">
+        <span id="themeIcon"></span>
+      </button>
+
     </div>
   </nav>
 
