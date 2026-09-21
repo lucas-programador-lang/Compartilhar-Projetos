@@ -888,13 +888,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
    MODO ESCURO (NIGHT MODE) - VERDADEIRO (PRETO/GRAFITE)
    ========================================================= */
 [data-theme="dark"] {
-  /* Substitui o azul por Grafite/Preto elegante */
+  /* Fundos principais (Grafite/Preto) */
   --bg: #09090b;
   --surface: #141417;
   --surface-alt: #1f1f24;
   --surface-warm: #141417; 
   
-  /* Textos claros para contraste */
+  /* Textos claros para contraste perfeito */
   --ink-900: #fafafa;
   --ink-700: #a1a1aa;
   --ink-600: #71717a;
@@ -905,16 +905,42 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   --border: rgba(255, 255, 255, 0.12);
   --border-soft: rgba(255, 255, 255, 0.05);
 
-  /* Sobrescreve as variáveis navy globais para os cards que as usam */
+  /* Sobrescreve as variáveis navy globais para os fundos */
   --navy-950: #09090b;
   --navy-900: #141417;
   --navy-800: #1f1f24;
   --navy-700: #27272a;
+
+  /* Ajusta as cores de fundo de alertas/badges para o modo escuro */
+  --success-bg: rgba(14, 143, 96, 0.15);
+  --success: #4ade80;
+  --danger-bg: rgba(207, 53, 39, 0.15);
+  --danger: #f87171;
+  --warning-bg: rgba(150, 112, 11, 0.15);
+  --warning: #fbbf24;
+  --blue-100: rgba(26, 73, 214, 0.15);
+  --blue-700: #60a5fa;
+  --gold-100: rgba(220, 174, 44, 0.15);
+  --gold-700: #fcd34d;
+}
+
+/* CORREÇÃO DO TEXTO INVISÍVEL: 
+   Força os títulos e textos em negrito a ficarem brancos! */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] strong,
+[data-theme="dark"] .stat-value,
+[data-theme="dark"] .plan-price,
+[data-theme="dark"] .pd-row span:last-child {
+  color: #fafafa !important;
 }
 
 /* Ajustes específicos de componentes no Modo Escuro */
 [data-theme="dark"] body {
-  /* Tira o "brilho azul" de fundo e deixa mais neutro com leve toque de dourado */
   background-image: 
     radial-gradient(1200px 680px at 6% -10%, rgba(255,255,255,.03), transparent 55%),
     radial-gradient(950px 560px at 102% -4%, rgba(220,174,44,.08), transparent 52%),
@@ -922,11 +948,11 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 [data-theme="dark"] .site-header {
-  background: rgba(20, 20, 23, 0.85); /* Cinza muito escuro com transparência */
+  background: rgba(20, 20, 23, 0.85);
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="dark"] .brand-name { color: #ffffff; }
+[data-theme="dark"] .brand-name { color: #ffffff !important; }
 
 [data-theme="dark"] .project-card,
 [data-theme="dark"] .panel,
