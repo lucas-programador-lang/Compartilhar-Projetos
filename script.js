@@ -758,23 +758,19 @@ const copyBtn = qs("#copyRefLink");
   };
 
 window.compartilharConteudo = function(titulo, texto, url) {
-    // Remove o modal anterior se existir
     let existing = document.getElementById("customShareModal");
     if (existing) existing.remove();
 
-    // Cria a camada de fundo escura com estilos diretos para o APK não falhar
     const overlay = document.createElement("div");
     overlay.id = "customShareModal";
     overlay.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(6, 14, 32, 0.75) !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 999999 !important; padding: 16px !important; box-sizing: border-box !important;";
     
-    // Codifica os textos para funcionarem em links de URL
     const encUrl = encodeURIComponent(url);
     const encText = encodeURIComponent(texto);
     const encWa = encodeURIComponent(texto + " " + url);
 
-    // Constrói o HTML do Modal com centralização absoluta garantida
     overlay.innerHTML = `
-      <div style="position: relative !important; width: 100% !important; max-width: 380px !important; background: var(--surface, #131b2b) !important; border-radius: var(--radius-lg, 22px) !important; padding: 32px 24px !important; text-align: center !important; box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important; box-sizing: border-box !important; max-height: 85vh !important; overflow-y: auto !important; margin: auto !important;">
+      <div style="position: relative !important; width: 100% !important; max-width: 380px !important; background: var(--surface, #131b2b) !important; border-radius: 22px !important; padding: 32px 24px !important; text-align: center !important; box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important; box-sizing: border-box !important; margin: auto !important;">
         <button type="button" id="shareCloseBtn" aria-label="Fechar" style="position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; border-radius: 50%; background: var(--surface-alt, #1a2335); border: none; color: inherit; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
         <h2 style="font-size: 20px; margin-bottom: 8px; color: var(--ink-900, #f8fafc);">Compartilhar</h2>
         <p style="font-size: 13.5px; color: var(--ink-600, #94a3b8); margin-bottom: 24px;">Escolha onde deseja divulgar este link:</p>
@@ -800,19 +796,17 @@ window.compartilharConteudo = function(titulo, texto, url) {
         </div>
         
         <!-- CAMPO COPIAR LINK -->
-        <div style="display:flex; gap:8px; align-items:center; background: var(--surface-alt, #1a2335); padding: 6px; border-radius: var(--radius-pill, 999px); border: 1px solid var(--border, rgba(255,255,255,0.1));">
-            <input type="text" readonly value="${url}" style="flex:1; border:none; background:transparent; font-size:12px; padding: 0 10px; color: var(--ink-700, #cbd5e1); outline:none;">
-            <button id="modalCopyBtn" class="btn btn-primary btn-sm" style="border-radius: var(--radius-pill, 999px); padding: 8px 16px;">Copiar</button>
+        <div style="display:flex; gap:8px; align-items:center; background: rgba(255,255,255,0.05); padding: 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1);">
+            <input type="text" readonly value="${url}" style="flex:1; border:none; background:transparent; font-size:12px; padding: 0 10px; color: #cbd5e1; outline:none;">
+            <button id="modalCopyBtn" style="background: #1a49d6; color: #fff; border: none; border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;">Copiar</button>
         </div>
       </div>
     `;
     
     document.body.appendChild(overlay);
 
-    // Fecha o Modal ao clicar no [x]
     document.getElementById("shareCloseBtn").addEventListener("click", () => overlay.remove());
     
-    // Função de Copiar Link dentro do Modal
     document.getElementById("modalCopyBtn").addEventListener("click", () => {
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(url)
@@ -823,7 +817,6 @@ window.compartilharConteudo = function(titulo, texto, url) {
         }
     });
 
-    // Método alternativo para copiar
     function fallbackCopy(text) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
