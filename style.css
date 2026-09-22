@@ -1128,3 +1128,19 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
     word-break: break-word !important;
   }
 }
+
+/* =========================================================
+   CORREÇÃO DO MODAL DE COMPARTILHAMENTO NO APK / MOBILE
+   ========================================================= */
+.modal-overlay {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+}
+
+.modal-box {
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  margin: auto !important;
+}
