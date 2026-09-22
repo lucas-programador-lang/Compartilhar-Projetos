@@ -701,16 +701,13 @@ function bindGlobalUI() {
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
-        // 🔥 A MÁGICA ESTÁ AQUI: Remove o menu de dentro do header para não quebrar no Android WebView
-        document.body.appendChild(mobileNav);
-        
         hamburger.addEventListener("click", (e) => { 
             e.stopPropagation();
             const isOpen = mobileNav.classList.contains("open");
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; // Liberta o scroll
+                document.body.style.overflow = ""; // Liberta a página
             } else {
                 mobileNav.classList.add("open");
                 document.body.style.overflow = "hidden"; // Trava o scroll do fundo
