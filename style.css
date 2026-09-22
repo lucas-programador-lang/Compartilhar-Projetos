@@ -351,9 +351,11 @@ body:not(.is-admin) .admin-only{display:none !important}
 @media (max-width:980px){.project-grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:640px){.project-grid{grid-template-columns:1fr}}
 
+@keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 .project-card{
   background:linear-gradient(180deg,#ffffff 0%, #fdfcf9 100%);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;
   display:flex;flex-direction:column;transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  animation:cardIn .35s ease both;
 }
 .project-card:hover,.project-card:focus-within{transform:translateY(-4px);box-shadow:0 18px 38px rgba(15,42,94,.16), 0 0 0 1px var(--border-gold);border-color:var(--gold-400)}
 .pc-thumb{height:170px;background:linear-gradient(135deg,var(--blue-100),var(--gold-100));display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
@@ -1110,7 +1112,8 @@ body.menu-open header {
 }
 
 #mobileNav {
-  display: none !important;
+  display: flex !important;
+  flex-direction: column !important;
   position: fixed !important;
   top: 72px !important;
   left: 0 !important;
@@ -1123,6 +1126,11 @@ body.menu-open header {
   -ms-overflow-style: none !important;
   box-sizing: border-box !important;
   padding: 10px 24px 30px !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transform: translateY(-8px) !important;
+  pointer-events: none !important;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s !important;
 }
 
 /* ... mas esconde a barra feia no Android! */
@@ -1131,8 +1139,11 @@ body.menu-open header {
 }
 
 #mobileNav.open {
-  display: flex !important;
-  flex-direction: column !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear 0s !important;
 }
 
 /* Estilo de todos os links (Negrito e linha separadora clara) */
