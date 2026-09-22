@@ -1099,20 +1099,20 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL (VISUAL EXATO DA IMAGEM - SEM BUG DE ALTURA NO APK)
+   MENU MÓVEL - CORREÇÃO FINAL PARA NAVEGADOR E APK
    ========================================================= */
 #mobileNav {
   display: none !important;
   position: fixed !important;
   top: 72px !important;
   left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important; /* O SEGREDO ESTÁ AQUI: Força a esticar até ao fundo sem usar calc() */
+  width: 100vw !important;
+  height: 100vh !important; /* Força a cobrir a altura total do ecrã */
   background-color: #ffffff !important;
   z-index: 9999999 !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
-  padding: 10px 24px 40px !important;
+  padding: 10px 24px 120px !important; /* Espaço extra no fundo para o botão Sair */
 }
 
 #mobileNav.open {
@@ -1120,23 +1120,22 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   flex-direction: column !important;
 }
 
-/* Letras escuras, grossas e fundo branco */
+/* Fundo branco, letras pretas em negrito e botão Sair vermelho */
 #mobileNav a, #mobileNav button {
-  color: #03070f !important; 
-  border-bottom: 1px solid #f1f5fd !important; 
+  color: #03070f !important;
+  border-bottom: 1px solid #f1f5fd !important;
   padding: 16px 0 !important;
   text-decoration: none !important;
   font-size: 16px !important;
-  font-weight: 700 !important; 
+  font-weight: 700 !important;
   background: transparent !important;
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
+  border: none !important;
+  border-bottom: 1px solid #f1f5fd !important;
   text-align: left !important;
   width: 100% !important;
   cursor: pointer !important;
   font-family: inherit !important;
-  display: block !important; /* Garante que os links não somem */
+  display: block !important;
 }
 
 #mobileNav a:hover {
@@ -1144,5 +1143,5 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 #mobileNav #logoutBtnMobile {
-  color: #dc2626 !important;
+  color: #dc2626 !important; /* Botão sair vermelho */
 }
