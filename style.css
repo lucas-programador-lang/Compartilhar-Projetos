@@ -1099,7 +1099,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL (TELA CHEIA, TODOS OS LINKS VISÍVEIS, SEM BARRA DE SCROLL)
+   MENU MÓVEL DEFINITIVO (TELA CHEIA, BRANCO, SEM SCROLL DO FUNDO)
    ========================================================= */
 #mobileNav {
   display: none !important;
@@ -1107,18 +1107,15 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   top: 72px !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: 0 !important; /* Estica até ao fundo perfeitamente */
-  height: auto !important; /* Remove o calc() que causa o bug */
+  bottom: 0 !important; /* Obriga a esticar até ao limite inferior do ecrã */
   background-color: #ffffff !important;
   z-index: 9999999 !important;
-  overflow-y: auto !important; /* Permite que o ecrã desenhe os 11 links */
-  scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* Edge */
+  overflow-y: auto !important; /* Permite caber tudo em ecrãs pequenos */
   box-sizing: border-box !important;
-  padding: 0 24px 24px !important;
+  padding: 10px 24px 40px !important;
 }
 
-/* 🔥 ESTA LINHA MATA A BARRA DE ROLAGEM NO ANDROID SEM CORTAR O TEXTO 🔥 */
+/* 🔥 MATA A BARRA DE ROLAGEM FEIA NO ANDROID 🔥 */
 #mobileNav::-webkit-scrollbar {
   display: none !important;
 }
@@ -1128,14 +1125,14 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   flex-direction: column !important;
 }
 
-/* Ajuste compacto para caberem todos os 11 itens */
+/* Todos os links em negrito e com linha sutil */
 #mobileNav a, #mobileNav button {
   color: #03070f !important;
   border-bottom: 1px solid #f1f5fd !important;
-  padding: 10px 0 !important;
+  padding: 14px 0 !important;
   text-decoration: none !important;
-  font-size: 15px !important;
-  font-weight: 700 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important; /* Negrito */
   background: transparent !important;
   border-top: none !important;
   border-left: none !important;
@@ -1148,26 +1145,23 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   margin: 0 !important;
 }
 
-#mobileNav a:hover {
-  color: #2563eb !important;
-}
+#mobileNav a:hover { color: #2563eb !important; }
 
-#mobileNav #logoutBtnMobile {
-  color: #dc2626 !important;
-}
+/* Botão Sair - Vermelho */
+#mobileNav #logoutBtnMobile { color: #dc2626 !important; } 
 
-/* Botão Entrar */
+/* Botão Entrar - Azul Royal */
 #mobileNav a[href*="login"] {
   background: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
   border-radius: 999px !important;
   text-align: center !important;
-  margin-top: auto !important; /* Empurra para o fundo se houver espaço livre */
-  padding: 10px 20px !important;
+  margin-top: 16px !important; 
+  padding: 14px 20px !important;
 }
 
-/* Botão Cadastrar */
+/* Botão Cadastrar - Dourado */
 #mobileNav a[href*="register"] {
   background: #facc15 !important;
   color: #03070f !important;
@@ -1175,5 +1169,5 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   border-radius: 999px !important;
   text-align: center !important;
   margin-top: 8px !important;
-  padding: 10px 20px !important;
+  padding: 14px 20px !important;
 }
