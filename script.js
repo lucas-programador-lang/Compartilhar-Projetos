@@ -701,31 +701,14 @@ function bindGlobalUI() {
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
-        mobileNav.style.display = "none";
-        
         hamburger.addEventListener("click", (e) => { 
             e.stopPropagation();
-            const isOpen = mobileNav.classList.contains("open");
-            
-            if (isOpen) {
-                mobileNav.classList.remove("open");
-                mobileNav.style.display = "none";
-                mobileNav.removeAttribute("style");
-                document.body.style.overflow = "";
-            } else {
-                mobileNav.classList.add("open");
-                // Força o fundo escuro exato (#131b2b) e o layout de overlay em tela cheia no Android
-                mobileNav.setAttribute("style", "display: flex !important; flex-direction: column !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; height: calc(100dvh - 72px) !important; background-color: #131b2b !important; color: #f8fafc !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 20px 24px !important;");
-                document.body.style.overflow = "hidden";
-            }
+            mobileNav.classList.toggle("open"); 
         });
         
         qsa("#mobileNav a, #mobileNav button").forEach((el) => { 
             el.addEventListener("click", () => {
                 mobileNav.classList.remove("open");
-                mobileNav.style.display = "none";
-                mobileNav.removeAttribute("style");
-                document.body.style.overflow = "";
             }); 
         }); 
     }
