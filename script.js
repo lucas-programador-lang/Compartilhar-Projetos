@@ -303,7 +303,7 @@ import { uid, nowISO } from "./seed.js";
   }
   function navigate(path) { location.hash = path; }
 
-  const PROTECTED_ROUTES = ["/painel", "/perfil", "/indicacoes", "/publicar"];
+  const PROTECTED_ROUTES = ["/painel", "/perfil", "/indicacoes", "/publicar", "/avaliar"];
   let pendingDataRender = false;
   function hasActiveFormField() { const el = document.activeElement; const app = qs("#app"); if (!el || !app || !app.contains(el)) return false; const tag = el.tagName; return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT"; }
 
@@ -327,6 +327,7 @@ import { uid, nowISO } from "./seed.js";
     else if (path === "/perfil") html = viewProfile();
     else if (path === "/indicacoes") html = viewReferrals();
     else if (path === "/ranking") html = viewRanking();
+    else if (path === "/avaliar") html = viewPlatformReview();
     else html = view404();
 
     app.innerHTML = html;
@@ -659,6 +660,76 @@ import { uid, nowISO } from "./seed.js";
     return `<div class="dash-shell"><nav class="dash-sidebar">${sideNav("/indicacoes")}</nav><div class="dash-main"><div class="dash-head"><div><h1>Programa de indicação</h1><p>Indique pessoas e ganhe ${Math.round(COMMISSION_RATE * 100)}% de comissão em cada assinatura realizada.</p></div></div><div class="ref-link-box mt-1" style="margin-bottom:30px"><code id="refLinkText">${link}</code><button class="btn btn-outline-gold btn-sm" id="copyRefLink" style="border-color:var(--gold-500);color:var(--gold-300,#f0d97a)">Copiar link</button></div><div class="stat-grid"><div class="stat-card"><div class="stat-label">Total de indicações</div><div class="stat-value">${myRefs.length}</div></div><div class="stat-card"><div class="stat-label">Comissões pendentes</div><div class="stat-value">${fmtBRL(pendingCommission(user.id))}</div></div><div class="stat-card gold"><div class="stat-label">Comissões disponíveis</div><div class="stat-value">${fmtBRL(availableCommission(user.id))}</div></div><div class="stat-card"><div class="stat-label">Ganhos totais</div><div class="stat-value">${fmtBRL(totalEarnings(user.id))}</div></div></div><div class="panel"><div class="panel-head"><h3>Solicitar saque</h3></div><p class="muted mt-1">Saque mínimo de ${fmtBRL(MIN_WITHDRAW)}. Saldo disponível: <strong>${fmtBRL(availableCommission(user.id))}</strong></p><form id="withdrawForm" class="mt-2" style="max-width:360px"><div class="field"><label>Valor do saque</label><input type="number" min="${MIN_WITHDRAW}" step="0.01" name="amount" placeholder="Ex.: 15,00" required></div><div class="field"><label>Chave Pix</label><input type="text" name="pixKey" placeholder="CPF, e-mail, telefone ou chave aleatória" value="${escapeHtml(lastPixKey(user.id))}" required></div><button class="btn btn-gold btn-block" type="submit">Solicitar saque</button></form></div><div class="panel"><div class="panel-head"><h3>Histórico de ganhos</h3></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Indicado</th><th>Plano</th><th>Valor</th><th>Status</th></tr></thead><tbody>${commissions.map((c) => { const ref = userById(c.referredId); const label = { pending: ["badge-warning", "Pendente"], available: ["badge-success", "Disponível"], paid: ["badge-neutral", "Pago"] }[c.status]; return `<tr><td>${fmtDate(c.createdAt)}</td><td>${escapeHtml(ref ? ref.name : "—")}</td><td>${escapeHtml(PLANS[c.planId] ? PLANS[c.planId].name : "—")}</td><td>${fmtBRL(c.amount)}</td><td><span class="badge ${label[0]}">${label[1]}</span></td></tr>`; }).join("") || `<tr><td colspan="5" class="muted text-center">Nenhuma comissão registrada ainda.</td></tr>`}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Solicitações de saque</h3></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Valor</th><th>Chave Pix</th><th>Status</th></tr></thead><tbody>${db.withdrawals.filter((w) => w.userId === user.id).map((w) => { const label = { pending: ["badge-warning", "Em análise"], approved: ["badge-success", "Aprovado"], rejected: ["badge-danger", "Recusado"] }[w.status]; return `<tr><td>${fmtDate(w.createdAt)}</td><td>${fmtBRL(w.amount)}</td><td>${escapeHtml(w.pixKey || "—")}</td><td><span class="badge ${label[0]}">${label[1]}</span></td></tr>`; }).join("") || `<tr><td colspan="4" class="muted text-center">Nenhum saque solicitado.</td></tr>`}</tbody></table></div></div></div></div>`;
   }
 
+  function viewPlatformReview() {
+    const user = currentUser();
+    
+    return `
+    <section class="section" style="padding-top: 52px; max-width: 680px; margin: 0 auto;">
+      <div class="container">
+        <span class="tag-label">Feedback</span>
+        <h2 style="margin-bottom: 6px;">Avalie a Plataforma</h2>
+        <p class="muted" style="margin-bottom: 24px;">Sua opinião ajuda a melhorar o Compartilhar Projetos para toda a comunidade de criadores.</p>
+
+        ${!user ? `
+          <div class="panel text-center">
+            <p class="muted">Você precisa entrar na sua conta para avaliar a plataforma.</p>
+            <a href="login.html?redirect=avaliar" class="btn btn-gold btn-sm mt-2">Entrar na conta</a>
+          </div>
+        ` : `
+          <form id="platformReviewForm" class="panel">
+            <!-- 1. Overall Rating -->
+            <div class="field" style="margin-bottom: 24px;">
+              <label style="font-size: 15px; font-weight: 600;">1. Como você avalia sua experiência geral?</label>
+              <div id="platformRatingStars" style="display: flex; gap: 8px; font-size: 32px; cursor: pointer; color: #334155; margin-top: 8px;">
+                <span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span>
+              </div>
+              <input type="hidden" name="overallRating" id="overallRatingVal" value="0" required>
+            </div>
+
+            <!-- 2. Usability -->
+            <div class="field" style="margin-bottom: 24px;">
+              <label style="font-size: 15px; font-weight: 600;">2. Quão fácil é publicar e explorar projetos?</label>
+              <select name="usabilityScore" required style="margin-top: 8px;">
+                <option value="">Selecione...</option>
+                <option value="very_easy">Muito fácil</option>
+                <option value="easy">Fácil</option>
+                <option value="neutral">Razoável</option>
+                <option value="hard">Difícil</option>
+                <option value="very_hard">Muito difícil</option>
+              </select>
+            </div>
+
+            <!-- 3. Recommendation -->
+            <div class="field" style="margin-bottom: 24px;">
+              <label style="font-size: 15px; font-weight: 600;">3. Você recomendaria a plataforma para outros desenvolvedores e designers?</label>
+              <div style="display: flex; gap: 16px; margin-top: 12px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="radio" name="wouldRecommend" value="yes" required> Sim
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="radio" name="wouldRecommend" value="maybe"> Talvez
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="radio" name="wouldRecommend" value="no"> Não
+                </label>
+              </div>
+            </div>
+
+            <!-- 4. Text Feedback -->
+            <div class="field" style="margin-bottom: 24px;">
+              <label style="font-size: 15px; font-weight: 600;">4. O que podemos melhorar?</label>
+              <textarea name="feedbackText" rows="4" placeholder="Deixe sugestões de novas funcionalidades, críticas ou elogios..." style="margin-top: 8px;"></textarea>
+            </div>
+
+            <div class="field-error" id="platformReviewError" style="display: none; margin-bottom: 12px;"></div>
+            <button type="submit" class="btn btn-gold btn-block">Enviar Avaliação</button>
+          </form>
+        `}
+      </div>
+    </section>
+    `;
+  }
+
   let pendingImages = [];
   function bindPageEvents(path) {
     qsa("[data-mark-read]").forEach((btn) => { btn.addEventListener("click", () => { const id = btn.getAttribute("data-mark-read"); btn.disabled = true; markNotificationRead(id).catch((err) => { toast(err.message || "Não foi possível marcar como lida.", "error"); btn.disabled = false; }); }); });
@@ -735,7 +806,6 @@ import { uid, nowISO } from "./seed.js";
       const stars = qsa("#starRatingInput span");
       const ratingInput = qs("#projectRatingVal");
 
-      // Animação e seleção das estrelas
       stars.forEach(star => {
         star.addEventListener("click", () => {
           const val = parseInt(star.getAttribute("data-val"));
@@ -746,7 +816,6 @@ import { uid, nowISO } from "./seed.js";
         });
       });
 
-      // Submissão da Review
       projectReviewForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const rating = parseInt(ratingInput.value);
@@ -764,7 +833,6 @@ import { uid, nowISO } from "./seed.js";
         const targetProject = db.projects.find(p => p.id === projectId);
         if (!targetProject) return;
 
-        // Criar o novo objeto de review
         const newReview = {
           userId: user.id,
           userName: user.name,
@@ -773,24 +841,84 @@ import { uid, nowISO } from "./seed.js";
           createdAt: nowISO()
         };
 
-        // Adicionar a nova review ao array existente
         const updatedReviews = [...(targetProject.reviews || []), newReview];
         
         const btn = projectReviewForm.querySelector("button[type='submit']");
         btn.disabled = true;
         btn.textContent = "Submitting...";
 
-        // Usa a tua função updateProject que já grava no Firebase!
         updateProject(projectId, { reviews: updatedReviews })
           .then(() => {
             toast("Review submitted successfully!", "success");
-            render({ navigation: false }); // Recarrega a tela para mostrar a estrelinha na hora
+            render({ navigation: false });
           })
           .catch(err => {
             toast(err.message || "Error submitting review.", "error");
             btn.disabled = false;
             btn.textContent = "Submit Review";
           });
+      });
+    }
+
+    // ===== LÓGICA DE AVALIAÇÃO DA PLATAFORMA (PLATFORM REVIEWS) =====
+    const platformReviewForm = qs("#platformReviewForm");
+    if (platformReviewForm) {
+      const platformStars = qsa("#platformRatingStars span");
+      const platformRatingInput = qs("#overallRatingVal");
+
+      platformStars.forEach(star => {
+        star.addEventListener("click", () => {
+          const val = parseInt(star.getAttribute("data-val"));
+          platformRatingInput.value = val;
+          platformStars.forEach(s => {
+            s.style.color = parseInt(s.getAttribute("data-val")) <= val ? "#facc15" : "#334155";
+          });
+        });
+      });
+
+      platformReviewForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const errorEl = qs("#platformReviewError");
+        errorEl.style.display = "none";
+
+        const fd = new FormData(platformReviewForm);
+        const overallRating = parseInt(fd.get("overallRating"));
+        
+        if (overallRating === 0) {
+          errorEl.textContent = "Please select a star rating.";
+          errorEl.style.display = "block";
+          return;
+        }
+
+        const user = currentUser();
+        if (!user) return;
+
+        const submitBtn = platformReviewForm.querySelector("button[type='submit']");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting...";
+
+        const newPlatformReview = {
+          id: uid("prev"),
+          userId: user.id,
+          userName: user.name,
+          overallRating: overallRating,
+          usabilityScore: fd.get("usabilityScore"),
+          wouldRecommend: fd.get("wouldRecommend"),
+          feedbackText: sanitizeText(fd.get("feedbackText")),
+          createdAt: nowISO()
+        };
+
+        // TODO: Ligação com db-sync.js para guardar a avaliação na base de dados (próximo passo)
+        try {
+          console.log("Platform Review Captured:", newPlatformReview);
+          toast("Feedback sent! Thank you for helping us.", "success");
+          navigate("/"); 
+        } catch (err) {
+          errorEl.textContent = err.message || "An error occurred.";
+          errorEl.style.display = "block";
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Enviar Avaliação";
+        }
       });
     }
   }
