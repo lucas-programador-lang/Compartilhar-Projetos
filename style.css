@@ -1096,3 +1096,35 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   overflow-wrap: break-word !important;
   word-break: break-word !important;
 }
+
+
+/* =========================================================
+   CORREÇÃO RESPONSIVA DA PÁGINA DE DETALHES DO PROJETO
+   ========================================================= */
+@media (max-width: 900px) {
+  /* Garante margens seguras na página de detalhes para o conteúdo não colar na borda */
+  .project-detail.container {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* Força a grelha principal a empilhar e respeitar a largura da tela do telemóvel */
+  .pd-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    width: 100% !important;
+  }
+
+  /* Faz a coluna da esquerda (imagem e descrição) ocupar 100% sem transbordar */
+  .pd-main {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Ajusta o título para ter margem resguardada */
+  .project-detail .pd-title {
+    font-size: 24px !important;
+    word-break: break-word !important;
+  }
+}
