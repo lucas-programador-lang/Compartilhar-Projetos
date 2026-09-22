@@ -1145,3 +1145,29 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 #mobileNav #logoutBtnMobile {
   color: #dc2626 !important; /* Botão sair vermelho */
 }
+
+/* =========================================================
+   CORES DOS BOTÕES "ENTRAR" E "CADASTRAR" NO MENU MÓVEL
+   ========================================================= */
+
+/* Botão Entrar (Azul Royal) */
+#mobileNav a[href*="login"] {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 999px !important; /* Arredondado */
+  text-align: center !important;
+  margin-top: 16px !important;
+  padding: 14px 24px !important;
+}
+
+/* Botão Cadastrar (Dourado) */
+#mobileNav a[href*="register"] {
+  background: #facc15 !important;
+  color: #03070f !important; /* Letra escura para contraste */
+  border: none !important;
+  border-radius: 999px !important; /* Arredondado */
+  text-align: center !important;
+  margin-top: 12px !important;
+  padding: 14px 24px !important;
+}
