@@ -1099,18 +1099,18 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL (VISUAL EXATO DA IMAGEM - MODO CLARO)
+   FORÇA O MENU MÓVEL A FICAR EXATAMENTE COMO NA IMAGEM
    ========================================================= */
 .mobile-nav, #mobileNav {
   display: none !important;
   position: fixed !important;
-  top: 72px !important;
+  top: 72px !important; /* Inicia logo abaixo do header */
   left: 0 !important;
   width: 100vw !important;
   height: calc(100vh - 72px) !important;
   height: calc(100dvh - 72px) !important;
-  background-color: #ffffff !important;
-  z-index: 9999999 !important;
+  background-color: #ffffff !important; /* Fundo branco fixo */
+  z-index: 9999999 !important; /* Garante que fique por cima de tudo */
   overflow-y: auto !important;
   box-sizing: border-box !important;
   padding: 10px 24px 40px !important;
@@ -1121,14 +1121,14 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   flex-direction: column !important;
 }
 
-/* Letras escuras, grossas e linhas clarinhas */
+/* Letras escuras, grossas e linhas clarinhas, fundo branco */
 .mobile-nav a, #mobileNav a, .mobile-nav button, #mobileNav button {
-  color: #03070f !important; /* Cor bem escura */
-  border-bottom: 1px solid #f1f5fd !important; /* Linha separadora bem clara */
+  color: #03070f !important; /* Texto preto/escuro */
+  border-bottom: 1px solid #f1f5fd !important; /* Linha sutil */
   padding: 16px 0 !important;
   text-decoration: none !important;
   font-size: 16px !important;
-  font-weight: 700 !important; /* Deixa o texto em negrito igual à imagem */
+  font-weight: 700 !important; /* Negrito igual à imagem */
   background: transparent !important;
   border-top: none !important;
   border-left: none !important;
@@ -1139,12 +1139,12 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   font-family: inherit !important;
 }
 
-/* Força a cor azul ao passar o dedo/rato */
+/* Cor azul no hover */
 .mobile-nav a:hover, #mobileNav a:hover {
   color: #2563eb !important;
 }
 
-/* CORREÇÃO: Garante que o botão Sair fica vermelho */
+/* Protege o botão Sair em vermelho */
 .mobile-nav #logoutBtnMobile, #mobileNav #logoutBtnMobile {
-  color: #dc2626 !important;
+  color: #dc2626 !important; /* Vermelho */
 }
