@@ -697,24 +697,26 @@ function bindGlobalUI() {
     if (avatarBtn) { avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); userMenu.classList.toggle("open"); }); document.addEventListener("click", () => userMenu.classList.remove("open")); }
     ["logoutBtn", "logoutBtnMobile"].forEach((id) => { const btn = qs("#" + id); if (btn) { btn.addEventListener("click", async () => { await logoutUser(); toast("Você saiu da sua conta."); navigate("/"); }); } });
     
-   const hamburger = qs("#hamburgerBtn"); 
+    const hamburger = qs("#hamburgerBtn"); 
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
+        // 🔥 A MÁGICA ESTÁ AQUI: Remove o menu de dentro do header para não quebrar no Android WebView
+        document.body.appendChild(mobileNav);
+        
         hamburger.addEventListener("click", (e) => { 
             e.stopPropagation();
             const isOpen = mobileNav.classList.contains("open");
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; // Liberta a página quando fecha
+                document.body.style.overflow = ""; // Liberta o scroll
             } else {
                 mobileNav.classList.add("open");
-                document.body.style.overflow = "hidden"; // Trava totalmente o scroll do fundo!
+                document.body.style.overflow = "hidden"; // Trava o scroll do fundo
             }
         });
         
-        // Quando clica num link ou no botão Sair, fecha o menu e liberta o scroll
         qsa("#mobileNav a, #mobileNav button").forEach((el) => { 
             el.addEventListener("click", () => {
                 mobileNav.classList.remove("open");
