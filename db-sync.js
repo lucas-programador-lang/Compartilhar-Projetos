@@ -68,7 +68,7 @@ import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.
 const DB_PATH = "database";
 const WORKER_URL = "https://api.compartilhar-projetos.com.br";
 const NOTIFY_WORKER_URL = "https://worker-notificacoes.lucas-dev-programador.workers.dev";
-const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications", "rankingPrizes"];
+const TOP_LEVEL_KEYS = ["users", "categories", "projects", "posts", "referrals", "commissions", "withdrawals", "notifications", "rankingPrizes", "platformReviews"];
 let cache = emptyCache();
 const listeners = [];
 let synced = false;
@@ -84,6 +84,7 @@ function emptyCache() {
     withdrawals: [],
     notifications: [],
     rankingPrizes: [],
+    platformReviews: [],
     publicProfiles: [],
     myProfile: null,
   };
@@ -212,6 +213,14 @@ export function addReply(postId, commentId, reply) {
   if (!comment || !comment._fbKey) throw new Error("Comentário não encontrado: " + commentId);
   const newRef = push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments/${comment._fbKey}/replies`));
   return set(newRef, reply).then(() => reply);
+}
+
+/* ---------------------------------------------------------
+   AVALIAÇÕES DA PLATAFORMA (PLATFORM REVIEWS)
+--------------------------------------------------------- */
+export function addPlatformReview(review) {
+  const newRef = push(ref(rtdb, `${DB_PATH}/platformReviews`));
+  return set(newRef, review).then(() => review);
 }
 
 /* ---------------------------------------------------------
