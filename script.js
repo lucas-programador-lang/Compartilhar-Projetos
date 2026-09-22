@@ -701,14 +701,18 @@ import { uid, nowISO } from "./seed.js";
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
+        // Força estilos inline absolutos para o Android respeitar obrigatoriamente
+        mobileNav.style.cssText = "display: none !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; background: var(--surface, #131b2b) !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 24px !important; flex-direction: column !important;";
+
         hamburger.addEventListener("click", (e) => { 
             e.stopPropagation();
-            mobileNav.classList.toggle("open"); 
+            const isOpen = mobileNav.style.display === "flex";
+            mobileNav.style.display = isOpen ? "none" : "flex"; 
         });
         
         qsa("#mobileNav a, #mobileNav button").forEach((el) => { 
             el.addEventListener("click", () => {
-                mobileNav.classList.remove("open");
+                mobileNav.style.display = "none";
             }); 
         }); 
     }
