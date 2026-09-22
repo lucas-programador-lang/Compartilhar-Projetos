@@ -1099,7 +1099,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL DEFINITIVO (TELA CHEIA, BRANCO, SEM SCROLL DO FUNDO)
+   MENU MÓVEL DEFINITIVO (VISUAL EXATO DA IMAGEM, ZERO SCROLL)
    ========================================================= */
 #mobileNav {
   display: none !important;
@@ -1107,17 +1107,12 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   top: 72px !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: 0 !important; /* Obriga a esticar até ao limite inferior do ecrã */
-  background-color: #ffffff !important;
+  bottom: 0 !important; /* Obriga a ir até ao fundo do ecrã */
+  background-color: #ffffff !important; /* Fundo branco puro */
   z-index: 9999999 !important;
-  overflow-y: auto !important; /* Permite caber tudo em ecrãs pequenos */
+  overflow: hidden !important; /* PROÍBE O SCROLL DO MENU */
   box-sizing: border-box !important;
-  padding: 10px 24px 40px !important;
-}
-
-/* 🔥 MATA A BARRA DE ROLAGEM FEIA NO ANDROID 🔥 */
-#mobileNav::-webkit-scrollbar {
-  display: none !important;
+  padding: 8px 24px 24px !important;
 }
 
 #mobileNav.open {
@@ -1125,14 +1120,14 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   flex-direction: column !important;
 }
 
-/* Todos os links em negrito e com linha sutil */
+/* Redução milimétrica do padding para caberem todos os 11 itens */
 #mobileNav a, #mobileNav button {
   color: #03070f !important;
   border-bottom: 1px solid #f1f5fd !important;
-  padding: 14px 0 !important;
+  padding: 12px 0 !important; /* Reduzido para encaixar tudo na tela */
   text-decoration: none !important;
-  font-size: 16px !important;
-  font-weight: 700 !important; /* Negrito */
+  font-size: 15px !important;
+  font-weight: 700 !important; /* Letras grossas */
   background: transparent !important;
   border-top: none !important;
   border-left: none !important;
@@ -1148,26 +1143,26 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 #mobileNav a:hover { color: #2563eb !important; }
 
 /* Botão Sair - Vermelho */
-#mobileNav #logoutBtnMobile { color: #dc2626 !important; } 
+#mobileNav #logoutBtnMobile { color: #dc2626 !important; }
 
-/* Botão Entrar - Azul Royal */
+/* Botão Entrar - Azul Royal (Formato Pílula) */
 #mobileNav a[href*="login"] {
   background: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
   border-radius: 999px !important;
   text-align: center !important;
-  margin-top: 16px !important; 
+  margin-top: auto !important; /* Empurra os botões para o limite inferior */
   padding: 14px 20px !important;
 }
 
-/* Botão Cadastrar - Dourado */
+/* Botão Cadastrar - Dourado (Formato Pílula) */
 #mobileNav a[href*="register"] {
   background: #facc15 !important;
   color: #03070f !important;
   border: none !important;
   border-radius: 999px !important;
   text-align: center !important;
-  margin-top: 8px !important;
+  margin-top: 10px !important;
   padding: 14px 20px !important;
 }
