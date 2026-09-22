@@ -1130,17 +1130,29 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   CORREÇÃO DO MODAL DE COMPARTILHAMENTO NO APK / MOBILE
+   CORREÇÃO DEFINITIVA DO MODAL NO APK (FIXO E CENTRALIZADO)
    ========================================================= */
 .modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(6, 14, 32, 0.75) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  z-index: 99999 !important;
   padding: 16px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .modal-box {
-  max-height: 85vh !important;
-  overflow-y: auto !important;
+  position: relative !important;
+  max-width: 380px !important;
+  width: 100% !important;
   margin: auto !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  transform: none !important;
 }
