@@ -71,6 +71,11 @@ import { uid, nowISO } from "./seed.js";
     return (db.publicProfiles || []).find((u) => u.id === id);
   }
 
+  // --- HELPER PARA ESTRELAS EM SVG ---
+  function getStarSvg(size, isFull) {
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${isFull ? '#facc15' : 'none'}" stroke="${isFull ? '#facc15' : '#475569'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+  }
+
   function fileToDataURL(file) { return new Promise((res, rej) => { const reader = new FileReader(); reader.onload = () => res(reader.result); reader.onerror = rej; reader.readAsDataURL(file); }); }
   function sanitizeText(str) { return escapeHtml(str).slice(0, 5000); }
   function isValidUrl(url) { try { const u = new URL(url); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } }
@@ -493,52 +498,64 @@ import { uid, nowISO } from "./seed.js";
     const avgRating = projectReviews.length ? (projectReviews.reduce((acc, r) => acc + r.rating, 0) / projectReviews.length).toFixed(1) : 0;
     const hasRated = user ? projectReviews.some(r => r.userId === user.id) : false;
 
-    // Desenhar estrelas médias no topo
+    // Desenhar estrelas médias no topo (18px)
     let starsHtml = "";
     for (let i = 1; i <= 5; i++) {
-      starsHtml += `<span style="color: ${i <= Math.round(avgRating) ? '#facc15' : '#334155'}; font-size: 18px;">★</span>`;
+      starsHtml += getStarSvg(18, i <= Math.round(avgRating));
     }
 
-    // Lista de avaliações
-    let reviewsListHtml = projectReviews.map(r => `
+    // Lista de avaliações (14px stars)
+    let reviewsListHtml = projectReviews.map(r => {
+      let rStars = "";
+      for (let i = 1; i <= 5; i++) {
+        rStars += getStarSvg(14, i <= r.rating);
+      }
+      return `
       <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-color, rgba(255,255,255,0.05));">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <strong style="font-size: 14px; color: var(--text-main);">${escapeHtml(r.userName)}</strong>
-          <span style="color: #facc15; font-size: 14px;">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
+          <div style="display: flex; align-items: center; gap: 2px;">${rStars}</div>
         </div>
         <p style="font-size: 14.5px; color: var(--ink-700); margin: 0; line-height: 1.5;">${escapeHtml(r.comment)}</p>
         <span style="font-size: 11px; color: var(--ink-300); display: block; margin-top: 8px;">${fmtDate(r.createdAt)}</span>
       </div>
-    `).join("");
+      `;
+    }).join("");
 
     if (projectReviews.length === 0) {
-      reviewsListHtml = `<p class="muted" style="font-size: 14px; text-align: center; padding: 20px 0;">No reviews yet. Be the first to rate this project!</p>`;
+      reviewsListHtml = `<p class="muted" style="font-size: 14px; text-align: center; padding: 20px 0;">Ainda não há avaliações. Seja o primeiro a avaliar este projeto!</p>`;
     }
+
+    const reviewLabel = projectReviews.length === 1 ? "avaliação" : "avaliações";
 
     // Formulário ou bloqueio de avaliação
     let reviewFormHtml = "";
     if (!user) {
-      reviewFormHtml = `<div class="panel text-center mt-3"><p class="muted">Log in to leave a review.</p><a href="login.html?redirect=projeto/${p.id}" class="btn btn-ghost btn-sm mt-2">Log in</a></div>`;
+      reviewFormHtml = `<div class="panel text-center mt-3"><p class="muted">Faça login para avaliar.</p><a href="login.html?redirect=projeto/${p.id}" class="btn btn-ghost btn-sm mt-2">Entrar</a></div>`;
     } else if (hasRated) {
-      reviewFormHtml = `<div class="panel text-center mt-3" style="border-color: var(--green-700);"><p style="color: var(--green-700); font-weight: 600; margin: 0;">✓ You have already reviewed this project.</p></div>`;
+      reviewFormHtml = `<div class="panel text-center mt-3" style="border-color: var(--green-700);"><p style="color: var(--green-700); font-weight: 600; margin: 0;">✓ Você já avaliou este projeto.</p></div>`;
     } else if (user.id === p.ownerId) {
-      reviewFormHtml = `<div class="panel text-center mt-3"><p class="muted" style="margin: 0;">You cannot review your own project.</p></div>`;
+      reviewFormHtml = `<div class="panel text-center mt-3"><p class="muted" style="margin: 0;">Você não pode avaliar o seu próprio projeto.</p></div>`;
     } else {
       reviewFormHtml = `
         <form id="projectReviewForm" data-project="${p.id}" class="panel mt-3" style="background: var(--bg-card);">
-          <h4 style="margin-bottom: 12px;">Leave a review</h4>
+          <h4 style="margin-bottom: 12px;">Deixe sua avaliação</h4>
           <div style="margin-bottom: 16px;">
-            <label class="muted" style="font-size: 12px; display: block; margin-bottom: 4px;">Rating (Stars)</label>
-            <div id="starRatingInput" style="display: flex; gap: 8px; font-size: 28px; cursor: pointer; color: #334155;">
-              <span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span>
+            <label class="muted" style="font-size: 12px; display: block; margin-bottom: 4px;">Nota (Estrelas)</label>
+            <div id="starRatingInput" style="display: flex; gap: 8px; cursor: pointer;">
+              <span data-val="1">${getStarSvg(32, false)}</span>
+              <span data-val="2">${getStarSvg(32, false)}</span>
+              <span data-val="3">${getStarSvg(32, false)}</span>
+              <span data-val="4">${getStarSvg(32, false)}</span>
+              <span data-val="5">${getStarSvg(32, false)}</span>
             </div>
             <input type="hidden" name="rating" id="projectRatingVal" value="0" required>
           </div>
           <div class="field">
-            <label>Comment</label>
-            <textarea name="comment" rows="3" required placeholder="What do you think about this project?"></textarea>
+            <label>Comentário</label>
+            <textarea name="comment" rows="3" required placeholder="Conte à comunidade o que achou deste projeto..."></textarea>
           </div>
-          <button type="submit" class="btn btn-primary btn-block">Submit Review</button>
+          <button type="submit" class="btn btn-primary btn-block">Enviar Avaliação</button>
         </form>
       `;
     }
@@ -558,7 +575,7 @@ import { uid, nowISO } from "./seed.js";
           <!-- ESTRELAS NO TOPO -->
           <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
             <div style="display: flex;">${starsHtml}</div>
-            <span style="font-size: 14px; color: var(--ink-700); font-weight: 600;">${avgRating} <span style="font-weight: 400;">(${projectReviews.length} reviews)</span></span>
+            <span style="font-size: 14px; color: var(--ink-700); font-weight: 600;">${avgRating} <span style="font-weight: 400;">(${projectReviews.length} ${reviewLabel})</span></span>
           </div>
         </div>
       </div>
@@ -575,7 +592,7 @@ import { uid, nowISO } from "./seed.js";
 
           <!-- BLOCO DE AVALIAÇÕES (REVIEWS) -->
           <div style="margin-top: 48px; border-top: 1px solid var(--border-color, rgba(255,255,255,0.08)); padding-top: 32px;">
-            <h3 style="margin-bottom: 20px; font-size: 20px;">Project Reviews</h3>
+            <h3 style="margin-bottom: 20px; font-size: 20px;">Avaliações do Projeto</h3>
             <div id="reviewsContainer">
               ${reviewsListHtml}
             </div>
@@ -680,8 +697,12 @@ import { uid, nowISO } from "./seed.js";
             <!-- 1. Overall Rating -->
             <div class="field" style="margin-bottom: 24px;">
               <label style="font-size: 15px; font-weight: 600;">1. Como você avalia sua experiência geral?</label>
-              <div id="platformRatingStars" style="display: flex; gap: 8px; font-size: 32px; cursor: pointer; color: #334155; margin-top: 8px;">
-                <span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span>
+              <div id="platformRatingStars" style="display: flex; gap: 8px; cursor: pointer; margin-top: 8px;">
+                <span data-val="1">${getStarSvg(32, false)}</span>
+                <span data-val="2">${getStarSvg(32, false)}</span>
+                <span data-val="3">${getStarSvg(32, false)}</span>
+                <span data-val="4">${getStarSvg(32, false)}</span>
+                <span data-val="5">${getStarSvg(32, false)}</span>
               </div>
               <input type="hidden" name="overallRating" id="overallRatingVal" value="0" required>
             </div>
@@ -811,7 +832,8 @@ import { uid, nowISO } from "./seed.js";
           const val = parseInt(star.getAttribute("data-val"));
           ratingInput.value = val;
           stars.forEach(s => {
-            s.style.color = parseInt(s.getAttribute("data-val")) <= val ? "#facc15" : "#334155";
+            const isFull = parseInt(s.getAttribute("data-val")) <= val;
+            s.innerHTML = getStarSvg(32, isFull);
           });
         });
       });
@@ -820,7 +842,7 @@ import { uid, nowISO } from "./seed.js";
         e.preventDefault();
         const rating = parseInt(ratingInput.value);
         if (rating === 0) {
-          toast("Please select a star rating.", "error");
+          toast("Por favor, dê uma nota em estrelas.", "error");
           return;
         }
 
@@ -845,17 +867,17 @@ import { uid, nowISO } from "./seed.js";
         
         const btn = projectReviewForm.querySelector("button[type='submit']");
         btn.disabled = true;
-        btn.textContent = "Submitting...";
+        btn.textContent = "Enviando...";
 
         updateProject(projectId, { reviews: updatedReviews })
           .then(() => {
-            toast("Review submitted successfully!", "success");
+            toast("Avaliação enviada com sucesso!", "success");
             render({ navigation: false });
           })
           .catch(err => {
-            toast(err.message || "Error submitting review.", "error");
+            toast(err.message || "Erro ao enviar avaliação.", "error");
             btn.disabled = false;
-            btn.textContent = "Submit Review";
+            btn.textContent = "Enviar Avaliação";
           });
       });
     }
@@ -871,7 +893,8 @@ import { uid, nowISO } from "./seed.js";
           const val = parseInt(star.getAttribute("data-val"));
           platformRatingInput.value = val;
           platformStars.forEach(s => {
-            s.style.color = parseInt(s.getAttribute("data-val")) <= val ? "#facc15" : "#334155";
+            const isFull = parseInt(s.getAttribute("data-val")) <= val;
+            s.innerHTML = getStarSvg(32, isFull);
           });
         });
       });
@@ -885,7 +908,7 @@ import { uid, nowISO } from "./seed.js";
         const overallRating = parseInt(fd.get("overallRating"));
         
         if (overallRating === 0) {
-          errorEl.textContent = "Please select a star rating.";
+          errorEl.textContent = "Por favor, dê uma nota na primeira pergunta.";
           errorEl.style.display = "block";
           return;
         }
@@ -895,7 +918,7 @@ import { uid, nowISO } from "./seed.js";
 
         const submitBtn = platformReviewForm.querySelector("button[type='submit']");
         submitBtn.disabled = true;
-        submitBtn.textContent = "Submitting...";
+        submitBtn.textContent = "Enviando...";
 
         const newPlatformReview = {
           id: uid("prev"),
@@ -910,11 +933,10 @@ import { uid, nowISO } from "./seed.js";
 
         try {
           await addPlatformReview(newPlatformReview);
-          console.log("Platform Review Captured:", newPlatformReview);
-          toast("Feedback sent! Thank you for helping us.", "success");
+          toast("Feedback enviado! Obrigado por ajudar.", "success");
           navigate("/"); 
         } catch (err) {
-          errorEl.textContent = err.message || "An error occurred.";
+          errorEl.textContent = err.message || "Ocorreu um erro.";
           errorEl.style.display = "block";
           submitBtn.disabled = false;
           submitBtn.textContent = "Enviar Avaliação";
