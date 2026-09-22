@@ -488,7 +488,7 @@ import { uid, nowISO } from "./seed.js";
     return `<a href="#/projeto/${p.id}" class="project-card"><div class="pc-thumb">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}" loading="lazy">` : ""}<span class="pc-cat">${escapeHtml(categoryName(p.categoryId))}</span></div><div class="pc-body"><h3>${escapeHtml(p.title)}</h3><p>${escapeHtml(p.description)}</p><div class="pc-meta"><span class="author"><span class="pc-mini-avatar">${initials(p.ownerName)}</span>${escapeHtml(p.ownerName)}</span><span>${fmtDate(p.createdAt)}</span></div></div></a>`;
   }
 
-  function viewProjectDetail(id) {
+ function viewProjectDetail(id) {
     const p = db.projects.find((pj) => pj.id === id); if (!p) return view404(); const img = (p.images && p.images[0]) || "";
     return `
     <div class="project-detail container">
@@ -496,22 +496,27 @@ import { uid, nowISO } from "./seed.js";
         <a href="#/explorar">Explorar</a> / ${escapeHtml(categoryName(p.categoryId))} / <span class="muted">Detalhes</span>
       </div>
       
-      <!-- O Título e a Categoria agora vêm PRIMEIRO -->
+      <!-- Título com o rótulo "TÍTULO" acima -->
       <div style="margin-bottom: 24px; max-width: 760px;">
         <span class="pd-cat-badge">${escapeHtml(categoryName(p.categoryId))}</span>
-        <h1 class="pd-title" style="margin-top: 12px; margin-bottom: 8px;">${escapeHtml(p.title)}</h1>
+        <div style="margin-top: 14px;">
+          <span class="muted" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; font-family: var(--font-mono);">Título</span>
+          <h1 class="pd-title" style="margin-top: 4px; margin-bottom: 8px;">${escapeHtml(p.title)}</h1>
+        </div>
       </div>
 
       <div class="pd-grid">
-        <!-- A imagem e a descrição ficam agrupadas à esquerda (ou em cima, no celular) -->
         <div class="pd-main">
           <div class="pd-gallery">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}">` : `<span class="muted">Sem imagem</span>`}</div>
           ${p.images && p.images.length > 1 ? `<div class="pd-thumbs">${p.images.map((im, i) => `<img src="${im}" class="${i === 0 ? "active" : ""}" alt="">`).join("")}</div>` : ""}
           
-          <div class="pd-desc" style="margin-top: 32px; font-size: 15.5px; line-height: 1.7;">${escapeHtml(p.description)}</div>
+          <!-- Descrição com o rótulo "DESCRIÇÃO" acima -->
+          <div style="margin-top: 32px;">
+            <span class="muted" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; font-family: var(--font-mono);">Descrição</span>
+            <div class="pd-desc" style="margin-top: 8px; font-size: 15.5px; line-height: 1.7;">${escapeHtml(p.description)}</div>
+          </div>
         </div>
         
-        <!-- A caixa com os botões e contato fica à direita (ou no final, no celular) -->
         <aside class="pd-side">
           <h4>Sobre o projeto</h4>
           <div class="pd-row"><span>Responsável</span><span>${escapeHtml(p.ownerName)}</span></div>
@@ -524,7 +529,6 @@ import { uid, nowISO } from "./seed.js";
       </div>
     </div>`;
   }
-
   function viewPublish(params) {
     const user = currentUser();
     if (!canPublish(user)) return `<div class="auth-shell"><div class="auth-card text-center"><h2>Assinatura necessária</h2><p class="sub">Para publicar projetos na plataforma, você precisa de uma assinatura ativa.</p><a href="#/planos" class="btn btn-gold btn-block">Ver planos de assinatura</a></div></div>`;
