@@ -1099,21 +1099,28 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL (TUDO NUMA SÓ TELA - ZERO SCROLL)
+   MENU MÓVEL (TELA CHEIA, TODOS OS LINKS VISÍVEIS, SEM BARRA DE SCROLL)
    ========================================================= */
 #mobileNav {
   display: none !important;
   position: fixed !important;
   top: 72px !important;
   left: 0 !important;
-  width: 100vw !important;
-  height: calc(100vh - 72px) !important;
-  height: calc(100dvh - 72px) !important;
+  right: 0 !important;
+  bottom: 0 !important; /* Estica até ao fundo perfeitamente */
+  height: auto !important; /* Remove o calc() que causa o bug */
   background-color: #ffffff !important;
   z-index: 9999999 !important;
-  overflow: hidden !important; /* MATA A BARRA DE ROLAGEM DO MENU DE VEZ */
+  overflow-y: auto !important; /* Permite que o ecrã desenhe os 11 links */
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* Edge */
   box-sizing: border-box !important;
-  padding: 10px 24px 20px !important; /* Reduzi o espaço gigante no fundo */
+  padding: 0 24px 24px !important;
+}
+
+/* 🔥 ESTA LINHA MATA A BARRA DE ROLAGEM NO ANDROID SEM CORTAR O TEXTO 🔥 */
+#mobileNav::-webkit-scrollbar {
+  display: none !important;
 }
 
 #mobileNav.open {
@@ -1121,13 +1128,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   flex-direction: column !important;
 }
 
-/* Espaçamento mais apertado para caberem todos os 11 itens */
+/* Ajuste compacto para caberem todos os 11 itens */
 #mobileNav a, #mobileNav button {
   color: #03070f !important;
   border-bottom: 1px solid #f1f5fd !important;
-  padding: 10px 0 !important; /* Reduzido de 16px para 10px para espremer as opções */
+  padding: 10px 0 !important;
   text-decoration: none !important;
-  font-size: 15px !important; /* Levemente menor para poupar espaço vertical */
+  font-size: 15px !important;
   font-weight: 700 !important;
   background: transparent !important;
   border-top: none !important;
@@ -1149,18 +1156,18 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   color: #dc2626 !important;
 }
 
-/* Botão Entrar (Azul) - Mais compacto */
+/* Botão Entrar */
 #mobileNav a[href*="login"] {
   background: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
   border-radius: 999px !important;
   text-align: center !important;
-  margin-top: auto !important; /* Empurra os botões para o fundo se sobrar espaço */
+  margin-top: auto !important; /* Empurra para o fundo se houver espaço livre */
   padding: 10px 20px !important;
 }
 
-/* Botão Cadastrar (Dourado) - Mais compacto */
+/* Botão Cadastrar */
 #mobileNav a[href*="register"] {
   background: #facc15 !important;
   color: #03070f !important;
