@@ -711,11 +711,12 @@ function bindGlobalUI() {
             if (isOpen) {
                 mobileNav.classList.remove("open");
                 mobileNav.style.display = "none";
+                mobileNav.removeAttribute("style");
                 document.body.style.overflow = "";
             } else {
                 mobileNav.classList.add("open");
-                // Injeta estilo inline pesado e direto que o WebView não consegue ignorar
-                mobileNav.setAttribute("style", "display: flex !important; flex-direction: column !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; height: calc(100dvh - 72px) !important; background: #131b2b !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 20px 24px !important;");
+                // Força os estilos absolutos idênticos ao navegador móvel
+                mobileNav.setAttribute("style", "display: flex !important; flex-direction: column !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; height: calc(100dvh - 72px) !important; background: var(--surface, #131b2b) !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 20px 24px !important;");
                 document.body.style.overflow = "hidden";
             }
         });
@@ -724,6 +725,7 @@ function bindGlobalUI() {
             el.addEventListener("click", () => {
                 mobileNav.classList.remove("open");
                 mobileNav.style.display = "none";
+                mobileNav.removeAttribute("style");
                 document.body.style.overflow = "";
             }); 
         }); 
