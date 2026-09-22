@@ -677,75 +677,105 @@ import { uid, nowISO } from "./seed.js";
     return `<div class="dash-shell"><nav class="dash-sidebar">${sideNav("/indicacoes")}</nav><div class="dash-main"><div class="dash-head"><div><h1>Programa de indicação</h1><p>Indique pessoas e ganhe ${Math.round(COMMISSION_RATE * 100)}% de comissão em cada assinatura realizada.</p></div></div><div class="ref-link-box mt-1" style="margin-bottom:30px"><code id="refLinkText">${link}</code><button class="btn btn-outline-gold btn-sm" id="copyRefLink" style="border-color:var(--gold-500);color:var(--gold-300,#f0d97a)">Copiar link</button></div><div class="stat-grid"><div class="stat-card"><div class="stat-label">Total de indicações</div><div class="stat-value">${myRefs.length}</div></div><div class="stat-card"><div class="stat-label">Comissões pendentes</div><div class="stat-value">${fmtBRL(pendingCommission(user.id))}</div></div><div class="stat-card gold"><div class="stat-label">Comissões disponíveis</div><div class="stat-value">${fmtBRL(availableCommission(user.id))}</div></div><div class="stat-card"><div class="stat-label">Ganhos totais</div><div class="stat-value">${fmtBRL(totalEarnings(user.id))}</div></div></div><div class="panel"><div class="panel-head"><h3>Solicitar saque</h3></div><p class="muted mt-1">Saque mínimo de ${fmtBRL(MIN_WITHDRAW)}. Saldo disponível: <strong>${fmtBRL(availableCommission(user.id))}</strong></p><form id="withdrawForm" class="mt-2" style="max-width:360px"><div class="field"><label>Valor do saque</label><input type="number" min="${MIN_WITHDRAW}" step="0.01" name="amount" placeholder="Ex.: 15,00" required></div><div class="field"><label>Chave Pix</label><input type="text" name="pixKey" placeholder="CPF, e-mail, telefone ou chave aleatória" value="${escapeHtml(lastPixKey(user.id))}" required></div><button class="btn btn-gold btn-block" type="submit">Solicitar saque</button></form></div><div class="panel"><div class="panel-head"><h3>Histórico de ganhos</h3></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Indicado</th><th>Plano</th><th>Valor</th><th>Status</th></tr></thead><tbody>${commissions.map((c) => { const ref = userById(c.referredId); const label = { pending: ["badge-warning", "Pendente"], available: ["badge-success", "Disponível"], paid: ["badge-neutral", "Pago"] }[c.status]; return `<tr><td>${fmtDate(c.createdAt)}</td><td>${escapeHtml(ref ? ref.name : "—")}</td><td>${escapeHtml(PLANS[c.planId] ? PLANS[c.planId].name : "—")}</td><td>${fmtBRL(c.amount)}</td><td><span class="badge ${label[0]}">${label[1]}</span></td></tr>`; }).join("") || `<tr><td colspan="5" class="muted text-center">Nenhuma comissão registrada ainda.</td></tr>`}</tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Solicitações de saque</h3></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Valor</th><th>Chave Pix</th><th>Status</th></tr></thead><tbody>${db.withdrawals.filter((w) => w.userId === user.id).map((w) => { const label = { pending: ["badge-warning", "Em análise"], approved: ["badge-success", "Aprovado"], rejected: ["badge-danger", "Recusado"] }[w.status]; return `<tr><td>${fmtDate(w.createdAt)}</td><td>${fmtBRL(w.amount)}</td><td>${escapeHtml(w.pixKey || "—")}</td><td><span class="badge ${label[0]}">${label[1]}</span></td></tr>`; }).join("") || `<tr><td colspan="4" class="muted text-center">Nenhum saque solicitado.</td></tr>`}</tbody></table></div></div></div></div>`;
   }
 
-  function viewPlatformReview() {
+ function viewPlatformReview() {
     const user = currentUser();
     
+    // Verifica se o utilizador já enviou uma avaliação (com proteção para array vazio)
+    const platformReviews = (db && db.platformReviews) ? db.platformReviews : [];
+    const userReview = user ? platformReviews.find(r => r.userId === user.id) : null;
+
+    let contentHtml = "";
+
+    if (!user) {
+      contentHtml = `
+        <div class="panel text-center">
+          <p class="muted">Você precisa entrar na sua conta para avaliar a plataforma.</p>
+          <a href="login.html?redirect=avaliar" class="btn btn-gold btn-sm mt-2">Entrar na conta</a>
+        </div>
+      `;
+    } else if (userReview) {
+      // Se já avaliou, mostra mensagem de sucesso em vez do formulário
+      contentHtml = `
+        <div class="panel text-center" style="border-color: var(--green-700); padding: 40px 20px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+          <h3 style="color: var(--text-main); margin-bottom: 8px;">Avaliação recebida!</h3>
+          <p style="color: var(--green-700); font-weight: 600; font-size: 16px; margin: 0;">✓ Você já avaliou a plataforma.</p>
+          <div style="margin-top: 16px; display: inline-flex; gap: 4px;">
+            ${getStarSvg(24, userReview.overallRating >= 1)}
+            ${getStarSvg(24, userReview.overallRating >= 2)}
+            ${getStarSvg(24, userReview.overallRating >= 3)}
+            ${getStarSvg(24, userReview.overallRating >= 4)}
+            ${getStarSvg(24, userReview.overallRating >= 5)}
+          </div>
+          <p class="muted" style="margin-top: 24px;">Obrigado por ajudar a construir um Compartilhar Projetos melhor!</p>
+          <a href="#/" class="btn btn-primary mt-3">Voltar ao início</a>
+        </div>
+      `;
+    } else {
+      // Formulário melhorado e corrigido (botões radio alinhados)
+      contentHtml = `
+        <form id="platformReviewForm" class="panel">
+          <!-- 1. Overall Rating -->
+          <div class="field" style="margin-bottom: 32px;">
+            <label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">1. Como você avalia sua experiência geral?</label>
+            <div id="platformRatingStars" style="display: flex; gap: 12px; cursor: pointer; margin-top: 12px;">
+              <span data-val="1">${getStarSvg(36, false)}</span>
+              <span data-val="2">${getStarSvg(36, false)}</span>
+              <span data-val="3">${getStarSvg(36, false)}</span>
+              <span data-val="4">${getStarSvg(36, false)}</span>
+              <span data-val="5">${getStarSvg(36, false)}</span>
+            </div>
+            <input type="hidden" name="overallRating" id="overallRatingVal" value="0" required>
+          </div>
+
+          <!-- 2. Usability -->
+          <div class="field" style="margin-bottom: 32px;">
+            <label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">2. Quão fácil é publicar e explorar projetos?</label>
+            <select name="usabilityScore" required style="margin-top: 12px; width: 100%; padding: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-main); font-size: 15px;">
+              <option value="" style="color: #000;">Selecione...</option>
+              <option value="very_easy" style="color: #000;">Muito fácil</option>
+              <option value="easy" style="color: #000;">Fácil</option>
+              <option value="neutral" style="color: #000;">Razoável</option>
+              <option value="hard" style="color: #000;">Difícil</option>
+              <option value="very_hard" style="color: #000;">Muito difícil</option>
+            </select>
+          </div>
+
+          <!-- 3. Recommendation -->
+          <div class="field" style="margin-bottom: 32px;">
+            <label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">3. Você recomendaria a plataforma para outros desenvolvedores e designers?</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px;">
+              <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;">
+                <input type="radio" name="wouldRecommend" value="yes" required style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Sim
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;">
+                <input type="radio" name="wouldRecommend" value="maybe" style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Talvez
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;">
+                <input type="radio" name="wouldRecommend" value="no" style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Não
+              </label>
+            </div>
+          </div>
+
+          <!-- 4. Text Feedback -->
+          <div class="field" style="margin-bottom: 32px;">
+            <label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">4. O que podemos melhorar?</label>
+            <textarea name="feedbackText" rows="4" placeholder="Deixe sugestões de novas funcionalidades, críticas ou elogios..." style="margin-top: 12px; width: 100%; padding: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-main); font-family: inherit; font-size: 15px; resize: vertical;"></textarea>
+          </div>
+
+          <div class="field-error" id="platformReviewError" style="display: none; margin-bottom: 16px;"></div>
+          <button type="submit" class="btn btn-gold btn-block" style="padding: 16px; font-size: 16px; font-weight: 600;">Enviar Avaliação</button>
+        </form>
+      `;
+    }
+
     return `
     <section class="section" style="padding-top: 52px; max-width: 680px; margin: 0 auto;">
       <div class="container">
         <span class="tag-label">Feedback</span>
         <h2 style="margin-bottom: 6px;">Avalie a Plataforma</h2>
-        <p class="muted" style="margin-bottom: 24px;">Sua opinião ajuda a melhorar o Compartilhar Projetos para toda a comunidade de criadores.</p>
-
-        ${!user ? `
-          <div class="panel text-center">
-            <p class="muted">Você precisa entrar na sua conta para avaliar a plataforma.</p>
-            <a href="login.html?redirect=avaliar" class="btn btn-gold btn-sm mt-2">Entrar na conta</a>
-          </div>
-        ` : `
-          <form id="platformReviewForm" class="panel">
-            <!-- 1. Overall Rating -->
-            <div class="field" style="margin-bottom: 24px;">
-              <label style="font-size: 15px; font-weight: 600;">1. Como você avalia sua experiência geral?</label>
-              <div id="platformRatingStars" style="display: flex; gap: 8px; cursor: pointer; margin-top: 8px;">
-                <span data-val="1">${getStarSvg(32, false)}</span>
-                <span data-val="2">${getStarSvg(32, false)}</span>
-                <span data-val="3">${getStarSvg(32, false)}</span>
-                <span data-val="4">${getStarSvg(32, false)}</span>
-                <span data-val="5">${getStarSvg(32, false)}</span>
-              </div>
-              <input type="hidden" name="overallRating" id="overallRatingVal" value="0" required>
-            </div>
-
-            <!-- 2. Usability -->
-            <div class="field" style="margin-bottom: 24px;">
-              <label style="font-size: 15px; font-weight: 600;">2. Quão fácil é publicar e explorar projetos?</label>
-              <select name="usabilityScore" required style="margin-top: 8px;">
-                <option value="">Selecione...</option>
-                <option value="very_easy">Muito fácil</option>
-                <option value="easy">Fácil</option>
-                <option value="neutral">Razoável</option>
-                <option value="hard">Difícil</option>
-                <option value="very_hard">Muito difícil</option>
-              </select>
-            </div>
-
-            <!-- 3. Recommendation -->
-            <div class="field" style="margin-bottom: 24px;">
-              <label style="font-size: 15px; font-weight: 600;">3. Você recomendaria a plataforma para outros desenvolvedores e designers?</label>
-              <div style="display: flex; gap: 16px; margin-top: 12px;">
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                  <input type="radio" name="wouldRecommend" value="yes" required> Sim
-                </label>
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                  <input type="radio" name="wouldRecommend" value="maybe"> Talvez
-                </label>
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                  <input type="radio" name="wouldRecommend" value="no"> Não
-                </label>
-              </div>
-            </div>
-
-            <!-- 4. Text Feedback -->
-            <div class="field" style="margin-bottom: 24px;">
-              <label style="font-size: 15px; font-weight: 600;">4. O que podemos melhorar?</label>
-              <textarea name="feedbackText" rows="4" placeholder="Deixe sugestões de novas funcionalidades, críticas ou elogios..." style="margin-top: 8px;"></textarea>
-            </div>
-
-            <div class="field-error" id="platformReviewError" style="display: none; margin-bottom: 12px;"></div>
-            <button type="submit" class="btn btn-gold btn-block">Enviar Avaliação</button>
-          </form>
-        `}
+        <p class="muted" style="margin-bottom: 32px;">Sua opinião ajuda a melhorar o Compartilhar Projetos para toda a comunidade de criadores.</p>
+        ${contentHtml}
       </div>
     </section>
     `;
