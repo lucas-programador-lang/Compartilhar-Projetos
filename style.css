@@ -1167,7 +1167,7 @@ body.menu-open header {
   border: none !important;
   border-radius: 999px !important;
   text-align: center !important;
-  margin-top: auto !important; /* Empurra os botões para o fundo */
+  margin-top: 24px !important; /* Espaço fixo após o último link, sem depender de flex auto-margin */
   padding: 14px 20px !important;
 }
 
