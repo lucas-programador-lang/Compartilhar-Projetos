@@ -33,7 +33,7 @@
           <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
         </svg>
       </span>
-      <span class="brand-name">Compartilhar<em>Projetos</em></span>
+      <span class="brand-name">Compartilhar <em>Projetos</em></span>
     </a>
     <div class="header-actions">
       <!-- Botão de Tema -->
@@ -79,8 +79,6 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      // Como o UserAgent nativo foi restaurado para evitar bloqueios do Cloudflare,
-      // verificamos a ausência de propriedades nativas de navegadores desktop
       const isAndroidApp = window.Android !== undefined || /wv/.test(navigator.userAgent);
 
       if (isAndroidApp) {
