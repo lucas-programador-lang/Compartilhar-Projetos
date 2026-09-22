@@ -763,7 +763,8 @@ window.compartilharConteudo = function(titulo, texto, url) {
 
     const overlay = document.createElement("div");
     overlay.id = "customShareModal";
-    overlay.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(6, 14, 32, 0.75) !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 999999 !important; padding: 16px !important; box-sizing: border-box !important;";
+    // Ajustado para centralizar perfeitamente no eixo vertical e horizontal do APK
+    overlay.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(6, 14, 32, 0.75) !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 999999 !important; padding: 20px !important; box-sizing: border-box !important;";
     
     const encUrl = encodeURIComponent(url);
     const encText = encodeURIComponent(texto);
