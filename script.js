@@ -690,7 +690,7 @@ import { uid, nowISO } from "./seed.js";
     });
   }
 
- function bindGlobalUI() {
+function bindGlobalUI() {
     bindThemeToggle();
 
     const avatarBtn = qs("#avatarBtn"); const userMenu = qs("#userMenu");
@@ -701,7 +701,7 @@ import { uid, nowISO } from "./seed.js";
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
-        // Garante que o menu começa oculto
+        // Garante que o menu começa completamente oculto
         mobileNav.style.display = "none";
         
         hamburger.addEventListener("click", (e) => { 
@@ -714,8 +714,8 @@ import { uid, nowISO } from "./seed.js";
                 document.body.style.overflow = "";
             } else {
                 mobileNav.classList.add("open");
-                // Injeta os estilos completos apenas ao abrir, forçadamente em cima de tudo
-                mobileNav.style.cssText = "display: flex !important; flex-direction: column !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; height: calc(100dvh - 72px) !important; background: var(--surface, #131b2b) !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 20px 24px !important;";
+                // Injeta estilo inline pesado e direto que o WebView não consegue ignorar
+                mobileNav.setAttribute("style", "display: flex !important; flex-direction: column !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; height: calc(100dvh - 72px) !important; background: #131b2b !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 20px 24px !important;");
                 document.body.style.overflow = "hidden";
             }
         });
