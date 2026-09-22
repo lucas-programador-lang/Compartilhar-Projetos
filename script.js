@@ -847,7 +847,7 @@ window.compartilharConteudo = function(titulo, texto, url) {
         document.body.removeChild(textArea);
     }
 };
-  window.salvarTokenPush = async function(token) {
+ window.salvarTokenPush = async function(token) {
       // Salva na memória do celular temporariamente
       localStorage.setItem("fcm_token_temp", token);
       
