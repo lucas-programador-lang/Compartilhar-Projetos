@@ -1065,3 +1065,34 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   color: var(--ink-900);
   border-color: rgba(255, 255, 255, 0.1);
 }
+
+/* =========================================================
+   CORREÇÕES DE RESPONSIVIDADE E TEXTOS LONGOS
+   ========================================================= */
+/* Impede que palavras ou links gigantes quebrem o layout no celular */
+.pd-title, 
+.pd-desc,
+.pc-body h3,
+.pd-row span:last-child,
+.post-body,
+.comment-body p,
+.stat-card .stat-value {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+/* Mantém as quebras de linha naturais (parágrafos) na descrição do projeto */
+.pd-desc {
+  white-space: pre-wrap !important;
+}
+
+/* Melhora o comportamento de textos longos dentro dos inputs e textareas do formulário */
+.field input {
+  text-overflow: ellipsis;
+}
+.field textarea {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
