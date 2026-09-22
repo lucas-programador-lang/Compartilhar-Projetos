@@ -483,7 +483,65 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function viewProjectDetail(id) {
-    const p = db.projects.find((pj) => pj.id === id); if (!p) return view404(); const img = (p.images && p.images[0]) || "";
+    const p = db.projects.find((pj) => pj.id === id); if (!p) return view404(); 
+    const img = (p.images && p.images[0]) || "";
+    const user = currentUser();
+
+    // LÓGICA DAS AVALIAÇÕES (REVIEWS)
+    const projectReviews = p.reviews || [];
+    const avgRating = projectReviews.length ? (projectReviews.reduce((acc, r) => acc + r.rating, 0) / projectReviews.length).toFixed(1) : 0;
+    const hasRated = user ? projectReviews.some(r => r.userId === user.id) : false;
+
+    // Desenhar estrelas médias no topo
+    let starsHtml = "";
+    for (let i = 1; i <= 5; i++) {
+      starsHtml += `<span style="color: ${i <= Math.round(avgRating) ? '#facc15' : '#334155'}; font-size: 18px;">★</span>`;
+    }
+
+    // Lista de avaliações
+    let reviewsListHtml = projectReviews.map(r => `
+      <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-color, rgba(255,255,255,0.05));">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <strong style="font-size: 14px; color: var(--text-main);">${escapeHtml(r.userName)}</strong>
+          <span style="color: #facc15; font-size: 14px;">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span>
+        </div>
+        <p style="font-size: 14.5px; color: var(--ink-700); margin: 0; line-height: 1.5;">${escapeHtml(r.comment)}</p>
+        <span style="font-size: 11px; color: var(--ink-300); display: block; margin-top: 8px;">${fmtDate(r.createdAt)}</span>
+      </div>
+    `).join("");
+
+    if (projectReviews.length === 0) {
+      reviewsListHtml = `<p class="muted" style="font-size: 14px; text-align: center; padding: 20px 0;">No reviews yet. Be the first to rate this project!</p>`;
+    }
+
+    // Formulário ou bloqueio de avaliação
+    let reviewFormHtml = "";
+    if (!user) {
+      reviewFormHtml = `<div class="panel text-center mt-3"><p class="muted">Log in to leave a review.</p><a href="login.html?redirect=projeto/${p.id}" class="btn btn-ghost btn-sm mt-2">Log in</a></div>`;
+    } else if (hasRated) {
+      reviewFormHtml = `<div class="panel text-center mt-3" style="border-color: var(--green-700);"><p style="color: var(--green-700); font-weight: 600; margin: 0;">✓ You have already reviewed this project.</p></div>`;
+    } else if (user.id === p.ownerId) {
+      reviewFormHtml = `<div class="panel text-center mt-3"><p class="muted" style="margin: 0;">You cannot review your own project.</p></div>`;
+    } else {
+      reviewFormHtml = `
+        <form id="projectReviewForm" data-project="${p.id}" class="panel mt-3" style="background: var(--bg-card);">
+          <h4 style="margin-bottom: 12px;">Leave a review</h4>
+          <div style="margin-bottom: 16px;">
+            <label class="muted" style="font-size: 12px; display: block; margin-bottom: 4px;">Rating (Stars)</label>
+            <div id="starRatingInput" style="display: flex; gap: 8px; font-size: 28px; cursor: pointer; color: #334155;">
+              <span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span>
+            </div>
+            <input type="hidden" name="rating" id="projectRatingVal" value="0" required>
+          </div>
+          <div class="field">
+            <label>Comment</label>
+            <textarea name="comment" rows="3" required placeholder="What do you think about this project?"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Submit Review</button>
+        </form>
+      `;
+    }
+
     return `
     <div class="project-detail container">
       <div class="breadcrumb">
@@ -495,6 +553,12 @@ import { uid, nowISO } from "./seed.js";
         <div style="margin-top: 14px;">
           <span class="muted" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; font-family: var(--font-mono);">Título</span>
           <h1 class="pd-title" style="margin-top: 4px; margin-bottom: 8px;">${escapeHtml(p.title)}</h1>
+          
+          <!-- ESTRELAS NO TOPO -->
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+            <div style="display: flex;">${starsHtml}</div>
+            <span style="font-size: 14px; color: var(--ink-700); font-weight: 600;">${avgRating} <span style="font-weight: 400;">(${projectReviews.length} reviews)</span></span>
+          </div>
         </div>
       </div>
 
@@ -506,6 +570,15 @@ import { uid, nowISO } from "./seed.js";
           <div style="margin-top: 32px;">
             <span class="muted" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; font-family: var(--font-mono);">Descrição</span>
             <div class="pd-desc" style="margin-top: 8px; font-size: 15.5px; line-height: 1.7;">${escapeHtml(p.description)}</div>
+          </div>
+
+          <!-- BLOCO DE AVALIAÇÕES (REVIEWS) -->
+          <div style="margin-top: 48px; border-top: 1px solid var(--border-color, rgba(255,255,255,0.08)); padding-top: 32px;">
+            <h3 style="margin-bottom: 20px; font-size: 20px;">Project Reviews</h3>
+            <div id="reviewsContainer">
+              ${reviewsListHtml}
+            </div>
+            ${reviewFormHtml}
           </div>
         </div>
         
@@ -655,6 +728,71 @@ import { uid, nowISO } from "./seed.js";
         }); 
     }
     const withdrawForm = qs("#withdrawForm"); if (withdrawForm) { withdrawForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(withdrawForm); Promise.resolve().then(() => requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey"))).then(() => { toast("Saque enviado!", "success"); render({ navigation: false }); }).catch((err) => toast(err.message, "error")); }); }
+
+    // ===== LÓGICA DE AVALIAÇÃO DO PROJETO (REVIEWS) =====
+    const projectReviewForm = qs("#projectReviewForm");
+    if (projectReviewForm) {
+      const stars = qsa("#starRatingInput span");
+      const ratingInput = qs("#projectRatingVal");
+
+      // Animação e seleção das estrelas
+      stars.forEach(star => {
+        star.addEventListener("click", () => {
+          const val = parseInt(star.getAttribute("data-val"));
+          ratingInput.value = val;
+          stars.forEach(s => {
+            s.style.color = parseInt(s.getAttribute("data-val")) <= val ? "#facc15" : "#334155";
+          });
+        });
+      });
+
+      // Submissão da Review
+      projectReviewForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const rating = parseInt(ratingInput.value);
+        if (rating === 0) {
+          toast("Please select a star rating.", "error");
+          return;
+        }
+
+        const commentInput = projectReviewForm.querySelector("textarea[name='comment']").value.trim();
+        const projectId = projectReviewForm.getAttribute("data-project");
+        const user = currentUser();
+
+        if (!user) return;
+
+        const targetProject = db.projects.find(p => p.id === projectId);
+        if (!targetProject) return;
+
+        // Criar o novo objeto de review
+        const newReview = {
+          userId: user.id,
+          userName: user.name,
+          rating: rating,
+          comment: sanitizeText(commentInput),
+          createdAt: nowISO()
+        };
+
+        // Adicionar a nova review ao array existente
+        const updatedReviews = [...(targetProject.reviews || []), newReview];
+        
+        const btn = projectReviewForm.querySelector("button[type='submit']");
+        btn.disabled = true;
+        btn.textContent = "Submitting...";
+
+        // Usa a tua função updateProject que já grava no Firebase!
+        updateProject(projectId, { reviews: updatedReviews })
+          .then(() => {
+            toast("Review submitted successfully!", "success");
+            render({ navigation: false }); // Recarrega a tela para mostrar a estrelinha na hora
+          })
+          .catch(err => {
+            toast(err.message || "Error submitting review.", "error");
+            btn.disabled = false;
+            btn.textContent = "Submit Review";
+          });
+      });
+    }
   }
 
   function renderUploadPreview() { const box = qs("#uploadPreview"); if (!box) return; box.innerHTML = pendingImages.map((src, i) => `<div class="rm"><img src="${src}"><button type="button" data-i="${i}">×</button></div>`).join(""); qsa("#uploadPreview button").forEach((b) => b.addEventListener("click", () => { pendingImages.splice(parseInt(b.getAttribute("data-i")), 1); renderUploadPreview(); })); }
