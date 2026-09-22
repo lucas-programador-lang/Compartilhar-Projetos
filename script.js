@@ -701,7 +701,6 @@ function bindGlobalUI() {
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
-        // Garante que o menu começa completamente oculto
         mobileNav.style.display = "none";
         
         hamburger.addEventListener("click", (e) => { 
@@ -715,8 +714,8 @@ function bindGlobalUI() {
                 document.body.style.overflow = "";
             } else {
                 mobileNav.classList.add("open");
-                // Força os estilos absolutos idênticos ao navegador móvel
-                mobileNav.setAttribute("style", "display: flex !important; flex-direction: column !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; height: calc(100dvh - 72px) !important; background: var(--surface, #131b2b) !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 20px 24px !important;");
+                // Força o fundo escuro exato (#131b2b) e o layout de overlay em tela cheia no Android
+                mobileNav.setAttribute("style", "display: flex !important; flex-direction: column !important; position: fixed !important; top: 72px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 72px) !important; height: calc(100dvh - 72px) !important; background-color: #131b2b !important; color: #f8fafc !important; z-index: 999999 !important; overflow-y: auto !important; box-sizing: border-box !important; padding: 20px 24px !important;");
                 document.body.style.overflow = "hidden";
             }
         });
