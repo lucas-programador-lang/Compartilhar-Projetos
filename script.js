@@ -701,21 +701,16 @@ function bindGlobalUI() {
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
-        // 🔥 Tira o menu de dentro do cabeçalho para não ser cortado no APK
-        if (mobileNav.parentNode !== document.body) {
-            document.body.appendChild(mobileNav);
-        }
-        
         hamburger.addEventListener("click", (e) => { 
             e.stopPropagation();
             const isOpen = mobileNav.classList.contains("open");
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; // Liberta o fundo
+                document.body.style.overflow = ""; // Liberta a página
             } else {
                 mobileNav.classList.add("open");
-                document.body.style.overflow = "hidden"; // Tranca o fundo para não rolar
+                document.body.style.overflow = "hidden"; // Tranca totalmente o ecrã de fundo
             }
         });
         
