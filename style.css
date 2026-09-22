@@ -997,6 +997,23 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   border-bottom-color: rgba(255,255,255,.06);
 }
 
+/* Títulos e textos que usam var(--navy-900) como cor de texto (inclusive
+   em style="" inline nas páginas institucionais) ficavam quase invisíveis
+   no modo escuro, pois --navy-900 é um azul bem escuro pensado pro tema
+   claro. Aqui sobrescrevemos só a COR nesses casos, sem tocar na variável
+   --navy-900 em si (ela também é usada como FUNDO em vários componentes
+   escuros, como .toast, .dash-sidebar e o footer). */
+[data-theme="dark"] h1[style*="navy-900"],
+[data-theme="dark"] h2[style*="navy-900"],
+[data-theme="dark"] h3[style*="navy-900"],
+[data-theme="dark"] strong[style*="navy-900"],
+[data-theme="dark"] .faq-item h3,
+[data-theme="dark"] .legal-doc strong,
+[data-theme="dark"] .warning-card strong,
+[data-theme="dark"] .admin-head h1 {
+  color: var(--ink-900) !important;
+}
+
 [data-theme="dark"] input,
 [data-theme="dark"] textarea,
 [data-theme="dark"] select,
