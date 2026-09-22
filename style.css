@@ -1164,24 +1164,24 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 
 
 /* =========================================================
-   CORREÇÃO DEFINITIVA DO MENU HAMBÚRGUER (ESTILO 2ª IMAGEM)
+   FIX ULTIMATE FOR MOBILE NAV OVERLAY IN APK
    ========================================================= */
-.mobile-nav, #mobileNav {
+#mobileNav {
+  display: none !important;
   position: fixed !important;
-  top: 72px !important; /* Altura exata do cabeçalho */
+  top: 72px !important;
   left: 0 !important;
   width: 100vw !important;
   height: calc(100vh - 72px) !important;
   height: calc(100dvh - 72px) !important;
-  background: var(--surface, #131b2b) !important;
-  z-index: 999999 !important;
+  background-color: #131b2b !important;
+  z-index: 9999999 !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
-  display: none !important;
-  padding: 16px 24px 40px !important;
-  flex-direction: column !important;
+  padding: 20px 24px !important;
 }
 
-.mobile-nav.open, #mobileNav.open {
+#mobileNav.open {
   display: flex !important;
+  flex-direction: column !important;
 }
