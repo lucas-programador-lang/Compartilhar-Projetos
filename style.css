@@ -1099,20 +1099,37 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL DEFINITIVO (VISUAL EXATO DA IMAGEM, ZERO SCROLL)
+   MENU MÓVEL DEFINITIVO (CORREÇÃO DE SPA E BACKDROP-FILTER)
    ========================================================= */
+
+/* 🔥 A MÁGICA: Tira o desfoque do header quando o menu abre para ele não ficar preso/cortado 🔥 */
+body.menu-open .site-header,
+body.menu-open header {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+
 #mobileNav {
   display: none !important;
   position: fixed !important;
   top: 72px !important;
   left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important; /* Obriga a ir até ao fundo do ecrã */
-  background-color: #ffffff !important; /* Fundo branco puro */
+  width: 100vw !important;
+  height: calc(100vh - 72px) !important;
+  height: calc(100dvh - 72px) !important;
+  background-color: #ffffff !important;
   z-index: 9999999 !important;
-  overflow: hidden !important; /* PROÍBE O SCROLL DO MENU */
+  overflow-y: auto !important; /* Permite rolar se o ecrã for minúsculo... */
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   box-sizing: border-box !important;
-  padding: 8px 24px 24px !important;
+  padding: 10px 24px 24px !important;
+}
+
+/* ...mas esconde a barra feia visualmente no Android e iOS */
+#mobileNav::-webkit-scrollbar {
+  display: none !important;
 }
 
 #mobileNav.open {
@@ -1120,14 +1137,14 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   flex-direction: column !important;
 }
 
-/* Redução milimétrica do padding para caberem todos os 11 itens */
+/* Ajuste milimétrico para caber tudo */
 #mobileNav a, #mobileNav button {
   color: #03070f !important;
   border-bottom: 1px solid #f1f5fd !important;
-  padding: 12px 0 !important; /* Reduzido para encaixar tudo na tela */
+  padding: 12px 0 !important;
   text-decoration: none !important;
   font-size: 15px !important;
-  font-weight: 700 !important; /* Letras grossas */
+  font-weight: 700 !important;
   background: transparent !important;
   border-top: none !important;
   border-left: none !important;
@@ -1142,21 +1159,20 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 
 #mobileNav a:hover { color: #2563eb !important; }
 
-/* Botão Sair - Vermelho */
 #mobileNav #logoutBtnMobile { color: #dc2626 !important; }
 
-/* Botão Entrar - Azul Royal (Formato Pílula) */
+/* Botão Entrar (Azul Royal) */
 #mobileNav a[href*="login"] {
   background: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
   border-radius: 999px !important;
   text-align: center !important;
-  margin-top: auto !important; /* Empurra os botões para o limite inferior */
+  margin-top: auto !important; /* Empurra para o fundo da tela */
   padding: 14px 20px !important;
 }
 
-/* Botão Cadastrar - Dourado (Formato Pílula) */
+/* Botão Cadastrar (Dourado) */
 #mobileNav a[href*="register"] {
   background: #facc15 !important;
   color: #03070f !important;
