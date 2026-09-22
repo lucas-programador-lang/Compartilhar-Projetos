@@ -1182,3 +1182,24 @@ body.menu-open header {
   margin-top: 10px !important;
   padding: 14px 20px !important;
 }
+
+
+/* =========================================================
+   LÓGICA DE EXIBIÇÃO DO MENU (LOGADO vs DESLOGADO)
+   ========================================================= */
+
+/* 1. SE ESTIVER DESLOGADO (Visitante) */
+body.is-guest #mobileNav #logoutBtnMobile {
+  display: none !important; /* Esconde o botão Sair */
+}
+body.is-guest #mobileNav a[href*="painel"],
+body.is-guest #mobileNav a[href*="perfil"],
+body.is-guest #mobileNav a[href*="indicacoes"] {
+  display: none !important; /* Esconde as páginas privadas */
+}
+
+/* 2. SE ESTIVER LOGADO (Sessão Ativa) */
+body:not(.is-guest) #mobileNav a[href*="login"],
+body:not(.is-guest) #mobileNav a[href*="register"] {
+  display: none !important; /* Esconde o Entrar e Cadastrar */
+}
