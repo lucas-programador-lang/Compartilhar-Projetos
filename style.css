@@ -1099,7 +1099,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL - CORREÇÃO FINAL PARA NAVEGADOR E APK
+   MENU MÓVEL (TUDO NUMA SÓ TELA - ZERO SCROLL)
    ========================================================= */
 #mobileNav {
   display: none !important;
@@ -1107,12 +1107,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   top: 72px !important;
   left: 0 !important;
   width: 100vw !important;
-  height: 100vh !important; /* Força a cobrir a altura total do ecrã */
+  height: calc(100vh - 72px) !important;
+  height: calc(100dvh - 72px) !important;
   background-color: #ffffff !important;
   z-index: 9999999 !important;
-  overflow-y: auto !important;
+  overflow: hidden !important; /* MATA A BARRA DE ROLAGEM DO MENU DE VEZ */
   box-sizing: border-box !important;
-  padding: 10px 24px 120px !important; /* Espaço extra no fundo para o botão Sair */
+  padding: 10px 24px 20px !important; /* Reduzi o espaço gigante no fundo */
 }
 
 #mobileNav.open {
@@ -1120,22 +1121,24 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   flex-direction: column !important;
 }
 
-/* Fundo branco, letras pretas em negrito e botão Sair vermelho */
+/* Espaçamento mais apertado para caberem todos os 11 itens */
 #mobileNav a, #mobileNav button {
   color: #03070f !important;
   border-bottom: 1px solid #f1f5fd !important;
-  padding: 16px 0 !important;
+  padding: 10px 0 !important; /* Reduzido de 16px para 10px para espremer as opções */
   text-decoration: none !important;
-  font-size: 16px !important;
+  font-size: 15px !important; /* Levemente menor para poupar espaço vertical */
   font-weight: 700 !important;
   background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid #f1f5fd !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
   text-align: left !important;
   width: 100% !important;
   cursor: pointer !important;
   font-family: inherit !important;
   display: block !important;
+  margin: 0 !important;
 }
 
 #mobileNav a:hover {
@@ -1143,31 +1146,27 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 #mobileNav #logoutBtnMobile {
-  color: #dc2626 !important; /* Botão sair vermelho */
+  color: #dc2626 !important;
 }
 
-/* =========================================================
-   CORES DOS BOTÕES "ENTRAR" E "CADASTRAR" NO MENU MÓVEL
-   ========================================================= */
-
-/* Botão Entrar (Azul Royal) */
+/* Botão Entrar (Azul) - Mais compacto */
 #mobileNav a[href*="login"] {
   background: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
-  border-radius: 999px !important; /* Arredondado */
+  border-radius: 999px !important;
   text-align: center !important;
-  margin-top: 16px !important;
-  padding: 14px 24px !important;
+  margin-top: auto !important; /* Empurra os botões para o fundo se sobrar espaço */
+  padding: 10px 20px !important;
 }
 
-/* Botão Cadastrar (Dourado) */
+/* Botão Cadastrar (Dourado) - Mais compacto */
 #mobileNav a[href*="register"] {
   background: #facc15 !important;
-  color: #03070f !important; /* Letra escura para contraste */
+  color: #03070f !important;
   border: none !important;
-  border-radius: 999px !important; /* Arredondado */
+  border-radius: 999px !important;
   text-align: center !important;
-  margin-top: 12px !important;
-  padding: 14px 24px !important;
+  margin-top: 8px !important;
+  padding: 10px 20px !important;
 }
