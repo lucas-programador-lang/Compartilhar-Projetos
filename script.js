@@ -701,7 +701,7 @@ function bindGlobalUI() {
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
-        // 🔥 Move o menu para fora do cabeçalho para fugir ao bug do Android WebView
+        // 🔥 Tira o menu de dentro do cabeçalho para não ser cortado no APK
         if (mobileNav.parentNode !== document.body) {
             document.body.appendChild(mobileNav);
         }
@@ -712,10 +712,10 @@ function bindGlobalUI() {
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; // Liberta a rolagem
+                document.body.style.overflow = ""; // Liberta o fundo
             } else {
                 mobileNav.classList.add("open");
-                document.body.style.overflow = "hidden"; // Tranca o ecrã
+                document.body.style.overflow = "hidden"; // Tranca o fundo para não rolar
             }
         });
         
