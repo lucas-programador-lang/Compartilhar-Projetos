@@ -707,12 +707,12 @@ function bindGlobalUI() {
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; 
-                document.body.classList.remove("menu-open"); // Devolve o desfoque ao header
+                document.body.style.overflow = ""; // Liberta a página
+                document.body.classList.remove("menu-open");
             } else {
                 mobileNav.classList.add("open");
                 document.body.style.overflow = "hidden"; // Tranca o ecrã
-                document.body.classList.add("menu-open"); // Tira o desfoque do header para libertar o menu!
+                document.body.classList.add("menu-open"); // Aciona a correção no CSS
             }
         });
         
