@@ -73,7 +73,7 @@
       <h1>Um lugar para <span class="accent">mostrar</span> o que você constrói.</h1>
       <p class="lead" style="margin-left:auto;margin-right:auto">A Compartilhar Projetos é uma vitrine de assinatura para desenvolvedores, designers e criadores publicarem projetos, receberem feedback e ganharem visibilidade real.</p>
       <div class="hero-cta">
-        <a href="register.html" class="btn btn-gold btn-lg">Criar conta grátis</a>
+        <a href="register.html" class="btn btn-gold btn-lg guest-only">Criar conta grátis</a>
         <a href="como-funciona.html" class="btn btn-ghost btn-lg" style="border-color:rgba(255,255,255,.35);color:#fff">Ver como funciona</a>
       </div>
     </div>
@@ -148,7 +148,7 @@
   <div class="cta-band">
     <h2>Pronto para publicar seu primeiro projeto?</h2>
     <p>Crie sua conta gratuita e conheça a comunidade antes de assinar.</p>
-    <a href="register.html" class="btn btn-gold btn-lg">Cadastrar grátis</a>
+    <a href="register.html" class="btn btn-gold btn-lg guest-only">Cadastrar grátis</a>
   </div>
 </section>
 
@@ -169,9 +169,9 @@
     </div>
     <div class="footer-col">
       <h4>Conta</h4>
-      <a href="login.html">Entrar</a>
-      <a href="register.html">Criar conta</a>
-      <a href="/#/indicacoes">Programa de indicação</a>
+      <a href="login.html" class="guest-only">Entrar</a>
+      <a href="register.html" class="guest-only">Criar conta</a>
+      <a href="/#/indicacoes" class="auth-only">Programa de indicação</a>
     </div>
     <div class="footer-col">
       <h4>Empresa</h4>
@@ -219,6 +219,7 @@
   })();
 </script>
 
+<script type="module" src="/auth-visibility.js"></script>
 <script src="/cookie-consent.js"></script>
 </body>
 </html>
