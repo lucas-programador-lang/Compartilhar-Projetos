@@ -490,7 +490,39 @@ import { uid, nowISO } from "./seed.js";
 
   function viewProjectDetail(id) {
     const p = db.projects.find((pj) => pj.id === id); if (!p) return view404(); const img = (p.images && p.images[0]) || "";
-    return `<div class="project-detail container"><div class="breadcrumb"><a href="#/explorar">Explorar</a> / ${escapeHtml(categoryName(p.categoryId))} / <span>${escapeHtml(p.title)}</span></div><div class="pd-grid"><div><div class="pd-gallery">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}">` : `<span class="muted">Sem imagem</span>`}</div>${p.images && p.images.length > 1 ? `<div class="pd-thumbs">${p.images.map((im, i) => `<img src="${im}" class="${i === 0 ? "active" : ""}" alt="">`).join("")}</div>` : ""}</div><aside class="pd-side"><h4>Sobre o projeto</h4><div class="pd-row"><span>Responsável</span><span>${escapeHtml(p.ownerName)}</span></div><div class="pd-row"><span>Contato</span><span>${escapeHtml(p.contact)}</span></div><div class="pd-row"><span>Categoria</span><span>${escapeHtml(categoryName(p.categoryId))}</span></div><div class="pd-row"><span>Publicado em</span><span>${fmtDate(p.createdAt)}</span></div><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">Acessar projeto ↗</a><button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', '${location.origin}/#/projeto/${p.id}')">Compartilhar projeto</button></aside></div><div style="margin-top:36px;max-width:760px"><span class="pd-cat-badge">${escapeHtml(categoryName(p.categoryId))}</span><h1 class="pd-title">${escapeHtml(p.title)}</h1><div class="pd-desc">${escapeHtml(p.description)}</div></div></div>`;
+    return `
+    <div class="project-detail container">
+      <div class="breadcrumb">
+        <a href="#/explorar">Explorar</a> / ${escapeHtml(categoryName(p.categoryId))} / <span class="muted">Detalhes</span>
+      </div>
+      
+      <!-- O Título e a Categoria agora vêm PRIMEIRO -->
+      <div style="margin-bottom: 24px; max-width: 760px;">
+        <span class="pd-cat-badge">${escapeHtml(categoryName(p.categoryId))}</span>
+        <h1 class="pd-title" style="margin-top: 12px; margin-bottom: 8px;">${escapeHtml(p.title)}</h1>
+      </div>
+
+      <div class="pd-grid">
+        <!-- A imagem e a descrição ficam agrupadas à esquerda (ou em cima, no celular) -->
+        <div class="pd-main">
+          <div class="pd-gallery">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}">` : `<span class="muted">Sem imagem</span>`}</div>
+          ${p.images && p.images.length > 1 ? `<div class="pd-thumbs">${p.images.map((im, i) => `<img src="${im}" class="${i === 0 ? "active" : ""}" alt="">`).join("")}</div>` : ""}
+          
+          <div class="pd-desc" style="margin-top: 32px; font-size: 15.5px; line-height: 1.7;">${escapeHtml(p.description)}</div>
+        </div>
+        
+        <!-- A caixa com os botões e contato fica à direita (ou no final, no celular) -->
+        <aside class="pd-side">
+          <h4>Sobre o projeto</h4>
+          <div class="pd-row"><span>Responsável</span><span>${escapeHtml(p.ownerName)}</span></div>
+          <div class="pd-row"><span>Contato</span><span>${escapeHtml(p.contact)}</span></div>
+          <div class="pd-row"><span>Categoria</span><span>${escapeHtml(categoryName(p.categoryId))}</span></div>
+          <div class="pd-row"><span>Publicado em</span><span>${fmtDate(p.createdAt)}</span></div>
+          <a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="margin-top: 16px;">Acessar projeto ↗</a>
+          <button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', '${location.origin}/#/projeto/${p.id}')">Compartilhar projeto</button>
+        </aside>
+      </div>
+    </div>`;
   }
 
   function viewPublish(params) {
