@@ -1164,7 +1164,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 
 
 /* =========================================================
-   FIX ULTIMATE FOR MOBILE NAV OVERLAY IN APK
+   CORREÇÃO DEFINITIVA DO MENU HAMBÚRGUER (OVERLAY NO APK)
    ========================================================= */
 #mobileNav {
   display: none !important;
