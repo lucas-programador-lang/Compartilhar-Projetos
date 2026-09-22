@@ -23,7 +23,7 @@
 
 <!-- MEMÓRIA DE TEMA ANTI-PISCAR -->
 <script>
-  if (localStorage.getItem('theme') === 'dark') {
+  if (localStorage.getItem('theme') !== 'light') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
 </script>
