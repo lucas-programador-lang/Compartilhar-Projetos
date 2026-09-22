@@ -701,16 +701,21 @@ function bindGlobalUI() {
     const mobileNav = qs("#mobileNav");
     
     if (hamburger && mobileNav) { 
+        // 🔥 Move o menu para fora do cabeçalho para fugir ao bug do Android WebView
+        if (mobileNav.parentNode !== document.body) {
+            document.body.appendChild(mobileNav);
+        }
+        
         hamburger.addEventListener("click", (e) => { 
             e.stopPropagation();
             const isOpen = mobileNav.classList.contains("open");
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; // Liberta a página
+                document.body.style.overflow = ""; // Liberta a rolagem
             } else {
                 mobileNav.classList.add("open");
-                document.body.style.overflow = "hidden"; // Trava o scroll do fundo
+                document.body.style.overflow = "hidden"; // Tranca o ecrã
             }
         });
         
