@@ -215,6 +215,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush } from "./db-sync.
     renderReferrals();
     renderWithdrawals();
     renderRankingPrizes(); 
+    renderPlatformReviews();
   }
 
   function renderOverview() {
@@ -587,6 +588,42 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush } from "./db-sync.
         })
       );
     }
+  }
+
+  /* ---------------------------------------------------------
+     AVALIAÇÕES DA PLATAFORMA (FEEDBACK)
+  --------------------------------------------------------- */
+  function renderPlatformReviews() {
+    const tbody = qs("#platformReviewsTable tbody");
+    if (!tbody) return;
+
+    const reviews = db.platformReviews || [];
+    if (reviews.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center muted" style="padding: 24px;">Nenhuma avaliação da plataforma recebida ainda.</td></tr>`;
+      return;
+    }
+
+    // Ordenar da mais recente para a mais antiga
+    const sortedReviews = [...reviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const usaMap = { very_easy: "Muito fácil", easy: "Fácil", neutral: "Razoável", hard: "Difícil", very_hard: "Muito difícil" };
+    const recMap = { yes: "Sim", maybe: "Talvez", no: "Não" };
+
+    tbody.innerHTML = sortedReviews.map(r => {
+      const date = fmtDate(r.createdAt);
+      const starsHtml = `<span style="color: #facc15; font-size: 16px;">${"★".repeat(r.overallRating)}${"☆".repeat(5 - r.overallRating)}</span>`;
+      
+      return `
+        <tr>
+          <td style="white-space: nowrap;">${date}</td>
+          <td><strong>${escapeHtml(r.userName)}</strong></td>
+          <td>${starsHtml}</td>
+          <td><span class="badge badge-neutral">${usaMap[r.usabilityScore] || r.usabilityScore}</span></td>
+          <td>${recMap[r.wouldRecommend] || r.wouldRecommend}</td>
+          <td style="max-width: 320px; white-space: normal; line-height: 1.4;">${escapeHtml(r.feedbackText || "—")}</td>
+        </tr>
+      `;
+    }).join("");
   }
 
   function bindForms() {
