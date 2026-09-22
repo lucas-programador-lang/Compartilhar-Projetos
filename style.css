@@ -1099,15 +1099,14 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   MENU MÓVEL DEFINITIVO (CORREÇÃO DE SPA E BACKDROP-FILTER)
+   MENU MÓVEL (TELA CHEIA, BRANCO, BOTÕES COLORIDOS, SEM SCROLL)
    ========================================================= */
 
-/* 🔥 A MÁGICA: Tira o desfoque do header quando o menu abre para ele não ficar preso/cortado 🔥 */
+/* 🔥 Remove a "prisão" do desfoque no APK quando o menu abre 🔥 */
 body.menu-open .site-header,
 body.menu-open header {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  transform: none !important;
 }
 
 #mobileNav {
@@ -1115,19 +1114,18 @@ body.menu-open header {
   position: fixed !important;
   top: 72px !important;
   left: 0 !important;
-  width: 100vw !important;
-  height: calc(100vh - 72px) !important;
-  height: calc(100dvh - 72px) !important;
+  right: 0 !important;
+  bottom: 0 !important; /* Estica até ao limite inferior sem usar calc() */
   background-color: #ffffff !important;
   z-index: 9999999 !important;
-  overflow-y: auto !important; /* Permite rolar se o ecrã for minúsculo... */
+  overflow-y: auto !important; /* Permite scroll só se a tela for minúscula... */
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
   box-sizing: border-box !important;
-  padding: 10px 24px 24px !important;
+  padding: 10px 24px 30px !important;
 }
 
-/* ...mas esconde a barra feia visualmente no Android e iOS */
+/* ... mas esconde a barra feia no Android! */
 #mobileNav::-webkit-scrollbar {
   display: none !important;
 }
@@ -1137,13 +1135,13 @@ body.menu-open header {
   flex-direction: column !important;
 }
 
-/* Ajuste milimétrico para caber tudo */
+/* Estilo de todos os links (Negrito e linha separadora clara) */
 #mobileNav a, #mobileNav button {
   color: #03070f !important;
   border-bottom: 1px solid #f1f5fd !important;
-  padding: 12px 0 !important;
+  padding: 14px 0 !important;
   text-decoration: none !important;
-  font-size: 15px !important;
+  font-size: 16px !important;
   font-weight: 700 !important;
   background: transparent !important;
   border-top: none !important;
@@ -1159,20 +1157,21 @@ body.menu-open header {
 
 #mobileNav a:hover { color: #2563eb !important; }
 
-#mobileNav #logoutBtnMobile { color: #dc2626 !important; }
+/* Botão Sair - Vermelho */
+#mobileNav #logoutBtnMobile { color: #dc2626 !important; } 
 
-/* Botão Entrar (Azul Royal) */
+/* Botão Entrar - Azul Royal (Pílula) */
 #mobileNav a[href*="login"] {
   background: #2563eb !important;
   color: #ffffff !important;
   border: none !important;
   border-radius: 999px !important;
   text-align: center !important;
-  margin-top: auto !important; /* Empurra para o fundo da tela */
+  margin-top: auto !important; /* Empurra os botões para o fundo */
   padding: 14px 20px !important;
 }
 
-/* Botão Cadastrar (Dourado) */
+/* Botão Cadastrar - Dourado (Pílula) */
 #mobileNav a[href*="register"] {
   background: #facc15 !important;
   color: #03070f !important;
@@ -1183,23 +1182,19 @@ body.menu-open header {
   padding: 14px 20px !important;
 }
 
-
 /* =========================================================
-   LÓGICA DE EXIBIÇÃO DO MENU (LOGADO vs DESLOGADO)
+   INTELIGÊNCIA DO MENU (Visitante vs Usuário Logado)
    ========================================================= */
-
-/* 1. SE ESTIVER DESLOGADO (Visitante) */
-body.is-guest #mobileNav #logoutBtnMobile {
-  display: none !important; /* Esconde o botão Sair */
-}
+/* Visitante: Esconde "Sair", "Meu Painel", etc. */
+body.is-guest #mobileNav #logoutBtnMobile,
 body.is-guest #mobileNav a[href*="painel"],
 body.is-guest #mobileNav a[href*="perfil"],
 body.is-guest #mobileNav a[href*="indicacoes"] {
-  display: none !important; /* Esconde as páginas privadas */
+  display: none !important;
 }
 
-/* 2. SE ESTIVER LOGADO (Sessão Ativa) */
+/* Usuário Logado: Esconde "Entrar" e "Cadastrar" */
 body:not(.is-guest) #mobileNav a[href*="login"],
 body:not(.is-guest) #mobileNav a[href*="register"] {
-  display: none !important; /* Esconde o Entrar e Cadastrar */
+  display: none !important;
 }
