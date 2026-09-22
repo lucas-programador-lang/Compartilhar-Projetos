@@ -1130,26 +1130,34 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   AJUSTE DE CENTRALIZAÇÃO DO MODAL PARA O APK / MOBILE
+   CORREÇÃO DEFINITIVA DE CENTRALIZAÇÃO PARA WEBVIEW / APK
    ========================================================= */
 .modal-overlay {
   position: fixed !important;
-  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
   background: rgba(6, 14, 32, 0.75) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 999999 !important;
-  padding: 20px !important;
+  padding: 16px !important;
   box-sizing: border-box !important;
 }
 
 .modal-box {
   position: relative !important;
   width: 100% !important;
-  max-width: 380px !important;
-  margin: auto !important;
-  max-height: 85vh !important;
+  max-width: 360px !important;
+  max-height: 80vh !important;
   overflow-y: auto !important;
+  background: var(--surface) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 28px 20px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
   box-sizing: border-box !important;
+  margin: auto !important;
 }
