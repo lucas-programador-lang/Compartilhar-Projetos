@@ -706,9 +706,21 @@ const copyBtn = qs("#copyRefLink");
     const avatarBtn = qs("#avatarBtn"); const userMenu = qs("#userMenu");
     if (avatarBtn) { avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); userMenu.classList.toggle("open"); }); document.addEventListener("click", () => userMenu.classList.remove("open")); }
     ["logoutBtn", "logoutBtnMobile"].forEach((id) => { const btn = qs("#" + id); if (btn) { btn.addEventListener("click", async () => { await logoutUser(); toast("Você saiu da sua conta."); navigate("/"); }); } });
-    const hamburger = qs("#hamburgerBtn"); const mobileNav = qs("#mobileNav");
-    if (hamburger) { hamburger.addEventListener("click", () => { mobileNav.classList.toggle("open"); }); qsa("#mobileNav a, #mobileNav button").forEach((el) => el.addEventListener("click", () => mobileNav.classList.remove("open"))); }
-  }
+   const hamburger = qs("#hamburgerBtn"); 
+    const mobileNav = qs("#mobileNav");
+    
+    if (hamburger && mobileNav) { 
+        hamburger.addEventListener("click", (e) => { 
+            e.stopPropagation();
+            mobileNav.classList.toggle("open"); 
+        });
+        
+        qsa("#mobileNav a, #mobileNav button").forEach((el) => { 
+            el.addEventListener("click", () => {
+                mobileNav.classList.remove("open");
+            }); 
+        }); 
+    }
 
   // Garante que o token suba para o banco assim que você fizer login
   onAuthStateChanged(auth, async (user) => { 
