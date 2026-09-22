@@ -566,7 +566,7 @@ import { uid, nowISO } from "./seed.js";
         action = `<a href="#/projeto/${p.id}" class="link">Acessar ↗</a> | <a href="#/publicar?edit=${p.id}" class="link" style="color:var(--gold-500)">Editar</a>`;
       } else if (p.status === 'rejected') { 
         badge = '<span class="badge badge-danger">Rejeitado</span>'; 
-        action = `<span class="muted">Veja o motivo em Notificações</span>`; 
+        action = `<span class="muted">Veja o motivo em Notificações</span> | <a href="#/publicar?edit=${p.id}" class="link" style="color:var(--gold-500)">Editar</a>`; 
       } else { 
         badge = '<span class="badge badge-warning">Em Revisão</span>'; 
         action = `<span class="muted">Aguardando aprovação...</span>`; 
