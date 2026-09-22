@@ -763,7 +763,6 @@ window.compartilharConteudo = function(titulo, texto, url) {
 
     const overlay = document.createElement("div");
     overlay.id = "customShareModal";
-    // Ajustado para centralizar perfeitamente no eixo vertical e horizontal do APK
     overlay.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(6, 14, 32, 0.75) !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 999999 !important; padding: 20px !important; box-sizing: border-box !important;";
     
     const encUrl = encodeURIComponent(url);
@@ -796,7 +795,7 @@ window.compartilharConteudo = function(titulo, texto, url) {
             </a>
         </div>
         
-        <!-- CAMPO COPIAR LINK COM CORES FORÇADAS PARA ALTO CONTRASTE -->
+        <!-- CAMPO COPIAR LINK COM ALTO CONTRASTE -->
         <div style="display:flex; gap:8px; align-items:center; background: rgba(0,0,0,0.25); padding: 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15);">
             <input type="text" readonly value="${url}" style="flex:1; border:none; background:transparent; font-size:12px; padding: 0 10px; color: #ffffff !important; outline:none;">
             <button id="modalCopyBtn" style="background: #1a49d6; color: #fff; border: none; border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;">Copiar</button>
