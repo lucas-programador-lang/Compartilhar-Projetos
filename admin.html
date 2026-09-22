@@ -184,15 +184,16 @@
       <button data-section="indicacoes">Indicações &amp; comissões</button>
       <button data-section="saques">Saques</button>
       <button data-section="ranking">Ranking</button>
+      <button data-section="avaliacoes">Avaliações</button> <!-- NOVO BOTÃO -->
     </div>
     
     <div class="admin-back">
       <a href="index.html">← Voltar ao site</a>
       <a href="#" id="adminLogout">Sair da conta</a>
       
-      <!-- BOTÃO DE MODO ESCURO/CLARO (MANTÉM OS MESMOS IDs PARA O JS) -->
-      <button id="themeToggle" id="themeToggleAdmin" class="btn btn-ghost" aria-label="Alternar tema" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; padding: 8px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--admin-radius-sm); color: #cbd4ef;">
-        <span id="themeIcon"></span>
+      <!-- BOTÃO DE MODO ESCURO/CLARO -->
+      <button id="themeToggleAdmin" class="btn btn-ghost" aria-label="Alternar tema">
+        <span id="themeIcon"></span> Alternar Tema
       </button>
 
     </div>
@@ -295,7 +296,6 @@
     <section class="section-block" id="sec-ranking">
       <div class="admin-head"><div><h1>Ranking e premiação</h1><p>Fechamento mensal automático e controle de entrega do prêmio.</p></div></div>
       
-      <!-- BOTÃO TEMPORÁRIO DE BACKFILL -->
       <div class="panel" style="max-width:420px;border-color:var(--gold-400); margin-bottom: 22px;">
         <div class="panel-head"><h3>Backfill de perfis (temporário)</h3></div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">Copia usuários existentes para publicProfiles/myProfile. Rode uma vez, depois pode remover este botão.</p>
@@ -315,6 +315,30 @@
           <table class="data-table" id="rankingPrizesTable">
             <thead><tr><th>Mês</th><th>Categoria</th><th>Vencedor</th><th>Pontuação</th><th>Status</th><th>Ação</th></tr></thead>
             <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOVA SECÇÃO: AVALIAÇÕES DA PLATAFORMA -->
+    <section class="section-block" id="sec-avaliacoes">
+      <div class="admin-head"><div><h1>Avaliações da Plataforma</h1><p>Feedback direto dos usuários sobre usabilidade e satisfação geral.</p></div></div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table class="data-table" id="platformReviewsTable">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Usuário</th>
+                <th>Nota Geral</th>
+                <th>Usabilidade</th>
+                <th>Recomendaria?</th>
+                <th>Comentário</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Preenchido via admin.js -->
+            </tbody>
           </table>
         </div>
       </div>
