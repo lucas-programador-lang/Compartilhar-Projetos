@@ -8,7 +8,7 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush,
+  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush, addPlatformReview
 } from "./db-sync.js";
 import { uid, nowISO } from "./seed.js";
 
@@ -908,8 +908,8 @@ import { uid, nowISO } from "./seed.js";
           createdAt: nowISO()
         };
 
-        // TODO: Ligação com db-sync.js para guardar a avaliação na base de dados (próximo passo)
         try {
+          await addPlatformReview(newPlatformReview);
           console.log("Platform Review Captured:", newPlatformReview);
           toast("Feedback sent! Thank you for helping us.", "success");
           navigate("/"); 
