@@ -1164,9 +1164,9 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 
 
 /* =========================================================
-   CORREÇÃO DEFINITIVA DO MENU HAMBÚRGUER (OVERLAY NO APK)
+   FORÇA O MENU MÓVEL A FICAR ESCURO E FLUTUANTE NO APK
    ========================================================= */
-#mobileNav {
+.mobile-nav, #mobileNav {
   display: none !important;
   position: fixed !important;
   top: 72px !important;
@@ -1175,13 +1175,14 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   height: calc(100vh - 72px) !important;
   height: calc(100dvh - 72px) !important;
   background-color: #131b2b !important;
+  color: #f8fafc !important;
   z-index: 9999999 !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
   padding: 20px 24px !important;
 }
 
-#mobileNav.open {
+.mobile-nav.open, #mobileNav.open {
   display: flex !important;
   flex-direction: column !important;
 }
