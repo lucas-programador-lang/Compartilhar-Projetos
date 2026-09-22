@@ -712,7 +712,6 @@ function bindGlobalUI() {
             }); 
         }); 
     }
-  }
   onAuthStateChanged(auth, async (user) => { 
       firebaseUser = user; 
       authReady = true; 
