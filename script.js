@@ -771,10 +771,10 @@ window.compartilharConteudo = function(titulo, texto, url) {
     const encWa = encodeURIComponent(texto + " " + url);
 
     overlay.innerHTML = `
-      <div style="position: relative !important; width: 100% !important; max-width: 380px !important; background: var(--surface, #131b2b) !important; border-radius: 22px !important; padding: 32px 24px !important; text-align: center !important; box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important; box-sizing: border-box !important; margin: auto !important;">
-        <button type="button" id="shareCloseBtn" aria-label="Fechar" style="position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; border-radius: 50%; background: var(--surface-alt, #1a2335); border: none; color: inherit; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
-        <h2 style="font-size: 20px; margin-bottom: 8px; color: var(--ink-900, #f8fafc);">Compartilhar</h2>
-        <p style="font-size: 13.5px; color: var(--ink-600, #94a3b8); margin-bottom: 24px;">Escolha onde deseja divulgar este link:</p>
+      <div style="position: relative !important; width: 100% !important; max-width: 380px !important; background: #131b2b !important; border-radius: 22px !important; padding: 32px 24px !important; text-align: center !important; box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important; box-sizing: border-box !important; margin: auto !important; color: #f8fafc !important;">
+        <button type="button" id="shareCloseBtn" aria-label="Fechar" style="position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; border-radius: 50%; background: #1a2335; border: none; color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
+        <h2 style="font-size: 20px; margin-bottom: 8px; color: #f8fafc !important;">Compartilhar</h2>
+        <p style="font-size: 13.5px; color: #94a3b8 !important; margin-bottom: 24px;">Escolha onde deseja divulgar este link:</p>
         
         <!-- BOTÕES DAS REDES SOCIAIS -->
         <div style="display:flex; justify-content:center; gap:16px; margin-bottom:28px;">
@@ -796,9 +796,9 @@ window.compartilharConteudo = function(titulo, texto, url) {
             </a>
         </div>
         
-        <!-- CAMPO COPIAR LINK -->
-        <div style="display:flex; gap:8px; align-items:center; background: rgba(255,255,255,0.05); padding: 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1);">
-            <input type="text" readonly value="${url}" style="flex:1; border:none; background:transparent; font-size:12px; padding: 0 10px; color: #cbd5e1; outline:none;">
+        <!-- CAMPO COPIAR LINK COM CORES FORÇADAS PARA ALTO CONTRASTE -->
+        <div style="display:flex; gap:8px; align-items:center; background: rgba(0,0,0,0.25); padding: 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15);">
+            <input type="text" readonly value="${url}" style="flex:1; border:none; background:transparent; font-size:12px; padding: 0 10px; color: #ffffff !important; outline:none;">
             <button id="modalCopyBtn" style="background: #1a49d6; color: #fff; border: none; border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;">Copiar</button>
         </div>
       </div>
