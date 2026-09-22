@@ -488,7 +488,7 @@ import { uid, nowISO } from "./seed.js";
     return `<a href="#/projeto/${p.id}" class="project-card"><div class="pc-thumb">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}" loading="lazy">` : ""}<span class="pc-cat">${escapeHtml(categoryName(p.categoryId))}</span></div><div class="pc-body"><h3>${escapeHtml(p.title)}</h3><p>${escapeHtml(p.description)}</p><div class="pc-meta"><span class="author"><span class="pc-mini-avatar">${initials(p.ownerName)}</span>${escapeHtml(p.ownerName)}</span><span>${fmtDate(p.createdAt)}</span></div></div></a>`;
   }
 
- function viewProjectDetail(id) {
+function viewProjectDetail(id) {
     const p = db.projects.find((pj) => pj.id === id); if (!p) return view404(); const img = (p.images && p.images[0]) || "";
     return `
     <div class="project-detail container">
@@ -524,7 +524,7 @@ import { uid, nowISO } from "./seed.js";
           <div class="pd-row"><span>Categoria</span><span>${escapeHtml(categoryName(p.categoryId))}</span></div>
           <div class="pd-row"><span>Publicado em</span><span>${fmtDate(p.createdAt)}</span></div>
           <a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="margin-top: 16px;">Acessar projeto ↗</a>
-          <button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', '${location.origin}/#/projeto/${p.id}')">Compartilhar projeto</button>
+          <button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', location.origin + '/#/projeto/' + '${p.id}')">Compartilhar projeto</button>
         </aside>
       </div>
     </div>`;
