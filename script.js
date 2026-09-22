@@ -707,10 +707,12 @@ function bindGlobalUI() {
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; // Liberta a página
+                document.body.style.overflow = ""; 
+                document.body.classList.remove("menu-open"); // Devolve o desfoque ao header
             } else {
                 mobileNav.classList.add("open");
-                document.body.style.overflow = "hidden"; // Tranca totalmente o ecrã de fundo
+                document.body.style.overflow = "hidden"; // Tranca o ecrã
+                document.body.classList.add("menu-open"); // Tira o desfoque do header para libertar o menu!
             }
         });
         
@@ -718,6 +720,7 @@ function bindGlobalUI() {
             el.addEventListener("click", () => {
                 mobileNav.classList.remove("open");
                 document.body.style.overflow = "";
+                document.body.classList.remove("menu-open");
             }); 
         }); 
     }
