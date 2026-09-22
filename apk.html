@@ -181,9 +181,9 @@
     </div>
     <div class="footer-col">
       <h4>Conta</h4>
-      <a href="login.html">Entrar</a>
-      <a href="register.html">Criar conta</a>
-      <a href="index.html#/indicacoes">Programa de indicação</a>
+      <a href="login.html" class="guest-only">Entrar</a>
+      <a href="register.html" class="guest-only">Criar conta</a>
+      <a href="index.html#/indicacoes" class="auth-only">Programa de indicação</a>
     </div>
     <div class="footer-col">
       <h4>Empresa</h4>
@@ -244,6 +244,7 @@
     });
   })();
 </script>
+<script type="module" src="/auth-visibility.js"></script>
 <script src="/cookie-consent.js"></script>
 </body>
 </html>
