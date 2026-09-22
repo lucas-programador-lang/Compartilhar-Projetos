@@ -1164,24 +1164,24 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 
 
 /* =========================================================
-   CORREÇÃO DEFINITIVA DO MENU HAMBÚRGUER (FIXO EM TELA CHEIA)
+   CORREÇÃO DEFINITIVA DO MENU HAMBÚRGUER (ESTILO 2ª IMAGEM)
    ========================================================= */
-#mobileNav {
+.mobile-nav, #mobileNav {
   position: fixed !important;
   top: 72px !important; /* Altura exata do cabeçalho */
   left: 0 !important;
   width: 100vw !important;
   height: calc(100vh - 72px) !important;
+  height: calc(100dvh - 72px) !important;
   background: var(--surface, #131b2b) !important;
   z-index: 999999 !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
   display: none !important;
-  padding: 24px !important;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  padding: 16px 24px 40px !important;
+  flex-direction: column !important;
 }
 
-#mobileNav.open {
+.mobile-nav.open, #mobileNav.open {
   display: flex !important;
-  flex-direction: column !important;
 }
