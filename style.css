@@ -1099,36 +1099,35 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
 }
 
 /* =========================================================
-   FORÇA O MENU MÓVEL A FICAR EXATAMENTE COMO NA IMAGEM
+   MENU MÓVEL (VISUAL EXATO DA IMAGEM - SEM BUG DE ALTURA NO APK)
    ========================================================= */
-.mobile-nav, #mobileNav {
+#mobileNav {
   display: none !important;
   position: fixed !important;
-  top: 72px !important; /* Inicia logo abaixo do header */
+  top: 72px !important;
   left: 0 !important;
-  width: 100vw !important;
-  height: calc(100vh - 72px) !important;
-  height: calc(100dvh - 72px) !important;
-  background-color: #ffffff !important; /* Fundo branco fixo */
-  z-index: 9999999 !important; /* Garante que fique por cima de tudo */
+  right: 0 !important;
+  bottom: 0 !important; /* O SEGREDO ESTÁ AQUI: Força a esticar até ao fundo sem usar calc() */
+  background-color: #ffffff !important;
+  z-index: 9999999 !important;
   overflow-y: auto !important;
   box-sizing: border-box !important;
   padding: 10px 24px 40px !important;
 }
 
-.mobile-nav.open, #mobileNav.open {
+#mobileNav.open {
   display: flex !important;
   flex-direction: column !important;
 }
 
-/* Letras escuras, grossas e linhas clarinhas, fundo branco */
-.mobile-nav a, #mobileNav a, .mobile-nav button, #mobileNav button {
-  color: #03070f !important; /* Texto preto/escuro */
-  border-bottom: 1px solid #f1f5fd !important; /* Linha sutil */
+/* Letras escuras, grossas e fundo branco */
+#mobileNav a, #mobileNav button {
+  color: #03070f !important; 
+  border-bottom: 1px solid #f1f5fd !important; 
   padding: 16px 0 !important;
   text-decoration: none !important;
   font-size: 16px !important;
-  font-weight: 700 !important; /* Negrito igual à imagem */
+  font-weight: 700 !important; 
   background: transparent !important;
   border-top: none !important;
   border-left: none !important;
@@ -1137,14 +1136,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:14px}
   width: 100% !important;
   cursor: pointer !important;
   font-family: inherit !important;
+  display: block !important; /* Garante que os links não somem */
 }
 
-/* Cor azul no hover */
-.mobile-nav a:hover, #mobileNav a:hover {
+#mobileNav a:hover {
   color: #2563eb !important;
 }
 
-/* Protege o botão Sair em vermelho */
-.mobile-nav #logoutBtnMobile, #mobileNav #logoutBtnMobile {
-  color: #dc2626 !important; /* Vermelho */
+#mobileNav #logoutBtnMobile {
+  color: #dc2626 !important;
 }
