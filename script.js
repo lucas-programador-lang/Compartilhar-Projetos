@@ -8,7 +8,8 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush, addPlatformReview
+  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush, addPlatformReview,
+  enviarMensagemSuporte, escutarChatUsuario, marcarChatLidoUser
 } from "./db-sync.js";
 import { uid, nowISO } from "./seed.js";
 
@@ -274,6 +275,12 @@ import { uid, nowISO } from "./seed.js";
   function refreshHeader() {
     const user = currentUser();
     document.body.classList.toggle("is-guest", !user); document.body.classList.toggle("is-admin", !!user && user.role === "admin");
+    
+    // Ativar o widget de chat se houver um user logado e não for admin
+    if (user && !document.getElementById("supportWidget")) {
+        initSupportChatWidget(user);
+    }
+
     if (user) {
       qs("#avatarInitial").textContent = initials(user.name); qs("#avatarInitial").style.background = user.avatarColor || "";
       const pill = qs("#subPill"); const active = isSubscriptionActive(user);
@@ -1043,6 +1050,99 @@ function bindGlobalUI() {
         }); 
     }
   }
+
+  /* =========================================================
+     WIDGET DE SUPORTE (CHAT DO UTILIZADOR)
+     ========================================================= */
+  let chatListenerUnsubscribe = null;
+
+  function initSupportChatWidget(user) {
+      const existing = document.getElementById("supportWidget");
+      if (existing) existing.remove();
+      if (chatListenerUnsubscribe) { chatListenerUnsubscribe(); chatListenerUnsubscribe = null; }
+
+      if (!user || user.role === "admin") return;
+
+      const widget = document.createElement("div");
+      widget.id = "supportWidget";
+      widget.className = "support-widget";
+      widget.innerHTML = `
+          <div class="support-window" id="supportWindow">
+              <div class="support-header">
+                  <div>
+                      <h4>Suporte ao Criador</h4>
+                      <p>Fale diretamente com a administração.</p>
+                  </div>
+                  <button class="support-close" id="closeChatBtn">&times;</button>
+              </div>
+              <div class="support-body" id="supportBody">
+                  <p class="muted text-center" style="font-size: 12px; margin-top: 20px;">Envie-nos uma mensagem e responderemos em breve.</p>
+              </div>
+              <form class="support-footer" id="supportForm">
+                  <input type="text" id="supportInput" placeholder="Escreva a sua mensagem..." required autocomplete="off">
+                  <button type="submit">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  </button>
+              </form>
+          </div>
+          <button class="support-fab" id="openChatBtn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              <span class="badge-unread" id="chatUnreadBadge" style="display: none;">!</span>
+          </button>
+      `;
+      document.body.appendChild(widget);
+
+      const fab = document.getElementById("openChatBtn");
+      const chatWin = document.getElementById("supportWindow");
+      const closeBtn = document.getElementById("closeChatBtn");
+      const form = document.getElementById("supportForm");
+      const input = document.getElementById("supportInput");
+      const body = document.getElementById("supportBody");
+      const badge = document.getElementById("chatUnreadBadge");
+
+      fab.addEventListener("click", () => {
+          chatWin.classList.add("open");
+          badge.style.display = "none";
+          marcarChatLidoUser(user.id);
+          setTimeout(() => input.focus(), 100);
+          body.scrollTop = body.scrollHeight;
+      });
+      
+      closeBtn.addEventListener("click", () => {
+          chatWin.classList.remove("open");
+      });
+
+      form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const text = input.value.trim();
+          if (!text) return;
+          input.value = "";
+          enviarMensagemSuporte(user.id, user.name, text, "user")
+              .catch(err => toast("Erro ao enviar: " + err.message, "error"));
+      });
+
+      chatListenerUnsubscribe = escutarChatUsuario(user.id, (data) => {
+          if (!data || !data.messages) return;
+          
+          if (data.unreadUser && !chatWin.classList.contains("open")) {
+              badge.style.display = "flex";
+          }
+
+          body.innerHTML = "";
+          const msgs = Object.values(data.messages).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          
+          msgs.forEach(msg => {
+              const div = document.createElement("div");
+              div.className = `chat-msg ${msg.sender}`;
+              const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+              div.innerHTML = `${escapeHtml(msg.text)} <span class="chat-msg-time">${time}</span>`;
+              body.appendChild(div);
+          });
+
+          body.scrollTop = body.scrollHeight;
+      });
+  }
+
   onAuthStateChanged(auth, async (user) => { 
       firebaseUser = user; 
       authReady = true; 
