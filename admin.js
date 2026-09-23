@@ -8,7 +8,7 @@
 import { auth, rtdb } from "./firebase-config.js"; 
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
-import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsChats, enviarMensagemSuporte, marcarChatLidoAdmin } from "./db-sync.js";
+import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsChats, enviarMensagemSuporte, marcarChatLidoAdmin, encerrarChatAdmin } from "./db-sync.js";
 
 (function () {
   "use strict";
@@ -235,28 +235,63 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
   /* ---------------------------------------------------------
      SUPORTE AO VIVO (CHAT ADMIN - TEMPO REAL CORRIGIDO)
   --------------------------------------------------------- */
+  // Sons curtos e discretos de enviar/receber mensagem (Web Audio API,
+  // sem depender de arquivo de áudio externo hospedado).
+  let adminAudioCtx = null;
+  function playAdminChatSound(type) {
+      try {
+          if (!adminAudioCtx) adminAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = adminAudioCtx.createOscillator();
+          const gain = adminAudioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(adminAudioCtx.destination);
+          osc.type = "sine";
+          if (type === "send") {
+              osc.frequency.setValueAtTime(700, adminAudioCtx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(900, adminAudioCtx.currentTime + 0.08);
+          } else {
+              osc.frequency.setValueAtTime(500, adminAudioCtx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(650, adminAudioCtx.currentTime + 0.1);
+          }
+          gain.gain.setValueAtTime(0.08, adminAudioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, adminAudioCtx.currentTime + 0.15);
+          osc.start(adminAudioCtx.currentTime);
+          osc.stop(adminAudioCtx.currentTime + 0.15);
+      } catch (e) { /* Web Audio indisponível — som é acessório, ignora silenciosamente */ }
+  }
+
   function bindSupportChat() {
-    console.log("[DEBUG SUPORTE] bindSupportChat chamada. supportBound =", supportBound, "auth.currentUser =", auth.currentUser ? auth.currentUser.uid : null);
     if (supportBound) return;
     supportBound = true;
 
     // Conecta diretamente ao nó "supportChats" no Firebase Realtime Database
-    console.log("[DEBUG SUPORTE] registrando onValue em supportChats...");
     const chatsRef = ref(rtdb, "supportChats");
+    let previousUnreadUids = new Set();
     onValue(chatsRef, (snapshot) => {
-        console.log("[DEBUG SUPORTE] onValue disparou! dados:", snapshot.val());
         allChatsData = snapshot.val() || {};
+
+        // Toca som quando uma conversa passa a ter mensagem não lida
+        // que ainda não tinha (nova mensagem do usuário chegando agora).
+        const currentUnreadUids = new Set(
+            Object.entries(allChatsData).filter(([, c]) => c.unreadAdmin).map(([uid]) => uid)
+        );
+        let hasNewUnread = false;
+        currentUnreadUids.forEach((uid) => { if (!previousUnreadUids.has(uid)) hasNewUnread = true; });
+        if (hasNewUnread && previousUnreadUids.size > 0) playAdminChatSound("receive");
+        previousUnreadUids = currentUnreadUids;
+
         renderAdminChatList();
         if (activeChatUserId) {
             renderAdminActiveChat();
         }
     }, (error) => {
-        console.error("[DEBUG SUPORTE] ERRO no onValue de supportChats:", error);
+        console.error("Erro ao carregar conversas de suporte:", error);
     });
 
     const form = qs("#adminChatForm");
     const input = qs("#adminChatInput");
     const closeBtn = qs("#closeActiveChatBtn");
+    const endBtn = qs("#endActiveChatBtn");
 
     if (form) {
         form.addEventListener("submit", (e) => {
@@ -268,6 +303,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
             // Envia a mensagem como admin para o utilizador selecionado
             enviarMensagemSuporte(activeChatUserId, allChatsData[activeChatUserId]?.userName || "Usuário", text, "admin")
                 .then(() => {
+                    playAdminChatSound("send");
                     renderAdminActiveChat();
                     renderAdminChatList();
                 })
@@ -282,6 +318,21 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
             renderAdminActiveChat();
         });
     }
+
+    if (endBtn) {
+        endBtn.addEventListener("click", () => {
+            if (!activeChatUserId) return;
+            if (!confirm("Encerrar esta conversa? Ela sairá da lista de conversas ativas, mas o histórico é mantido.")) return;
+            encerrarChatAdmin(activeChatUserId)
+                .then(() => {
+                    activeChatUserId = null;
+                    renderAdminChatList();
+                    renderAdminActiveChat();
+                    toast("Conversa encerrada.", "success");
+                })
+                .catch(err => toast("Erro ao encerrar: " + err.message, "error"));
+        });
+    }
   }
 
   function renderAdminChatList() {
@@ -292,7 +343,9 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     listEl.innerHTML = "";
     let hasUnread = false;
 
-    const sortedChats = Object.entries(allChatsData).sort((a, b) => {
+    const sortedChats = Object.entries(allChatsData)
+      .filter(([, chat]) => chat.status !== "closed")
+      .sort((a, b) => {
         const dateA = new Date(a[1].updatedAt || 0);
         const dateB = new Date(b[1].updatedAt || 0);
         return dateB - dateA;
@@ -311,13 +364,18 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
         div.className = `admin-chat-item ${uid === activeChatUserId ? 'active' : ''} ${chat.unreadAdmin ? 'unread' : ''}`;
         
         const time = chat.updatedAt ? new Date(chat.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+        const name = chat.userName || "Usuário desconhecido";
+        const initials = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
 
         div.innerHTML = `
-            <div class="aci-header">
-                <strong>${escapeHtml(chat.userName || "Usuário desconhecido")}</strong>
-                <span class="muted" style="font-size:11px">${time}</span>
+            <span class="aci-avatar">${escapeHtml(initials || "?")}</span>
+            <div class="aci-content">
+                <div class="aci-header">
+                    <strong>${escapeHtml(name)}</strong>
+                    <span class="muted" style="font-size:11px">${time}</span>
+                </div>
+                <div class="aci-lastmsg">${escapeHtml(chat.lastMessage || "...")}</div>
             </div>
-            <div class="aci-lastmsg">${escapeHtml(chat.lastMessage || "...")}</div>
         `;
 
         div.addEventListener("click", () => {
