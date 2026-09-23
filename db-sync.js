@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v10 - Com Chat de Suporte Finalizado)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v11 - Chat Finalizado com Auto-Delete)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -59,8 +59,8 @@
    Agora processado via cleanKeyed() para evitar erros de índice ("PERMISSION_DENIED")
    ao marcar como lida. Inclui suporte para Push Notifications (FCM).
    
-   v9: SUPORTE EM TEMPO REAL. Funções adicionadas para escutar e gravar 
-   mensagens do novo módulo de chat.
+   v9/v11: SUPORTE EM TEMPO REAL. Funções adicionadas para escutar, gravar, 
+   encerrar e APAGAR mensagens do novo módulo de chat.
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
@@ -283,7 +283,8 @@ export async function enviarMensagemSuporte(userId, userName, text, sender) {
       lastMessage: text,
       updatedAt: now,
       unreadAdmin: sender === "user", // Admin tem nova mensagem não lida
-      unreadUser: sender === "admin"  // User tem nova mensagem não lida
+      unreadUser: sender === "admin", // User tem nova mensagem não lida
+      status: "open" // Garante que o chat reabre caso estivesse encerrado
   });
 }
 
@@ -313,9 +314,14 @@ export function escutarTodosOsChats(callback) {
   });
 }
 
-// 6. (Para o Admin) Encerrar o chat ocultando-o da lista ativa
+// 6. (Para o Admin e Usuário) Encerrar o chat ocultando-o da lista ativa
 export function encerrarChatAdmin(userId) {
   return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" });
+}
+
+// 7. (Para o Admin) Apagar o histórico completo (utilizado na rotina de 48h)
+export function apagarChatAdmin(userId) {
+  return set(ref(rtdb, `supportChats/${userId}`), null);
 }
 
 /* ---------------------------------------------------------
