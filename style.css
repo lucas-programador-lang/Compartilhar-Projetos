@@ -1230,7 +1230,7 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
 
 
 /* =========================================================
-   CORREÇÃO GLOBAL: MARCA SEMPRE VISÍVEL (SEM CORTAR)
+   CORREÇÃO GLOBAL: MARCA LADO A LADO NUMA SÓ LINHA
    ========================================================= */
 @media (max-width: 960px) {
   .site-header .header-inner {
@@ -1241,17 +1241,17 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
   .site-header .brand {
     display: flex !important;
     align-items: center !important;
-    flex: 1 !important; /* Empurra os botões para o canto */
-    min-width: 0 !important;
+    flex: 1 !important;
   }
   .site-header .brand-name {
-    display: block !important;
-    font-size: 14.5px !important; 
-    white-space: normal !important; /* O SEGREDO: Permite quebrar para a linha de baixo! */
-    line-height: 1.15 !important;
+    display: inline-block !important;
+    white-space: nowrap !important; /* Força a ficar na mesma linha! */
+    font-size: clamp(12.5px, 3.8vw, 16px) !important; /* Diminui a letra magicamente se o ecrã for fino */
+    max-width: none !important; /* Remove o corte antigo do seu CSS */
     overflow: visible !important;
   }
   .header-actions {
-    flex: none !important; /* Impede a lua de esmagar o texto */
+    flex: none !important;
+    gap: 6px !important; /* Junta um pouco a lua e o botão hambúrguer */
   }
 }
