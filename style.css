@@ -1228,7 +1228,6 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
   display: none !important;
 }
 
-
 /* =========================================================
    CORREÇÃO GLOBAL: TEXTO NUMA LINHA E LONGE DOS BOTÕES
    ========================================================= */
@@ -1236,29 +1235,31 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
   .site-header .header-inner {
     padding-left: 12px !important;
     padding-right: 12px !important;
-    justify-content: space-between !important; /* Garante que os botões ficam presos à direita */
+    justify-content: space-between !important;
   }
   .site-header .brand {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important; /* Espaço entre o ícone dourado/azul e o texto */
+    gap: 6px !important;
     flex: 1 !important;
     min-width: 0 !important;
   }
   .site-header .brand-name {
     display: inline-block !important;
     white-space: nowrap !important; /* Mantém tudo numa linha */
-    /* Deixa a letra menorzinha em celulares pequenos para não bater na lua */
-    font-size: clamp(11.5px, 3.5vw, 15px) !important; 
+    font-size: clamp(12.5px, 3.8vw, 16px) !important; 
     max-width: none !important; 
   }
+  
+  /* O SEGREDO: Esconde o botão "Voltar ao site" no telemóvel para libertar espaço! */
+  .header-actions > a.btn {
+    display: none !important;
+  }
+  
   .header-actions {
     display: flex !important;
     align-items: center !important;
     flex: none !important;
-    gap: 4px !important; /* Junta a lua e o hambúrguer */
-    margin-left: auto !important; /* Muro de contenção: empurra a lua o máximo para longe das letras */
-    background: transparent !important;
-    z-index: 10 !important; /* Mantém os botões clicáveis e por cima de tudo */
+    gap: 4px !important;
   }
 }
