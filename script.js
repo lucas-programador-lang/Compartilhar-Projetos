@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — SCRIPT.JS (v12 - Chat com Modal Bonito)
+   COMPARTILHAR PROJETOS — SCRIPT.JS (v13 - Chat e Sincronia Completa)
    SPA leve, sincronizada com o Firebase Realtime Database.
    Autenticação via Firebase Auth. Pagamento de assinatura via
    Pix (VizzionPay), processado por um Cloudflare Worker.
@@ -276,9 +276,17 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     document.body.classList.toggle("is-guest", !user); document.body.classList.toggle("is-admin", !!user && user.role === "admin");
     
-    // Ativa e renderiza o widget de Suporte
-    if (user && !document.getElementById("supportWidget")) {
-        initSupportChatWidget(user);
+    // Controle rigoroso do Widget de Suporte
+    const existingWidget = document.getElementById("supportWidget");
+    if (user && user.role !== "admin") {
+        if (!existingWidget) initSupportChatWidget(user);
+    } else if (existingWidget) {
+        // Se fizer logout ou for admin, removemos completamente da tela
+        existingWidget.remove();
+        if (chatListenerUnsubscribe) {
+            chatListenerUnsubscribe();
+            chatListenerUnsubscribe = null;
+        }
     }
 
     if (user) {
@@ -1139,9 +1147,9 @@ function bindGlobalUI() {
                   </button>
               </form>
           </div>
-          <button class="support-fab" id="openChatBtn">
+          <button class="support-bubble-btn" id="openChatBtn">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-              <span class="badge-unread" id="chatUnreadBadge" style="display: none;">!</span>
+              <span class="badge-unread" id="chatUnreadBadge" style="display: none; position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; align-items: center; justify-content: center; font-weight: bold; border: 2px solid var(--bg-main, #f8fafc);">!</span>
           </button>
       `;
       document.body.appendChild(widget);
