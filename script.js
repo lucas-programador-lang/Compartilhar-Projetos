@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — SCRIPT.JS
+   COMPARTILHAR PROJETOS — SCRIPT.JS (v11 - Chat e Sincronia Completa)
    SPA leve, sincronizada com o Firebase Realtime Database.
    Autenticação via Firebase Auth. Pagamento de assinatura via
    Pix (VizzionPay), processado por um Cloudflare Worker.
@@ -276,7 +276,7 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     document.body.classList.toggle("is-guest", !user); document.body.classList.toggle("is-admin", !!user && user.role === "admin");
     
-    // Ativar o widget de chat se houver um user logado e não for admin
+    // Ativa e renderiza o widget de Suporte
     if (user && !document.getElementById("supportWidget")) {
         initSupportChatWidget(user);
     }
@@ -500,18 +500,15 @@ import { uid, nowISO } from "./seed.js";
     const img = (p.images && p.images[0]) || "";
     const user = currentUser();
 
-    // LÓGICA DAS AVALIAÇÕES (REVIEWS)
     const projectReviews = p.reviews || [];
     const avgRating = projectReviews.length ? (projectReviews.reduce((acc, r) => acc + r.rating, 0) / projectReviews.length).toFixed(1) : 0;
     const hasRated = user ? projectReviews.some(r => r.userId === user.id) : false;
 
-    // Desenhar estrelas médias no topo (18px)
     let starsHtml = "";
     for (let i = 1; i <= 5; i++) {
       starsHtml += getStarSvg(18, i <= Math.round(avgRating));
     }
 
-    // Lista de avaliações (14px stars)
     let reviewsListHtml = projectReviews.map(r => {
       let rStars = "";
       for (let i = 1; i <= 5; i++) {
@@ -535,7 +532,6 @@ import { uid, nowISO } from "./seed.js";
 
     const reviewLabel = projectReviews.length === 1 ? "avaliação" : "avaliações";
 
-    // Formulário ou bloqueio de avaliação
     let reviewFormHtml = "";
     if (!user) {
       reviewFormHtml = `<div class="panel text-center mt-3"><p class="muted">Faça login para avaliar.</p><a href="login.html?redirect=projeto/${p.id}" class="btn btn-ghost btn-sm mt-2">Entrar</a></div>`;
@@ -1032,12 +1028,12 @@ function bindGlobalUI() {
             
             if (isOpen) {
                 mobileNav.classList.remove("open");
-                document.body.style.overflow = ""; // Liberta a página
+                document.body.style.overflow = ""; 
                 document.body.classList.remove("menu-open");
             } else {
                 mobileNav.classList.add("open");
-                document.body.style.overflow = "hidden"; // Tranca o ecrã
-                document.body.classList.add("menu-open"); // Aciona a correção no CSS
+                document.body.style.overflow = "hidden"; 
+                document.body.classList.add("menu-open"); 
             }
         });
         
@@ -1063,8 +1059,6 @@ function bindGlobalUI() {
 
       if (!user || user.role === "admin") return;
 
-      // "Sair do chat" some com o widget inteiro até o usuário decidir
-      // iniciar uma nova conversa — preferência salva só neste navegador.
       const hiddenKey = `supportChatHidden_${user.id}`;
       let chatHidden = localStorage.getItem(hiddenKey) === "1";
 
@@ -1092,8 +1086,8 @@ function bindGlobalUI() {
                   <p class="muted text-center" style="font-size: 12px; margin-top: 20px;">Envie-nos uma mensagem e responderemos em breve.</p>
               </div>
               <div class="support-restart" id="supportRestart" style="display:none">
-                  <p>Você saiu da conversa de suporte.</p>
-                  <button class="btn btn-primary btn-sm" id="restartChatBtn" type="button">Iniciar novo chat</button>
+                  <p>A conversa de suporte foi encerrada.</p>
+                  <button class="btn btn-primary btn-sm" id="restartChatBtn" type="button" style="margin-top:12px;">Iniciar novo chat</button>
               </div>
               <form class="support-footer" id="supportForm">
                   <input type="text" id="supportInput" placeholder="Escreva a sua mensagem..." required autocomplete="off">
@@ -1140,19 +1134,36 @@ function bindGlobalUI() {
           chatWin.classList.remove("open");
       });
 
+      // UTILIZADOR CLICA EM "SAIR DO CHAT"
       endBtnUser.addEventListener("click", () => {
-          if (!confirm("Sair da conversa de suporte? Você pode iniciar uma nova a qualquer momento.")) return;
+          if (!confirm("Sair da conversa de suporte? Isso encerrará o chat para você e para o administrador.")) return;
           chatHidden = true;
           localStorage.setItem(hiddenKey, "1");
           applyHiddenState();
+          
+          // Muda o status para "closed" no Firebase para o Admin ver que foi encerrado
+          import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, update }) => {
+              import("./firebase-config.js").then(({ rtdb }) => {
+                  update(ref(rtdb, `supportChats/${user.id}`), { status: "closed" });
+              });
+          });
       });
 
+      // UTILIZADOR CLICA EM "INICIAR NOVO CHAT"
       restartBtn.addEventListener("click", () => {
           chatHidden = false;
           localStorage.removeItem(hiddenKey);
           applyHiddenState();
           chatWin.classList.add("open");
           setTimeout(() => input.focus(), 100);
+          
+          // Reabre o chat e limpa as mensagens antigas para um "começo fresco"
+          import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, update, set }) => {
+              import("./firebase-config.js").then(({ rtdb }) => {
+                  set(ref(rtdb, `supportChats/${user.id}/messages`), null);
+                  update(ref(rtdb, `supportChats/${user.id}`), { status: "open", lastMessage: "", unreadAdmin: false, unreadUser: false });
+              });
+          });
       });
 
       form.addEventListener("submit", (e) => {
@@ -1167,13 +1178,26 @@ function bindGlobalUI() {
 
       let lastMsgCount = 0;
       chatListenerUnsubscribe = escutarChatUsuario(user.id, (data) => {
-          if (!data || !data.messages) return;
+          if (!data) return;
           
+          // SE O CHAT FOR ENCERRADO PELO ADMIN OU POR INATIVIDADE DE 5 MINUTOS:
+          if (data.status === "closed" && !chatHidden) {
+              chatHidden = true;
+              localStorage.setItem(hiddenKey, "1");
+              applyHiddenState();
+              return;
+          }
+
           if (data.unreadUser && !chatWin.classList.contains("open")) {
               badge.style.display = "flex";
           }
 
           body.innerHTML = "";
+          if (!data.messages) {
+              body.innerHTML = '<p class="muted text-center" style="font-size: 12px; margin-top: 20px;">Envie-nos uma mensagem e responderemos em breve.</p>';
+              return;
+          }
+
           const msgs = Object.values(data.messages).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
           if (msgs.length > lastMsgCount && lastMsgCount > 0) {
@@ -1184,18 +1208,21 @@ function bindGlobalUI() {
           
           msgs.forEach(msg => {
               const div = document.createElement("div");
-              div.className = `chat-msg ${msg.sender}`;
+              div.className = `support-msg ${msg.sender === "user" ? "user-sent" : "admin-received"}`;
               const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-              div.innerHTML = `${escapeHtml(msg.text)} <span class="chat-msg-time">${time}</span>`;
+              div.innerHTML = `${escapeHtml(msg.text)} <span class="support-msg-time" style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:4px;">${time}</span>`;
               body.appendChild(div);
           });
 
           body.scrollTop = body.scrollHeight;
+          
+          if (chatWin.classList.contains("open") && data.unreadUser) {
+              marcarChatLidoUser(user.id);
+          }
       });
   }
 
-  // Sons curtos e discretos de enviar/receber mensagem, gerados via
-  // Web Audio API (sem precisar de arquivo .mp3 externo para hospedar).
+  // Sons curtos e discretos de enviar/receber mensagem, gerados via Web Audio API
   let audioCtx = null;
   function playSupportSound(type) {
       try {
