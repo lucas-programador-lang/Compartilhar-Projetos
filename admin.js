@@ -186,11 +186,16 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     bindNav();
     bindForms();
     
-    // FORÇA O CHAT A INICIAR IMEDIATAMENTE
-    try {
-        bindSupportChat();
-    } catch (e) {
-        console.error("Erro ao iniciar chat:", e);
+    // Só inicia o listener do chat depois que o Firebase Auth confirmou
+    // a sessão de verdade (auth.currentUser), evitando que o onValue()
+    // seja registrado numa janela em que a auth ainda não "assentou"
+    // no SDK e a leitura falhe silenciosamente (sem erro no console).
+    if (auth.currentUser) {
+      try {
+          bindSupportChat();
+      } catch (e) {
+          console.error("Erro ao iniciar chat:", e);
+      }
     }
     
     renderAll();
