@@ -1056,16 +1056,6 @@ function bindGlobalUI() {
      ========================================================= */
   let chatListenerUnsubscribe = null;
 
-  // Rótulo de data amigável para separar o histórico ("Hoje", "Ontem", data)
-  function chatDayLabel(iso) {
-    const d = new Date(iso); const now = new Date();
-    const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
-    const diffDays = Math.round((startOf(now) - startOf(d)) / 86400000);
-    if (diffDays === 0) return "Hoje";
-    if (diffDays === 1) return "Ontem";
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined });
-  }
-
   function initSupportChatWidget(user) {
       const existing = document.getElementById("supportWidget");
       if (existing) existing.remove();
@@ -1073,34 +1063,48 @@ function bindGlobalUI() {
 
       if (!user || user.role === "admin") return;
 
-      // Controla quantas mensagens novas chegaram enquanto a janela ficou fechada
-      const lastSeenKey = "support_last_seen_" + user.id;
-      let lastSeenAt = Number(localStorage.getItem(lastSeenKey)) || Date.now();
-      let renderedMessageIds = new Set();
+      // "Sair do chat" some com o widget inteiro até o usuário decidir
+      // iniciar uma nova conversa — preferência salva só neste navegador.
+      const hiddenKey = `supportChatHidden_${user.id}`;
+      let chatHidden = localStorage.getItem(hiddenKey) === "1";
 
       const widget = document.createElement("div");
       widget.id = "supportWidget";
       widget.className = "support-widget";
       widget.innerHTML = `
-          <div class="support-window" id="supportWindow" role="dialog" aria-modal="true" aria-label="Chat de suporte">
+          <div class="support-window" id="supportWindow">
               <div class="support-header">
                   <div class="support-header-info">
-                      <h4>Suporte ao Criador</h4>
-                      <p><span class="status-dot" aria-hidden="true"></span>Online agora · resposta em minutos</p>
+                      <span class="support-avatar">CP</span>
+                      <div>
+                          <h4>Suporte ao Criador</h4>
+                          <p><span class="support-status-dot"></span>Online agora</p>
+                      </div>
                   </div>
-                  <button class="support-close" id="closeChatBtn" type="button" aria-label="Fechar chat">&times;</button>
+                  <div class="support-header-actions">
+                      <button class="support-icon-btn" id="endChatBtnUser" title="Sair do chat">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                      </button>
+                      <button class="support-close" id="closeChatBtn">&times;</button>
+                  </div>
               </div>
-              <div class="support-body" id="supportBody"></div>
+              <div class="support-body" id="supportBody">
+                  <p class="muted text-center" style="font-size: 12px; margin-top: 20px;">Envie-nos uma mensagem e responderemos em breve.</p>
+              </div>
+              <div class="support-restart" id="supportRestart" style="display:none">
+                  <p>Você saiu da conversa de suporte.</p>
+                  <button class="btn btn-primary btn-sm" id="restartChatBtn" type="button">Iniciar novo chat</button>
+              </div>
               <form class="support-footer" id="supportForm">
-                  <input type="text" id="supportInput" placeholder="Escreva a sua mensagem..." required autocomplete="off" maxlength="800">
-                  <button type="submit" id="supportSendBtn" aria-label="Enviar mensagem">
+                  <input type="text" id="supportInput" placeholder="Escreva a sua mensagem..." required autocomplete="off">
+                  <button type="submit">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                   </button>
               </form>
           </div>
-          <button class="support-fab" id="openChatBtn" type="button" aria-label="Abrir chat de suporte" aria-expanded="false">
+          <button class="support-fab" id="openChatBtn">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-              <span class="badge-unread" id="chatUnreadBadge" style="display: none;"></span>
+              <span class="badge-unread" id="chatUnreadBadge" style="display: none;">!</span>
           </button>
       `;
       document.body.appendChild(widget);
@@ -1108,102 +1112,111 @@ function bindGlobalUI() {
       const fab = document.getElementById("openChatBtn");
       const chatWin = document.getElementById("supportWindow");
       const closeBtn = document.getElementById("closeChatBtn");
+      const endBtnUser = document.getElementById("endChatBtnUser");
       const form = document.getElementById("supportForm");
       const input = document.getElementById("supportInput");
-      const sendBtn = document.getElementById("supportSendBtn");
       const body = document.getElementById("supportBody");
       const badge = document.getElementById("chatUnreadBadge");
+      const restartBox = document.getElementById("supportRestart");
+      const restartBtn = document.getElementById("restartChatBtn");
 
-      function isChatOpen() { return chatWin.classList.contains("open"); }
+      function applyHiddenState() {
+          fab.style.display = chatHidden ? "none" : "flex";
+          form.style.display = chatHidden ? "none" : "flex";
+          restartBox.style.display = chatHidden ? "flex" : "none";
+          if (chatHidden) chatWin.classList.remove("open");
+      }
+      applyHiddenState();
 
-      function openChat() {
+      fab.addEventListener("click", () => {
           chatWin.classList.add("open");
-          fab.setAttribute("aria-expanded", "true");
           badge.style.display = "none";
-          lastSeenAt = Date.now();
-          localStorage.setItem(lastSeenKey, String(lastSeenAt));
-          marcarChatLidoUser(user.id).catch(() => {});
-          setTimeout(() => input.focus(), 150);
+          marcarChatLidoUser(user.id);
+          setTimeout(() => input.focus(), 100);
           body.scrollTop = body.scrollHeight;
-      }
-
-      function closeChat() {
+      });
+      
+      closeBtn.addEventListener("click", () => {
           chatWin.classList.remove("open");
-          fab.setAttribute("aria-expanded", "false");
-      }
+      });
 
-      fab.addEventListener("click", () => { isChatOpen() ? closeChat() : openChat(); });
-      closeBtn.addEventListener("click", closeChat);
-      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && isChatOpen()) closeChat(); });
+      endBtnUser.addEventListener("click", () => {
+          if (!confirm("Sair da conversa de suporte? Você pode iniciar uma nova a qualquer momento.")) return;
+          chatHidden = true;
+          localStorage.setItem(hiddenKey, "1");
+          applyHiddenState();
+      });
+
+      restartBtn.addEventListener("click", () => {
+          chatHidden = false;
+          localStorage.removeItem(hiddenKey);
+          applyHiddenState();
+          chatWin.classList.add("open");
+          setTimeout(() => input.focus(), 100);
+      });
 
       form.addEventListener("submit", (e) => {
           e.preventDefault();
           const text = input.value.trim();
-          if (!text || sendBtn.disabled) return;
+          if (!text) return;
           input.value = "";
-          sendBtn.disabled = true;
-          input.disabled = true;
           enviarMensagemSuporte(user.id, user.name, text, "user")
-              .catch(err => { toast("Erro ao enviar: " + friendlyError(err, "tente novamente."), "error"); input.value = text; })
-              .finally(() => { sendBtn.disabled = false; input.disabled = false; input.focus(); });
+              .then(() => playSupportSound("send"))
+              .catch(err => toast("Erro ao enviar: " + err.message, "error"));
       });
 
-      function renderEmptyState() {
-          body.innerHTML = `
-              <div style="margin:auto;text-align:center;padding:24px 12px;color:var(--ink-400)">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin:0 auto 12px;opacity:.55"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                  <p style="font-size:13.5px;line-height:1.5;max-width:220px;margin:0 auto">Envie-nos uma mensagem e nossa equipe responde em breve.</p>
-              </div>`;
-      }
-
-      renderEmptyState();
-
+      let lastMsgCount = 0;
       chatListenerUnsubscribe = escutarChatUsuario(user.id, (data) => {
-          if (!data || !data.messages) { renderEmptyState(); return; }
-
-          const msgs = Object.values(data.messages).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-          if (!msgs.length) { renderEmptyState(); return; }
-
-          // Notificação de não lidas: conta mensagens da equipe chegadas após o último "visto"
-          const newFromAdmin = msgs.filter(m => m.sender === "admin" && new Date(m.createdAt).getTime() > lastSeenAt);
-          if (newFromAdmin.length && !isChatOpen()) {
-              badge.textContent = newFromAdmin.length > 9 ? "9+" : String(newFromAdmin.length);
-              badge.style.display = "flex";
-          } else if (data.unreadUser && !isChatOpen()) {
-              badge.textContent = "!";
+          if (!data || !data.messages) return;
+          
+          if (data.unreadUser && !chatWin.classList.contains("open")) {
               badge.style.display = "flex";
           }
 
-          // Mantém a rolagem no fim só se o usuário já estava lendo o fim da conversa
-          const wasNearBottom = renderedMessageIds.size === 0 || (body.scrollHeight - body.scrollTop - body.clientHeight < 80);
-
           body.innerHTML = "";
-          let lastDayLabel = null;
-          const newIds = new Set();
+          const msgs = Object.values(data.messages).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-          msgs.forEach((msg, i) => {
-              const msgId = msg.id || (msg.createdAt + "_" + i);
-              newIds.add(msgId);
-
-              const dayLabel = chatDayLabel(msg.createdAt);
-              if (dayLabel !== lastDayLabel) {
-                  lastDayLabel = dayLabel;
-                  const sep = document.createElement("div");
-                  sep.style.cssText = "align-self:center;font-size:11px;color:var(--ink-400);background:var(--surface);border:1px solid var(--border);padding:3px 12px;border-radius:999px;margin:6px 0";
-                  sep.textContent = dayLabel;
-                  body.appendChild(sep);
-              }
-
+          if (msgs.length > lastMsgCount && lastMsgCount > 0) {
+              const last = msgs[msgs.length - 1];
+              if (last.sender === "admin") playSupportSound("receive");
+          }
+          lastMsgCount = msgs.length;
+          
+          msgs.forEach(msg => {
               const div = document.createElement("div");
-              div.className = `chat-msg ${msg.sender === "admin" ? "admin" : "user"}`;
+              div.className = `chat-msg ${msg.sender}`;
               const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-              div.innerHTML = `${escapeHtml(msg.text)}<span class="chat-msg-time">${time}</span>`;
+              div.innerHTML = `${escapeHtml(msg.text)} <span class="chat-msg-time">${time}</span>`;
               body.appendChild(div);
           });
 
-          renderedMessageIds = newIds;
-          if (wasNearBottom || isChatOpen()) body.scrollTop = body.scrollHeight;
+          body.scrollTop = body.scrollHeight;
       });
+  }
+
+  // Sons curtos e discretos de enviar/receber mensagem, gerados via
+  // Web Audio API (sem precisar de arquivo .mp3 externo para hospedar).
+  let audioCtx = null;
+  function playSupportSound(type) {
+      try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = "sine";
+          if (type === "send") {
+              osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.08);
+          } else {
+              osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(650, audioCtx.currentTime + 0.1);
+          }
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.15);
+      } catch (e) { /* Web Audio indisponível — som é acessório, ignora silenciosamente */ }
   }
 
   onAuthStateChanged(auth, async (user) => { 
