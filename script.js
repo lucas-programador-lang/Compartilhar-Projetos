@@ -1,5 +1,8 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — SCRIPT.JS (v15 - Chat Moderno)
+   COMPARTILHAR PROJETOS — SCRIPT.JS (v16 - Chat Moderno e Corrigido)
+   SPA leve, sincronizada com o Firebase Realtime Database.
+   Autenticação via Firebase Auth. Pagamento de assinatura via
+   Pix (VizzionPay), processado por um Cloudflare Worker.
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -87,6 +90,9 @@ import { uid, nowISO } from "./seed.js";
   function myNotifications(userId) { return db.notifications.filter((n) => n.userId === userId && !n.resolved).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); }
   function unreadNotificationsCount(userId) { return myNotifications(userId).filter((n) => !n.read).length; }
 
+  // AQUI ESTÁ A VARIÁVEL QUE FALTAVA
+  let chatListenerUnsubscribe = null;
+
   function refreshHeader() {
     const user = currentUser();
     document.body.classList.toggle("is-guest", !user); document.body.classList.toggle("is-admin", !!user && user.role === "admin");
@@ -146,7 +152,7 @@ import { uid, nowISO } from "./seed.js";
     if (PROTECTED_ROUTES.some((p) => path.startsWith(p)) && !user) { location.href = "login.html?redirect=" + encodeURIComponent(path.replace(/^\//, "").split("?")[0] || "painel"); return; }
 
     let seg = path.split("/").filter(Boolean); let html = "";
-    if (path === "/" || path === "") html = "<div class='section text-center'><h1>Página Inicial</h1></div>"; // Simplificado para economizar espaço
+    if (path === "/" || path === "") html = "<div class='section text-center'><h1>Página Inicial</h1></div>"; // Simplificado, insira viewHome() se quiser
     else html = "<div class='section text-center'><h1>"+path+"</h1></div>";
 
     app.innerHTML = html;
