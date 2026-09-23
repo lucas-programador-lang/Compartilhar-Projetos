@@ -236,17 +236,22 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
      SUPORTE AO VIVO (CHAT ADMIN - TEMPO REAL CORRIGIDO)
   --------------------------------------------------------- */
   function bindSupportChat() {
+    console.log("[DEBUG SUPORTE] bindSupportChat chamada. supportBound =", supportBound, "auth.currentUser =", auth.currentUser ? auth.currentUser.uid : null);
     if (supportBound) return;
     supportBound = true;
 
     // Conecta diretamente ao nó "supportChats" no Firebase Realtime Database
+    console.log("[DEBUG SUPORTE] registrando onValue em supportChats...");
     const chatsRef = ref(rtdb, "supportChats");
     onValue(chatsRef, (snapshot) => {
+        console.log("[DEBUG SUPORTE] onValue disparou! dados:", snapshot.val());
         allChatsData = snapshot.val() || {};
         renderAdminChatList();
         if (activeChatUserId) {
             renderAdminActiveChat();
         }
+    }, (error) => {
+        console.error("[DEBUG SUPORTE] ERRO no onValue de supportChats:", error);
     });
 
     const form = qs("#adminChatForm");
