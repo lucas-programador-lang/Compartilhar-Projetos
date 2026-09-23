@@ -49,12 +49,13 @@
     <a href="index.html#/" class="brand">
       <span class="brand-mark" aria-hidden="true">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
-          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold)" transform="rotate(-8 8 17)"/>
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
           <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
         </svg>
       </span>
       <span class="brand-name">Compartilhar <em>Projetos</em></span>
     </a>
+
     <nav class="main-nav">
       <a href="index.html#/explorar">Explorar</a>
       <a href="index.html#/comunidade">Comunidade</a>
@@ -62,15 +63,33 @@
       <a href="index.html#/ranking">Ranking</a>
       <a href="apk.html" class="active">Baixar app</a>
     </nav>
+
     <div class="header-actions">
       <!-- Botão de Tema -->
       <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding: 6px 10px; margin-right: 8px; color: var(--text-main); display: flex; align-items: center; justify-content: center; border: none;">
         <span id="themeIcon"></span>
       </button>
 
-      <a href="index.html" class="btn btn-ghost btn-sm">Voltar ao site</a>
+      <a href="index.html" class="btn btn-ghost btn-sm guest-only">Voltar ao site</a>
+      
+      <!-- Botão Hambúrguer para Telemóvel e APK -->
+      <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
+  
+  <!-- MENU MOBILE RESPONSIVO -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html#/explorar">Explorar projetos</a>
+    <a href="index.html#/comunidade">Comunidade</a>
+    <a href="index.html#/planos">Planos</a>
+    <a href="index.html#/ranking">Ranking</a>
+    <a href="sobre.html">Sobre</a>
+    <a href="como-funciona.html">Como funciona</a>
+    <a href="apk.html" class="active">Baixar app</a>
+    <a href="index.html#/avaliar">Avaliar plataforma</a>
+  </nav>
 </header>
 
 <!-- ===== HERO ===== -->
@@ -220,6 +239,36 @@
       })
       .catch(() => {});
   })();
+
+  // Script para o botão hambúrguer funcionar perfeitamente no telemóvel e APK
+  document.addEventListener("DOMContentLoaded", () => {
+    const hamburger = document.getElementById("hamburgerBtn");
+    const mobileNav = document.getElementById("mobileNav");
+    
+    if (hamburger && mobileNav) {
+      hamburger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = mobileNav.classList.contains("open");
+        if (isOpen) {
+          mobileNav.classList.remove("open");
+          document.body.style.overflow = "";
+          document.body.classList.remove("menu-open");
+        } else {
+          mobileNav.classList.add("open");
+          document.body.style.overflow = "hidden";
+          document.body.classList.add("menu-open");
+        }
+      });
+      
+      mobileNav.querySelectorAll("a, button").forEach((el) => {
+        el.addEventListener("click", () => {
+          mobileNav.classList.remove("open");
+          document.body.style.overflow = "";
+          document.body.classList.remove("menu-open");
+        });
+      });
+    }
+  });
 
   // ===== CONTROLE DE TEMA (CLARO/ESCURO) INDEPENDENTE =====
   (function() {
