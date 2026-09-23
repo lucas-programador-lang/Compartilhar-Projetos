@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v8.2 - FCM + Notificações Corrigidas)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v9 - Com Chat de Suporte)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -58,6 +58,9 @@
    v7/v8.2: NOTIFICAÇÕES & FCM. Novo nó de primeiro nível "notifications".
    Agora processado via cleanKeyed() para evitar erros de índice ("PERMISSION_DENIED")
    ao marcar como lida. Inclui suporte para Push Notifications (FCM).
+   
+   v9: SUPORTE EM TEMPO REAL. Funções adicionadas para escutar e gravar 
+   mensagens do novo módulo de chat.
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
@@ -256,6 +259,63 @@ export function markAllNotificationsRead() {
   if (Object.keys(patch).length === 0) return Promise.resolve(); // Nada para atualizar
   return update(ref(rtdb), patch);
 }
+
+/* =========================================================
+   CHAT DE SUPORTE EM TEMPO REAL (NOVO)
+   ========================================================= */
+
+// 1. Enviar mensagem (Utilizador e Admin)
+export async function enviarMensagemSuporte(userId, userName, text, sender) {
+  const chatRef = ref(rtdb, `supportChats/${userId}`);
+  const msgsRef = ref(rtdb, `supportChats/${userId}/messages`);
+  const novaMsgRef = push(msgsRef);
+  const now = new Date().toISOString();
+
+  await set(novaMsgRef, {
+      sender: sender, // "user" ou "admin"
+      text: text,
+      createdAt: now
+  });
+
+  // Atualiza o resumo do chat para o painel do Admin
+  await update(chatRef, {
+      userName: userName,
+      lastMessage: text,
+      updatedAt: now,
+      unreadAdmin: sender === "user", // Admin tem nova mensagem não lida
+      unreadUser: sender === "admin"  // User tem nova mensagem não lida
+  });
+}
+
+// 2. Escutar as mensagens de um utilizador específico em tempo real
+export function escutarChatUsuario(userId, callback) {
+  const chatRef = ref(rtdb, `supportChats/${userId}`);
+  return onValue(chatRef, (snapshot) => {
+      callback(snapshot.val());
+  });
+}
+
+// 3. Marcar as mensagens como lidas pelo utilizador
+export function marcarChatLidoUser(userId) {
+  update(ref(rtdb, `supportChats/${userId}`), { unreadUser: false });
+}
+
+// 4. (Para o Admin) Marcar as mensagens como lidas pelo administrador
+export function marcarChatLidoAdmin(userId) {
+  update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false });
+}
+
+// 5. (Para o Admin) Escutar TODOS os chats para o painel de suporte
+export function escutarTodosOsChats(callback) {
+  const chatsRef = ref(rtdb, `supportChats`);
+  return onValue(chatsRef, (snapshot) => {
+      callback(snapshot.val());
+  });
+}
+
+/* ---------------------------------------------------------
+   FIM CHAT DE SUPORTE
+--------------------------------------------------------- */
 
 let syncGeneration = 0;
 
