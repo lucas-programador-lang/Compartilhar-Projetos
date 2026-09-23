@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v7 + RANKING QUINZENAL)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v8 + SUPORTE AO VIVO)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
    passa pelo Worker (/admin/*).
@@ -8,7 +8,7 @@
 import { auth, rtdb } from "./firebase-config.js"; 
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
-import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush } from "./db-sync.js";
+import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsChats, enviarMensagemSuporte, marcarChatLidoAdmin } from "./db-sync.js";
 
 (function () {
   "use strict";
@@ -25,6 +25,11 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush } from "./db-sync.
   let dbReady = false;
   let currentUserFilter = "";
   let currentProjectFilter = "";
+
+  // Variáveis do Chat de Suporte
+  let activeChatUserId = null;
+  let allChatsData = {};
+  let supportBound = false;
 
   // CORREÇÃO: "Plano B" para conseguir entrar no painel antes do backfill rodar
   function currentUser() {
@@ -184,6 +189,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush } from "./db-sync.
     
     bindNav();
     bindForms();
+    bindSupportChat(); // Inicia o chat ao vivo
     renderAll();
   }
 
@@ -216,6 +222,139 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush } from "./db-sync.
     renderWithdrawals();
     renderRankingPrizes(); 
     renderPlatformReviews();
+  }
+
+  /* ---------------------------------------------------------
+     SUPORTE AO VIVO (CHAT ADMIN)
+  --------------------------------------------------------- */
+  function bindSupportChat() {
+    if (supportBound) return;
+    supportBound = true;
+
+    // Escuta continuamente todas as conversas do banco
+    escutarTodosOsChats((data) => {
+        allChatsData = data || {};
+        renderAdminChatList();
+        if (activeChatUserId) {
+            renderAdminActiveChat();
+        }
+    });
+
+    const form = qs("#adminChatForm");
+    const input = qs("#adminChatInput");
+    const closeBtn = qs("#closeActiveChatBtn");
+
+    if (form) {
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text || !activeChatUserId) return;
+            input.value = "";
+            
+            // Envia a mensagem como "admin" para o utilizador ativo
+            enviarMensagemSuporte(activeChatUserId, allChatsData[activeChatUserId]?.userName || "Usuário", text, "admin")
+                .catch(err => toast("Erro ao enviar mensagem: " + err.message, "error"));
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+            activeChatUserId = null;
+            renderAdminChatList();
+            renderAdminActiveChat();
+        });
+    }
+  }
+
+  function renderAdminChatList() {
+    const listEl = qs("#adminChatList");
+    const badge = qs("#adminSupportBadge");
+    if (!listEl) return;
+
+    listEl.innerHTML = "";
+    let hasUnread = false;
+
+    // Ordena as conversas (as mais recentes no topo)
+    const sortedChats = Object.entries(allChatsData).sort((a, b) => {
+        const dateA = new Date(a[1].updatedAt || 0);
+        const dateB = new Date(b[1].updatedAt || 0);
+        return dateB - dateA;
+    });
+
+    if (sortedChats.length === 0) {
+        listEl.innerHTML = `<p class="muted text-center" style="padding:20px; font-size:14px;">Sem conversas iniciadas.</p>`;
+        if (badge) badge.style.display = "none";
+        return;
+    }
+
+    sortedChats.forEach(([uid, chat]) => {
+        if (chat.unreadAdmin) hasUnread = true;
+
+        const div = document.createElement("div");
+        div.className = `admin-chat-item ${uid === activeChatUserId ? 'active' : ''} ${chat.unreadAdmin ? 'unread' : ''}`;
+        
+        const time = chat.updatedAt ? new Date(chat.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+
+        div.innerHTML = `
+            <div class="aci-header">
+                <strong>${escapeHtml(chat.userName || "Usuário desconhecido")}</strong>
+                <span class="muted" style="font-size:11px">${time}</span>
+            </div>
+            <div class="aci-lastmsg">${escapeHtml(chat.lastMessage || "...")}</div>
+        `;
+
+        div.addEventListener("click", () => {
+            activeChatUserId = uid;
+            if (chat.unreadAdmin) {
+                marcarChatLidoAdmin(uid);
+            }
+            renderAdminChatList();
+            renderAdminActiveChat();
+        });
+
+        listEl.appendChild(div);
+    });
+
+    // Se houver mensagens não lidas, mostra a bolinha na barra lateral
+    if (badge) {
+        badge.style.display = hasUnread ? "inline-block" : "none";
+    }
+  }
+
+  function renderAdminActiveChat() {
+    const emptyEl = qs("#adminChatEmpty");
+    const activeEl = qs("#adminChatActive");
+    const nameEl = qs("#activeChatUserName");
+    const msgsEl = qs("#adminChatMessages");
+
+    if (!activeChatUserId || !allChatsData[activeChatUserId]) {
+        emptyEl.style.display = "flex";
+        activeEl.style.display = "none";
+        return;
+    }
+
+    const chat = allChatsData[activeChatUserId];
+    emptyEl.style.display = "none";
+    activeEl.style.display = "flex";
+    nameEl.textContent = chat.userName || "Usuário";
+
+    msgsEl.innerHTML = "";
+    const msgs = chat.messages ? Object.values(chat.messages) : [];
+    
+    // Organiza as mensagens cronologicamente
+    msgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    msgs.forEach(msg => {
+        const div = document.createElement("div");
+        // O utilizador recebe as mensagens à esquerda, o admin envia à direita
+        div.className = msg.sender === "admin" ? "admin-sent" : "user-received";
+        const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        div.innerHTML = `${escapeHtml(msg.text)} <span style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:6px;">${time}</span>`;
+        msgsEl.appendChild(div);
+    });
+
+    // Mantém a caixa de chat no fundo (mensagem mais recente)
+    msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
   function renderOverview() {
