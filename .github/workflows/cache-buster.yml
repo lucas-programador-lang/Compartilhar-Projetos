@@ -1,1 +1,29 @@
+name: Auto Cache Buster
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bust-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Injetar versão estrita nos HTMLs
+        run: |
+          TIMESTAMP=$(date +%s)
+          # Substitui especificamente as extensões dentro de atributos src e href no HTML
+          find . -maxdepth 1 -name "*.html" -exec sed -i -E "s/href=\"([^\"]+)\.css\"/href=\"\1.css?v=${TIMESTAMP}\"/g" {} +
+          find . -maxdepth 1 -name "*.html" -exec sed -i -E "s/src=\"([^\"]+)\.js\"/src=\"\1.js?v=${TIMESTAMP}\"/g" {} +
+
+      - name: Commit e Push das alterações automáticas
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@://github.com'
+          git add .
+          git diff-index --quiet HEAD || git commit -m "chore: auto cache bust [skip ci]"
+          git push
 
