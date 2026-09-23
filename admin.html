@@ -6,7 +6,7 @@
 <title>Painel administrativo — Compartilhar Projetos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=17">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -45,7 +45,7 @@
  .admin-brand span{display:block;font-size:11px;color:var(--gold-300);font-family:var(--font-mono);letter-spacing:.04em}
  .admin-nav{display:flex;flex-direction:column;gap:2px;flex:1}
  .admin-nav button{
-   display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--admin-radius-sm);
+   display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:var(--admin-radius-sm);
    font-weight:600;font-size:14px;color:#cbd4ef;text-align:left;
    border-left:2.5px solid transparent;
    transition:background var(--admin-dur) var(--admin-ease),
@@ -64,7 +64,6 @@
  .admin-back a#adminLogout{color:#ffb3ac}
  .admin-back a#adminLogout:hover{color:#ff9186;background:rgba(207,53,39,.12)}
 
- /* Botão de tema específico para o admin */
  #themeToggleAdmin {
    display: flex; align-items: center; justify-content: center; gap: 8px;
    width: 100%; margin-top: 12px; padding: 10px; border-radius: var(--admin-radius-sm);
@@ -122,27 +121,8 @@
      overscroll-behavior-x:contain;
      scrollbar-color: rgba(255,255,255,.18) transparent;
      padding-inline:max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right));
-     -webkit-mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-     mask-image:linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
    }
    .admin-nav button{white-space:nowrap;min-height:44px;scroll-snap-align:start}
- }
- @media (max-width:480px){
-   .toolbar{flex-direction:column;align-items:stretch}
-   .toolbar .search-input{width:100%;min-width:0}
- }
- @media (max-width:359px){
-   .admin-brand{gap:8px}
-   .admin-nav button{padding:10px 12px;font-size:13.5px}
- }
- @media (max-height:480px) and (orientation:landscape){
-   .gate{align-items:flex-start;padding-top:24px}
- }
- .admin-nav::-webkit-scrollbar{height:4px}
- .admin-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
- .admin-nav::-webkit-scrollbar-thumb:hover{background:rgba(220,174,44,.45)}
- @media (prefers-reduced-motion:reduce){
-   .admin-nav{scroll-snap-type:none}
  }
 </style>
 
@@ -176,6 +156,13 @@
     </div>
     <div class="admin-nav" id="adminNav">
       <button data-section="visao" class="active">Visão geral</button>
+      
+      <!-- NOVO BOTÃO DE SUPORTE -->
+      <button data-section="suporte">
+        Suporte ao Vivo 
+        <span class="badge badge-danger" id="adminSupportBadge" style="display:none; padding: 2px 6px; font-size: 10px; border-radius: 99px;">Nova</span>
+      </button>
+
       <button data-section="usuarios">Usuários</button>
       <button data-section="assinaturas">Assinaturas</button>
       <button data-section="projetos">Projetos</button>
@@ -184,18 +171,15 @@
       <button data-section="indicacoes">Indicações &amp; comissões</button>
       <button data-section="saques">Saques</button>
       <button data-section="ranking">Ranking</button>
-      <button data-section="avaliacoes">Avaliações</button> <!-- NOVO BOTÃO -->
+      <button data-section="avaliacoes">Avaliações</button>
     </div>
     
     <div class="admin-back">
       <a href="index.html">← Voltar ao site</a>
       <a href="#" id="adminLogout">Sair da conta</a>
-      
-      <!-- BOTÃO DE MODO ESCURO/CLARO -->
       <button id="themeToggleAdmin" class="btn btn-ghost" aria-label="Alternar tema">
         <span id="themeIcon"></span> Alternar Tema
       </button>
-
     </div>
   </nav>
 
@@ -210,10 +194,40 @@
       </div>
     </section>
 
+    <!-- SUPORTE AO VIVO (NOVO BLOCO) -->
+    <section class="section-block" id="sec-suporte">
+      <div class="admin-head"><div><h1>Suporte ao Vivo</h1><p>Atenda os usuários e tire dúvidas em tempo real.</p></div></div>
+      <div class="panel" style="padding: 0; border: 1px solid var(--border-color); overflow: hidden;">
+        <div class="admin-chat-layout">
+          <!-- Lista Lateral -->
+          <div class="admin-chat-list" id="adminChatList">
+            <p class="muted text-center" style="padding: 20px;">Carregando conversas...</p>
+          </div>
+          <!-- Janela Principal -->
+          <div class="admin-chat-area" id="adminChatArea">
+            <div class="admin-chat-empty" id="adminChatEmpty">Selecione uma conversa à esquerda para iniciar o atendimento.</div>
+            <div class="admin-chat-active" id="adminChatActive">
+              <div class="admin-chat-header">
+                <strong id="activeChatUserName" style="font-size: 16px;">Nome do Usuário</strong>
+                <button class="btn btn-ghost btn-sm" id="closeActiveChatBtn">Fechar</button>
+              </div>
+              <div class="admin-chat-body" id="adminChatMessages">
+                <!-- As mensagens entram aqui via JS -->
+              </div>
+              <form class="admin-chat-footer" id="adminChatForm">
+                <input type="text" id="adminChatInput" placeholder="Digite sua resposta e pressione Enter..." required autocomplete="off">
+                <button type="submit" class="btn btn-gold px-4">Enviar</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- USUÁRIOS -->
     <section class="section-block" id="sec-usuarios">
+      <!-- ... Restante igual ... -->
       <div class="admin-head"><div><h1>Usuários</h1><p>Gerencie contas, permissões e suspensões.</p></div></div>
-
       <div class="panel" style="margin-bottom:22px">
         <div class="panel-head"><h3>Enviar aviso geral (notificação push)</h3></div>
         <p class="muted" style="font-size:13.5px;margin-bottom:16px">Envia uma notificação para todos os usuários que já têm o app/site com notificações ativadas.</p>
@@ -221,7 +235,6 @@
         <div class="field"><label>Mensagem</label><textarea id="notifyBody" rows="3" placeholder="Escreva o texto do aviso…"></textarea></div>
         <button class="btn btn-gold" id="notifyBroadcastBtn">Enviar para todos os usuários</button>
       </div>
-
       <div class="toolbar"><input type="search" id="userSearch" class="search-input" placeholder="Buscar por nome ou e-mail…" style="max-width:320px"></div>
       <div class="panel"><div class="table-wrap"><table class="data-table" id="usersTable">
         <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Assinatura</th><th>Status</th><th>Ações</th></tr></thead>
@@ -295,13 +308,11 @@
     <!-- RANKING E PREMIAÇÃO -->
     <section class="section-block" id="sec-ranking">
       <div class="admin-head"><div><h1>Ranking e premiação</h1><p>Fechamento mensal automático e controle de entrega do prêmio.</p></div></div>
-      
       <div class="panel" style="max-width:420px;border-color:var(--gold-400); margin-bottom: 22px;">
         <div class="panel-head"><h3>Backfill de perfis (temporário)</h3></div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">Copia usuários existentes para publicProfiles/myProfile. Rode uma vez, depois pode remover este botão.</p>
         <button class="btn btn-sm btn-gold" id="backfillProfilesBtn">Rodar backfill agora</button>
       </div>
-
       <div class="panel" style="max-width:420px">
         <div class="panel-head"><h3>Fechamento manual (teste)</h3></div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">Deixe em branco pra fechar o mês anterior. Sobrescreve o prêmio se o mês já tiver sido fechado.</p>
@@ -320,7 +331,7 @@
       </div>
     </section>
 
-    <!-- NOVA SECÇÃO: AVALIAÇÕES DA PLATAFORMA -->
+    <!-- AVALIAÇÕES DA PLATAFORMA -->
     <section class="section-block" id="sec-avaliacoes">
       <div class="admin-head"><div><h1>Avaliações da Plataforma</h1><p>Feedback direto dos usuários sobre usabilidade e satisfação geral.</p></div></div>
       <div class="panel">
