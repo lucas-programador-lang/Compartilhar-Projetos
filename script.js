@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — SCRIPT.JS (v11 - Chat e Sincronia Completa)
+   COMPARTILHAR PROJETOS — SCRIPT.JS (v12 - Chat com Modal Bonito)
    SPA leve, sincronizada com o Firebase Realtime Database.
    Autenticação via Firebase Auth. Pagamento de assinatura via
    Pix (VizzionPay), processado por um Cloudflare Worker.
@@ -1050,6 +1050,48 @@ function bindGlobalUI() {
   /* =========================================================
      WIDGET DE SUPORTE (CHAT DO UTILIZADOR)
      ========================================================= */
+  
+  // Função auxiliar para substituir alertas nativos no lado do utilizador
+  function confirmActionUser(message, opts) {
+      opts = opts || {};
+      return new Promise((resolve) => {
+          let overlay = qs("#confirmOverlay");
+          if (!overlay) {
+              overlay = document.createElement("div");
+              overlay.className = "confirm-overlay";
+              overlay.id = "confirmOverlay";
+              overlay.innerHTML = `<div class="confirm-box"><div class="confirm-icon" id="confirmIcon">!</div><h3 id="confirmTitle">Confirmar</h3><p id="confirmMessage">Tem certeza?</p><div class="confirm-actions"><button class="btn btn-ghost btn-block" id="confirmCancelBtn" type="button">Cancelar</button><button class="btn btn-danger btn-block" id="confirmOkBtn" type="button">Confirmar</button></div></div>`;
+              document.body.appendChild(overlay);
+          }
+          const box = overlay.querySelector(".confirm-box");
+          const icon = qs("#confirmIcon", overlay);
+          const titleEl = qs("#confirmTitle", overlay);
+          const msgEl = qs("#confirmMessage", overlay);
+          const okBtn = qs("#confirmOkBtn", overlay);
+          const cancelBtn = qs("#confirmCancelBtn", overlay);
+
+          titleEl.textContent = opts.title || "Confirmar ação";
+          msgEl.textContent = message;
+          okBtn.textContent = opts.confirmLabel || "Confirmar";
+          cancelBtn.textContent = opts.cancelLabel || "Cancelar";
+          box.classList.toggle("is-neutral", !!opts.neutral);
+          icon.textContent = opts.neutral ? "?" : "!";
+          overlay.classList.add("open");
+          okBtn.focus();
+
+          function settle(result) {
+              overlay.classList.remove("open");
+              okBtn.removeEventListener("click", onOk);
+              cancelBtn.removeEventListener("click", onCancel);
+              resolve(result);
+          }
+          function onOk() { settle(true); }
+          function onCancel() { settle(false); }
+          okBtn.addEventListener("click", onOk);
+          cancelBtn.addEventListener("click", onCancel);
+      });
+  }
+
   let chatListenerUnsubscribe = null;
 
   function initSupportChatWidget(user) {
@@ -1059,8 +1101,8 @@ function bindGlobalUI() {
 
       if (!user || user.role === "admin") return;
 
-      const hiddenKey = `supportChatHidden_${user.id}`;
-      let chatHidden = localStorage.getItem(hiddenKey) === "1";
+      const hiddenKey = `supportChatEnded_${user.id}`;
+      let isChatClosed = localStorage.getItem(hiddenKey) === "1";
 
       const widget = document.createElement("div");
       widget.id = "supportWidget";
@@ -1085,9 +1127,10 @@ function bindGlobalUI() {
               <div class="support-body" id="supportBody">
                   <p class="muted text-center" style="font-size: 12px; margin-top: 20px;">Envie-nos uma mensagem e responderemos em breve.</p>
               </div>
-              <div class="support-restart" id="supportRestart" style="display:none">
-                  <p>A conversa de suporte foi encerrada.</p>
-                  <button class="btn btn-primary btn-sm" id="restartChatBtn" type="button" style="margin-top:12px;">Iniciar novo chat</button>
+              <div class="support-restart" id="supportRestart" style="display:none; flex-direction:column; align-items:center; justify-content:center; flex:1;">
+                  <h4 style="margin-bottom: 8px;">Atendimento Encerrado</h4>
+                  <p class="muted text-center" style="font-size:13px; margin-bottom: 16px; padding: 0 20px;">A conversa de suporte foi encerrada. Precisa de mais ajuda?</p>
+                  <button class="btn btn-primary btn-sm" id="restartChatBtn" type="button">Iniciar novo chat</button>
               </div>
               <form class="support-footer" id="supportForm">
                   <input type="text" id="supportInput" placeholder="Escreva a sua mensagem..." required autocomplete="off">
@@ -1114,19 +1157,25 @@ function bindGlobalUI() {
       const restartBox = document.getElementById("supportRestart");
       const restartBtn = document.getElementById("restartChatBtn");
 
-      function applyHiddenState() {
-          fab.style.display = chatHidden ? "none" : "flex";
-          form.style.display = chatHidden ? "none" : "flex";
-          restartBox.style.display = chatHidden ? "flex" : "none";
-          if (chatHidden) chatWin.classList.remove("open");
+      // Controla a visibilidade interna do widget (Conversa vs Tela de Reiniciar)
+      function applyChatState(closed) {
+          if (closed) {
+              body.style.display = "none";
+              form.style.display = "none";
+              restartBox.style.display = "flex";
+          } else {
+              body.style.display = "flex";
+              form.style.display = "flex";
+              restartBox.style.display = "none";
+          }
       }
-      applyHiddenState();
+      applyChatState(isChatClosed);
 
       fab.addEventListener("click", () => {
           chatWin.classList.add("open");
           badge.style.display = "none";
           marcarChatLidoUser(user.id);
-          setTimeout(() => input.focus(), 100);
+          if (!isChatClosed) setTimeout(() => input.focus(), 100);
           body.scrollTop = body.scrollHeight;
       });
       
@@ -1134,14 +1183,19 @@ function bindGlobalUI() {
           chatWin.classList.remove("open");
       });
 
-      // UTILIZADOR CLICA EM "SAIR DO CHAT"
-      endBtnUser.addEventListener("click", () => {
-          if (!confirm("Sair da conversa de suporte? Isso encerrará o chat para você e para o administrador.")) return;
-          chatHidden = true;
+      // UTILIZADOR CLICA EM "SAIR DO CHAT" (Usa o Modal Bonito)
+      endBtnUser.addEventListener("click", async () => {
+          const ok = await confirmActionUser("Sair da conversa de suporte? Você pode iniciar uma nova a qualquer momento.", {
+              title: "Sair do Chat",
+              confirmLabel: "Sim, sair",
+              neutral: true
+          });
+          if (!ok) return;
+
+          isChatClosed = true;
           localStorage.setItem(hiddenKey, "1");
-          applyHiddenState();
+          applyChatState(true);
           
-          // Muda o status para "closed" no Firebase para o Admin ver que foi encerrado
           import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, update }) => {
               import("./firebase-config.js").then(({ rtdb }) => {
                   update(ref(rtdb, `supportChats/${user.id}`), { status: "closed" });
@@ -1151,13 +1205,11 @@ function bindGlobalUI() {
 
       // UTILIZADOR CLICA EM "INICIAR NOVO CHAT"
       restartBtn.addEventListener("click", () => {
-          chatHidden = false;
+          isChatClosed = false;
           localStorage.removeItem(hiddenKey);
-          applyHiddenState();
-          chatWin.classList.add("open");
+          applyChatState(false);
           setTimeout(() => input.focus(), 100);
           
-          // Reabre o chat e limpa as mensagens antigas para um "começo fresco"
           import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, update, set }) => {
               import("./firebase-config.js").then(({ rtdb }) => {
                   set(ref(rtdb, `supportChats/${user.id}/messages`), null);
@@ -1181,11 +1233,15 @@ function bindGlobalUI() {
           if (!data) return;
           
           // SE O CHAT FOR ENCERRADO PELO ADMIN OU POR INATIVIDADE DE 5 MINUTOS:
-          if (data.status === "closed" && !chatHidden) {
-              chatHidden = true;
+          if (data.status === "closed") {
+              isChatClosed = true;
               localStorage.setItem(hiddenKey, "1");
-              applyHiddenState();
+              applyChatState(true);
               return;
+          } else {
+              isChatClosed = false;
+              localStorage.removeItem(hiddenKey);
+              applyChatState(false);
           }
 
           if (data.unreadUser && !chatWin.classList.contains("open")) {
