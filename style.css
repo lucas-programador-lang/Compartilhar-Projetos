@@ -1227,3 +1227,23 @@ body:not(.is-guest) #mobileNav a[href*="login"],
 body:not(.is-guest) #mobileNav a[href*="register"] {
   display: none !important;
 }
+
+
+/* =========================================================
+   CORREÇÃO GLOBAL: MARCA SEMPRE VISÍVEL NO MOBILE E APK
+   ========================================================= */
+@media (max-width: 960px) {
+  .site-header .brand {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+  .site-header .brand-name {
+    display: inline-block !important;
+    font-size: 16px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+  }
+}
