@@ -1230,20 +1230,30 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
 
 
 /* =========================================================
-   CORREÇÃO GLOBAL: MARCA SEMPRE VISÍVEL NO MOBILE E APK
+   CORREÇÃO GLOBAL: MARCA SEMPRE VISÍVEL E SEM SOBREPOSIÇÃO
    ========================================================= */
 @media (max-width: 960px) {
+  .site-header .header-inner {
+    gap: 8px !important; /* Reduz o espaço vazio entre a logo e os botões */
+  }
   .site-header .brand {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    max-width: none !important;
+    max-width: 100% !important;
+    flex: 1; /* Empurra os botões para a direita */
     min-width: 0 !important;
   }
   .site-header .brand-name {
     display: inline-block !important;
-    font-size: 16px !important;
+    /* Reduz a letra automaticamente em ecrãs muito pequenos (tipo iPhone SE) */
+    font-size: clamp(13px, 4vw, 16px) !important; 
     white-space: nowrap !important;
-    overflow: visible !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important; /* Mete "..." apenas se não couber mesmo */
+  }
+  .header-actions {
+    flex: none !important; /* Protege os botões para não serem esmagados pela letra */
+    z-index: 10;
   }
 }
