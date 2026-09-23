@@ -1230,30 +1230,28 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
 
 
 /* =========================================================
-   CORREÇÃO GLOBAL: MARCA SEMPRE VISÍVEL E SEM SOBREPOSIÇÃO
+   CORREÇÃO GLOBAL: MARCA SEMPRE VISÍVEL (SEM CORTAR)
    ========================================================= */
 @media (max-width: 960px) {
   .site-header .header-inner {
-    gap: 8px !important; /* Reduz o espaço vazio entre a logo e os botões */
+    gap: 8px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
   .site-header .brand {
     display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    max-width: 100% !important;
-    flex: 1; /* Empurra os botões para a direita */
+    align-items: center !important;
+    flex: 1 !important; /* Empurra os botões para o canto */
     min-width: 0 !important;
   }
   .site-header .brand-name {
-    display: inline-block !important;
-    /* Reduz a letra automaticamente em ecrãs muito pequenos (tipo iPhone SE) */
-    font-size: clamp(13px, 4vw, 16px) !important; 
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important; /* Mete "..." apenas se não couber mesmo */
+    display: block !important;
+    font-size: 14.5px !important; 
+    white-space: normal !important; /* O SEGREDO: Permite quebrar para a linha de baixo! */
+    line-height: 1.15 !important;
+    overflow: visible !important;
   }
   .header-actions {
-    flex: none !important; /* Protege os botões para não serem esmagados pela letra */
-    z-index: 10;
+    flex: none !important; /* Impede a lua de esmagar o texto */
   }
 }
