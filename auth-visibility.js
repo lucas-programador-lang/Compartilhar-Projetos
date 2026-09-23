@@ -12,3 +12,37 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/f
 onAuthStateChanged(auth, (user) => {
   document.body.classList.toggle("is-guest", !user);
 });
+
+/* =========================================================
+   MENU MOBILE (HAMBÚRGUER)
+   Faz o menu abrir/fechar nas páginas estáticas no celular
+   ========================================================= */
+document.addEventListener("DOMContentLoaded", () => {
+    const hamburger = document.getElementById("hamburgerBtn");
+    const mobileNav = document.getElementById("mobileNav");
+    
+    if (hamburger && mobileNav) {
+        // Clicar no botão hambúrguer
+        hamburger.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (mobileNav.classList.contains("open")) {
+                mobileNav.classList.remove("open");
+                document.body.style.overflow = "";
+                document.body.classList.remove("menu-open");
+            } else {
+                mobileNav.classList.add("open");
+                document.body.style.overflow = "hidden";
+                document.body.classList.add("menu-open");
+            }
+        });
+        
+        // Fechar o menu ao clicar num link
+        mobileNav.querySelectorAll("a, button").forEach((el) => {
+            el.addEventListener("click", () => {
+                mobileNav.classList.remove("open");
+                document.body.style.overflow = "";
+                document.body.classList.remove("menu-open");
+            });
+        });
+    }
+});
