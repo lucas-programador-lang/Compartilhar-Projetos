@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v8 + SUPORTE AO VIVO)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v9 + SUPORTE AO VIVO CORRIGIDO)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
    passa pelo Worker (/admin/*).
@@ -31,7 +31,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
   let allChatsData = {};
   let supportBound = false;
 
-  // CORREÇÃO: "Plano B" para conseguir entrar no painel antes do backfill rodar
   function currentUser() {
     if (!firebaseUser || !db) return null;
     if (db.myProfile && db.myProfile.id === firebaseUser.uid) return db.myProfile;
@@ -153,7 +152,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
       themeIcon.innerHTML = iconMoon;
     }
 
-    // Evita duplicar o evento ao re-renderizar
     if (themeToggle.dataset.boundTheme) return;
     themeToggle.dataset.boundTheme = "1";
 
@@ -184,12 +182,10 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     qs("#gateScreen").style.display = "none";
     qs("#adminShell").style.display = "grid";
     
-    // Ativando o botão de Tema Escuro no Painel Admin
     bindThemeToggle();
-    
     bindNav();
     bindForms();
-    bindSupportChat(); // Inicia o chat ao vivo
+    bindSupportChat(); // Inicia o chat ao vivo corrigido
     renderAll();
   }
 
@@ -225,15 +221,16 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
   }
 
   /* ---------------------------------------------------------
-     SUPORTE AO VIVO (CHAT ADMIN)
+     SUPORTE AO VIVO (CHAT ADMIN - TEMPO REAL CORRIGIDO)
   --------------------------------------------------------- */
   function bindSupportChat() {
     if (supportBound) return;
     supportBound = true;
 
-    // Escuta continuamente todas as conversas do banco
-    escutarTodosOsChats((data) => {
-        allChatsData = data || {};
+    // Conecta diretamente ao nó "supportChats" no Firebase Realtime Database
+    const chatsRef = ref(rtdb, "supportChats");
+    onValue(chatsRef, (snapshot) => {
+        allChatsData = snapshot.val() || {};
         renderAdminChatList();
         if (activeChatUserId) {
             renderAdminActiveChat();
@@ -251,9 +248,13 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
             if (!text || !activeChatUserId) return;
             input.value = "";
             
-            // Envia a mensagem como "admin" para o utilizador ativo
+            // Envia a mensagem como admin para o utilizador selecionado
             enviarMensagemSuporte(activeChatUserId, allChatsData[activeChatUserId]?.userName || "Usuário", text, "admin")
-                .catch(err => toast("Erro ao enviar mensagem: " + err.message, "error"));
+                .then(() => {
+                    renderAdminActiveChat();
+                    renderAdminChatList();
+                })
+                .catch(err => toast("Erro ao enviar: " + err.message, "error"));
         });
     }
 
@@ -274,7 +275,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     listEl.innerHTML = "";
     let hasUnread = false;
 
-    // Ordena as conversas (as mais recentes no topo)
     const sortedChats = Object.entries(allChatsData).sort((a, b) => {
         const dateA = new Date(a[1].updatedAt || 0);
         const dateB = new Date(b[1].updatedAt || 0);
@@ -315,7 +315,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
         listEl.appendChild(div);
     });
 
-    // Se houver mensagens não lidas, mostra a bolinha na barra lateral
     if (badge) {
         badge.style.display = hasUnread ? "inline-block" : "none";
     }
@@ -341,19 +340,16 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     msgsEl.innerHTML = "";
     const msgs = chat.messages ? Object.values(chat.messages) : [];
     
-    // Organiza as mensagens cronologicamente
     msgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     msgs.forEach(msg => {
         const div = document.createElement("div");
-        // O utilizador recebe as mensagens à esquerda, o admin envia à direita
         div.className = msg.sender === "admin" ? "admin-sent" : "user-received";
         const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         div.innerHTML = `${escapeHtml(msg.text)} <span style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:6px;">${time}</span>`;
         msgsEl.appendChild(div);
     });
 
-    // Mantém a caixa de chat no fundo (mensagem mais recente)
     msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
@@ -711,7 +707,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
       );
     }
     
-    // BOTÃO DE BACKFILL (MIGRAR PERFIS)
     const backfillBtn = qs("#backfillProfilesBtn");
     if (backfillBtn && !backfillBtn.dataset.bound) {
       backfillBtn.dataset.bound = "1";
@@ -742,7 +737,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
       return;
     }
 
-    // Ordenar da mais recente para a mais antiga
     const sortedReviews = [...reviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const usaMap = { very_easy: "Muito fácil", easy: "Fácil", neutral: "Razoável", hard: "Difícil", very_hard: "Muito difícil" };
