@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v9 + SUPORTE AO VIVO CORRIGIDO)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v11 + SUPORTE AO VIVO E AUTO-CLOSE)
    Painel administrativo. Leitura em tempo real via db-sync.js
    (Firebase Realtime Database). Toda ESCRITA administrativa
    passa pelo Worker (/admin/*).
@@ -7,7 +7,8 @@
 
 import { auth, rtdb } from "./firebase-config.js"; 
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
+// Adicionado o "set" nesta linha para podermos apagar os chats com > 48h
+import { ref, onValue, push, serverTimestamp, set } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
 import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsChats, enviarMensagemSuporte, marcarChatLidoAdmin, encerrarChatAdmin } from "./db-sync.js";
 
 (function () {
@@ -186,10 +187,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     bindNav();
     bindForms();
     
-    // Só inicia o listener do chat depois que o Firebase Auth confirmou
-    // a sessão de verdade (auth.currentUser), evitando que o onValue()
-    // seja registrado numa janela em que a auth ainda não "assentou"
-    // no SDK e a leitura falhe silenciosamente (sem erro no console).
     if (auth.currentUser) {
       try {
           bindSupportChat();
@@ -233,10 +230,8 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
   }
 
   /* ---------------------------------------------------------
-     SUPORTE AO VIVO (CHAT ADMIN - TEMPO REAL CORRIGIDO)
+     SUPORTE AO VIVO (CHAT ADMIN - TEMPO REAL + AUTO CLOSE)
   --------------------------------------------------------- */
-  // Sons curtos e discretos de enviar/receber mensagem (Web Audio API,
-  // sem depender de arquivo de áudio externo hospedado).
   let adminAudioCtx = null;
   function playAdminChatSound(type) {
       try {
@@ -257,21 +252,19 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
           gain.gain.exponentialRampToValueAtTime(0.001, adminAudioCtx.currentTime + 0.15);
           osc.start(adminAudioCtx.currentTime);
           osc.stop(adminAudioCtx.currentTime + 0.15);
-      } catch (e) { /* Web Audio indisponível — som é acessório, ignora silenciosamente */ }
+      } catch (e) { }
   }
 
   function bindSupportChat() {
     if (supportBound) return;
     supportBound = true;
 
-    // Conecta diretamente ao nó "supportChats" no Firebase Realtime Database
     const chatsRef = ref(rtdb, "supportChats");
     let previousUnreadUids = new Set();
+    
     onValue(chatsRef, (snapshot) => {
         allChatsData = snapshot.val() || {};
 
-        // Toca som quando uma conversa passa a ter mensagem não lida
-        // que ainda não tinha (nova mensagem do usuário chegando agora).
         const currentUnreadUids = new Set(
             Object.entries(allChatsData).filter(([, c]) => c.unreadAdmin).map(([uid]) => uid)
         );
@@ -291,7 +284,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     const form = qs("#adminChatForm");
     const input = qs("#adminChatInput");
     const closeBtn = qs("#closeActiveChatBtn");
-    const endBtn = qs("#endActiveChatBtn");
+    const endBtn = qs("#endActiveChatBtn"); // O botão "Encerrar Chat" no topo da janela
 
     if (form) {
         form.addEventListener("submit", (e) => {
@@ -300,12 +293,9 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
             if (!text || !activeChatUserId) return;
             input.value = "";
             
-            // Envia a mensagem como admin para o utilizador selecionado
             enviarMensagemSuporte(activeChatUserId, allChatsData[activeChatUserId]?.userName || "Usuário", text, "admin")
                 .then(() => {
                     playAdminChatSound("send");
-                    renderAdminActiveChat();
-                    renderAdminChatList();
                 })
                 .catch(err => toast("Erro ao enviar: " + err.message, "error"));
         });
@@ -319,20 +309,56 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
         });
     }
 
+    // Lógica do botão manual para Encerrar o Chat
     if (endBtn) {
-        endBtn.addEventListener("click", () => {
+        endBtn.addEventListener("click", async () => {
             if (!activeChatUserId) return;
-            if (!confirm("Encerrar esta conversa? Ela sairá da lista de conversas ativas, mas o histórico é mantido.")) return;
-            encerrarChatAdmin(activeChatUserId)
-                .then(() => {
-                    activeChatUserId = null;
-                    renderAdminChatList();
-                    renderAdminActiveChat();
-                    toast("Conversa encerrada.", "success");
-                })
-                .catch(err => toast("Erro ao encerrar: " + err.message, "error"));
+            if (!confirm("Encerrar esta conversa? O utilizador terá de abrir um novo pedido de suporte.")) return;
+            
+            try {
+                await encerrarChatAdmin(activeChatUserId);
+                activeChatUserId = null;
+                renderAdminChatList();
+                renderAdminActiveChat();
+                toast("Chat encerrado com sucesso.", "success");
+            } catch (err) {
+                toast("Erro ao encerrar: " + err.message, "error");
+            }
         });
     }
+
+    // =========================================================
+    // VERIFICADOR AUTOMÁTICO (Roda a cada 60 segundos)
+    // =========================================================
+    setInterval(async () => {
+        const now = Date.now();
+        
+        for (const [uid, chat] of Object.entries(allChatsData)) {
+            if (!chat.updatedAt) continue;
+            
+            const lastUpdate = new Date(chat.updatedAt).getTime();
+            const minutesIdle = (now - lastUpdate) / (1000 * 60);
+
+            // Regra 1: Apagar histórico completamente após 48 horas (2880 minutos)
+            if (minutesIdle >= 2880) {
+                try {
+                    await set(ref(rtdb, `supportChats/${uid}`), null);
+                } catch(e) { console.error("Erro auto-delete:", e); }
+            } 
+            // Regra 2: Encerrar automaticamente após 5 minutos de inatividade se não estiver fechado
+            else if (minutesIdle >= 5 && chat.status !== "closed") {
+                try {
+                    await encerrarChatAdmin(uid);
+                    if (activeChatUserId === uid) {
+                        activeChatUserId = null;
+                        renderAdminChatList();
+                        renderAdminActiveChat();
+                        toast("Chat fechado automaticamente por inatividade.", "i");
+                    }
+                } catch(e) { console.error("Erro auto-close:", e); }
+            }
+        }
+    }, 60000); // 60.000 ms = 1 minuto
   }
 
   function renderAdminChatList() {
@@ -344,7 +370,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     let hasUnread = false;
 
     const sortedChats = Object.entries(allChatsData)
-      .filter(([, chat]) => chat.status !== "closed")
+      .filter(([, chat]) => chat.status !== "closed") // Não mostra conversas encerradas na lista
       .sort((a, b) => {
         const dateA = new Date(a[1].updatedAt || 0);
         const dateB = new Date(b[1].updatedAt || 0);
@@ -778,22 +804,6 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
           if (!ok) return;
           await adminFetch("/admin/force-close-ranking", monthKey ? { monthKey } : {});
           toast("Ranking fechado.", "success"); renderAll();
-        })
-      );
-    }
-    
-    const backfillBtn = qs("#backfillProfilesBtn");
-    if (backfillBtn && !backfillBtn.dataset.bound) {
-      backfillBtn.dataset.bound = "1";
-      backfillBtn.addEventListener("click", () =>
-        withButtonLock(backfillBtn, async () => {
-          const ok = await confirmAction(
-            "Isso copia todos os usuários existentes para os nós publicProfiles/myProfile. Seguro rodar mais de uma vez. Continuar?",
-            { title: "Backfill de perfis", confirmLabel: "Sim, rodar agora", neutral: true }
-          );
-          if (!ok) return;
-          const result = await adminFetch("/admin/backfill-profiles", {});
-          toast(`Migrados ${result.migrated} de ${result.total} usuários.`, "success");
         })
       );
     }
