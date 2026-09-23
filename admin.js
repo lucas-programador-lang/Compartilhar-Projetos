@@ -310,12 +310,22 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     }
 
     // Lógica do botão manual para Encerrar o Chat
+  // Lógica do botão manual para Encerrar o Chat
     if (endBtn) {
         endBtn.addEventListener("click", async () => {
             if (!activeChatUserId) return;
-            if (!confirm("Encerrar esta conversa? O utilizador terá de abrir um novo pedido de suporte.")) return;
+            
+            // Substituímos o window.confirm nativo pelo nosso modal personalizado
+            const ok = await confirmAction("Encerrar esta conversa? O utilizador terá de abrir um novo pedido de suporte.", {
+                title: "Encerrar Chat",
+                confirmLabel: "Sim, encerrar",
+                neutral: true
+            });
+            
+            if (!ok) return;
             
             try {
+                const { encerrarChatAdmin } = await import("./db-sync.js");
                 await encerrarChatAdmin(activeChatUserId);
                 activeChatUserId = null;
                 renderAdminChatList();
