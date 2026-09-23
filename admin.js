@@ -169,7 +169,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     });
   }
 
-  function boot() {
+ function boot() {
     if (!authReady || !dbReady) { showLoading(true); return; }
     showLoading(false);
 
@@ -185,7 +185,14 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     bindThemeToggle();
     bindNav();
     bindForms();
-    bindSupportChat(); // Inicia o chat ao vivo corrigido
+    
+    // FORÇA O CHAT A INICIAR IMEDIATAMENTE
+    try {
+        bindSupportChat();
+    } catch (e) {
+        console.error("Erro ao iniciar chat:", e);
+    }
+    
     renderAll();
   }
 
