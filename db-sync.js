@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v9 - Com Chat de Suporte)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v10 - Com Chat de Suporte Finalizado)
    Substitui o antigo saveDB() genérico (que reescrevia o banco
    inteiro) por funções específicas por operação. Isso é
    necessário porque as novas Regras do Firebase bloqueiam
@@ -311,6 +311,11 @@ export function escutarTodosOsChats(callback) {
   return onValue(chatsRef, (snapshot) => {
       callback(snapshot.val());
   });
+}
+
+// 6. (Para o Admin) Encerrar o chat ocultando-o da lista ativa
+export function encerrarChatAdmin(userId) {
+  return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" });
 }
 
 /* ---------------------------------------------------------
