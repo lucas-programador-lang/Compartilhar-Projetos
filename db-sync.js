@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v13 - Correção de Permissões)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v14 - A Digitar...)
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
@@ -64,27 +64,17 @@ export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${u
 export function escutarTodosOsChats(callback) { return onValue(ref(rtdb, `supportChats`), (snapshot) => { callback(snapshot.val()); }); }
 export function encerrarChatAdmin(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
 
-// TRATAMENTO DE ERROS DE PERMISSÃO DE PRESENÇA (Ausente/Online)
 export function setAdminPresenceOnline() {
   import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, onValue, onDisconnect, set }) => {
-      const connectedRef = ref(rtdb, ".info/connected");
-      const adminPresenceRef = ref(rtdb, "supportPresence/adminOnline");
-      onValue(connectedRef, (snap) => {
-          if (snap.val() === true) {
-              onDisconnect(adminPresenceRef).set(false).then(() => {
-                  set(adminPresenceRef, true).catch(() => console.warn("Ignorado: Falta regra no Firebase para gravar presença."));
-              });
-          }
-      });
+      const connectedRef = ref(rtdb, ".info/connected"); const adminPresenceRef = ref(rtdb, "supportPresence/adminOnline");
+      onValue(connectedRef, (snap) => { if (snap.val() === true) { onDisconnect(adminPresenceRef).set(false).then(() => { set(adminPresenceRef, true).catch(() => {}); }); } });
   });
 }
-export function escutarPresencaAdmin(callback) {
-  return onValue(ref(rtdb, "supportPresence/adminOnline"), (snapshot) => { 
-      callback(snapshot.val() === true); 
-  }, (error) => {
-      console.warn("Ignorado: O usuário ainda não tem permissão para ler a presença do admin.");
-      callback(false); // Retorna falso por segurança se o Firebase bloquear
-  });
+export function escutarPresencaAdmin(callback) { return onValue(ref(rtdb, "supportPresence/adminOnline"), (snapshot) => { callback(snapshot.val() === true); }, () => { callback(false); }); }
+
+// NOVO: SISTEMA DE A DIGITAR...
+export function notificarDigitacao(userId, quem, isTyping) {
+  update(ref(rtdb, `supportChats/${userId}`), { [`typing_${quem}`]: isTyping }).catch(()=>{});
 }
 
 /* --------------------------------------------------------- */
