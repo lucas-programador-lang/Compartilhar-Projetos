@@ -1,8 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — SCRIPT.JS (v17 - Correção Final do Chat)
-   SPA leve, sincronizada com o Firebase Realtime Database.
-   Autenticação via Firebase Auth. Pagamento de assinatura via
-   Pix (VizzionPay), processado por um Cloudflare Worker.
+   COMPARTILHAR PROJETOS — SCRIPT.JS (v18 - Nomes no Chat)
    ========================================================= */
 
 import { auth } from "./firebase-config.js";
@@ -17,17 +14,10 @@ import { uid, nowISO } from "./seed.js";
   "use strict";
 
   const WORKER_URL = "https://api.compartilhar-projetos.com.br";
-
-  const PLANS = {
-    pTeste: { id: "pTeste", name: "Plano Teste", price: 5, days: 2 },
-    p4: { id: "p4", name: "Plano 4 Dias", price: 10, days: 4 },
-    p7: { id: "p7", name: "Plano 7 Dias", price: 20, days: 7 },
-    pMensal: { id: "pMensal", name: "Plano Mensal", price: 50, days: 30 },
-  };
+  const PLANS = { pTeste: { id: "pTeste", name: "Plano Teste", price: 5, days: 2 }, p4: { id: "p4", name: "Plano 4 Dias", price: 10, days: 4 }, p7: { id: "p7", name: "Plano 7 Dias", price: 20, days: 7 }, pMensal: { id: "pMensal", name: "Plano Mensal", price: 50, days: 30 } };
   const COMMISSION_RATE = 0.3;
   const MIN_WITHDRAW = 10;
 
-  // Variáveis Globais (Movido chatListenerUnsubscribe para o topo para evitar ReferenceError)
   let db = null;
   let firebaseUser = null;
   let authReady = false;
@@ -48,10 +38,7 @@ import { uid, nowISO } from "./seed.js";
   function fmtDateTime(iso) { const d = new Date(iso); return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
 
   function timeAgo(isoString) {
-    const seconds = Math.round((new Date() - new Date(isoString)) / 1000);
-    const minutes = Math.round(seconds / 60);
-    const hours = Math.round(minutes / 60);
-    const days = Math.round(hours / 24);
+    const seconds = Math.round((new Date() - new Date(isoString)) / 1000); const minutes = Math.round(seconds / 60); const hours = Math.round(minutes / 60); const days = Math.round(hours / 24);
     if (seconds < 60) return "Agora mesmo"; if (minutes < 60) return `Há ${minutes} min`; if (hours < 24) return `Há ${hours} h`; if (days === 1) return "Ontem"; if (days < 7) return `Há ${days} dias`;
     return fmtDate(isoString);
   }
@@ -61,27 +48,17 @@ import { uid, nowISO } from "./seed.js";
   function toast(msg, type) {
     const stack = document.getElementById("toastStack"); if (!stack) return;
     const icon = type === "success" ? "✓" : type === "error" ? "✕" : "i";
-    const el = document.createElement("div");
-    el.className = "toast" + (type ? " " + type : "");
+    const el = document.createElement("div"); el.className = "toast" + (type ? " " + type : "");
     el.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-text">${escapeHtml(msg)}</span>`;
     stack.appendChild(el); setTimeout(() => { el.classList.add("leaving"); setTimeout(() => el.remove(), 220); }, 3600);
   }
   function qs(sel, root) { return (root || document).querySelector(sel); }
   function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
   function categoryName(id) { const c = db.categories.find((c) => c.id === id); return c ? c.name : "Geral"; }
-  
-  function userById(id) {
-    return (db.publicProfiles || []).find((u) => u.id === id);
-  }
-
-  // --- HELPER PARA ESTRELAS EM SVG ---
-  function getStarSvg(size, isFull) {
-    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${isFull ? '#facc15' : 'none'}" stroke="${isFull ? '#facc15' : '#475569'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
-  }
-
+  function userById(id) { return (db.publicProfiles || []).find((u) => u.id === id); }
+  function getStarSvg(size, isFull) { return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${isFull ? '#facc15' : 'none'}" stroke="${isFull ? '#facc15' : '#475569'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`; }
   function fileToDataURL(file) { return new Promise((res, rej) => { const reader = new FileReader(); reader.onload = () => res(reader.result); reader.onerror = rej; reader.readAsDataURL(file); }); }
   function sanitizeText(str) { return escapeHtml(str).slice(0, 5000); }
-  function isValidUrl(url) { try { const u = new URL(url); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } }
   const LINK_PATTERN = /(https?:\/\/|www\.)\S+|\b[a-z0-9-]+\s*[(\[]?\s*\.\s*[)\]]?\s*(com|net|org|br|io|me|co|app|dev|xyz|info|shop|site|online|link|click)\b/i;
   function containsLink(str) { return LINK_PATTERN.test(str || ""); }
   function friendlyError(err, fallbackMsg) { const raw = (err && err.message) || String(err || ""); if (/permission_denied/i.test(raw) || /PERMISSION_DENIED/.test(raw)) return fallbackMsg || "Erro de permissão."; return raw || fallbackMsg; }
@@ -93,170 +70,11 @@ import { uid, nowISO } from "./seed.js";
   function isPlausibleContact(contact) { const trimmed = (contact || "").trim(); if (EMAIL_PATTERN.test(trimmed)) return true; const digits = onlyDigits(trimmed); if (digits.length === 10 || digits.length === 11) return true; if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) return true; return false; }
   function moderateProject(data) {
     if (findProhibitedTerm(data.title) || findProhibitedTerm(data.description)) return { status: "rejected", rejectReason: "categoria" };
-    if (!isPlausibleContact(data.contact)) return { status: "rejected", rejectReason: "contato" };
-    return { status: "pending", rejectReason: null };
+    if (!isPlausibleContact(data.contact)) return { status: "rejected", rejectReason: "contato" }; return { status: "pending", rejectReason: null };
   }
 
-  let qrCodeLibPromise = null;
-  function ensureQRCodeLib() {
-    if (window.QRCode) return Promise.resolve();
-    if (qrCodeLibPromise) return qrCodeLibPromise;
-    qrCodeLibPromise = new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; script.onload = () => resolve(); script.onerror = () => reject(new Error("Falha ao carregar gerador de QR Code")); document.head.appendChild(script); });
-    return qrCodeLibPromise;
-  }
-  function renderQRCode(container, text) { container.innerHTML = ""; ensureQRCodeLib().then(() => { new QRCode(container, { text: text || "", width: 220, height: 220, correctLevel: window.QRCode.CorrectLevel.M, }); }).catch(() => { container.innerHTML = `<span class="muted" style="font-size:12px;display:block;padding:12px">Não foi possível gerar o QR Code. Use o código copia e cola abaixo.</span>`; }); }
-
-  async function startPixPayment(planId, documentOverride) {
-    const user = currentUser(); if (!user) throw new Error("Você precisa entrar na sua conta.");
-    const plan = PLANS[planId]; if (!plan) throw new Error("Plano inválido.");
-    const document = documentOverride || user.document; if (!document) throw new Error("Informe seu CPF ou CNPJ antes de continuar.");
-    const response = await fetch(`${WORKER_URL}/create-pix`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, planId: plan.id, client: { name: user.name, email: user.email, phone: user.phone || "(11) 99999-9999", document } }) });
-    const data = await response.json(); if (!response.ok) throw new Error(data.error || "Erro ao gerar cobrança Pix"); return data;
-  }
   function onlyDigits(str) { return (str || "").replace(/\D/g, ""); }
   function isValidDocument(str) { const digits = onlyDigits(str); return digits.length === 11 || digits.length === 14; }
-
-  function showDocumentModal() {
-    const existing = qs(".modal-overlay"); if (existing) existing.remove();
-    return new Promise((resolve, reject) => {
-      const overlay = document.createElement("div"); overlay.className = "modal-overlay open";
-      overlay.innerHTML = `<div class="modal-box" style="max-width:400px"><button type="button" class="modal-close" id="documentCancelBtn" aria-label="Fechar">×</button><h2>Falta só um passo</h2><p class="sub">Para gerar seu Pix, precisamos do seu CPF ou CNPJ (exigido pelo meio de pagamento).</p><form id="documentForm"><div class="field"><label>CPF ou CNPJ</label><input name="document" inputmode="numeric" placeholder="Somente números" required></div><div class="field-error" id="documentError" style="display:none"></div><button class="btn btn-primary btn-block" type="submit">Continuar</button></form></div>`;
-      document.body.appendChild(overlay);
-      const form = qs("#documentForm", overlay); const errorEl = qs("#documentError", overlay);
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault(); const digits = onlyDigits(new FormData(form).get("document"));
-        if (!isValidDocument(digits)) { errorEl.textContent = "Informe um CPF ou CNPJ válido."; errorEl.style.display = "block"; return; }
-        try { await updateUserProfile(currentUser().id, { document: digits }); } catch (err) { }
-        overlay.remove(); resolve(digits);
-      });
-      qs("#documentCancelBtn", overlay).addEventListener("click", () => { overlay.remove(); reject(new Error("cancelado")); });
-    });
-  }
-
-  function showPixModal({ pix }) {
-    const overlay = document.createElement("div"); overlay.className = "modal-overlay open";
-    
-    overlay.innerHTML = `
-      <style>
-        .modal-overlay.open {
-          align-items: flex-start !important;
-          overflow-y: auto !important;
-          padding: 30px 20px !important;
-        }
-        .pix-modal-wrapper {
-          display: block !important;
-          margin: auto !important;
-          max-height: none !important;
-        }
-        #pixQrCode img, #pixQrCode canvas {
-          width: 220px !important;
-          height: 220px !important;
-          min-width: 220px !important;
-          min-height: 220px !important;
-          aspect-ratio: 1 / 1 !important;
-          margin: 0 auto !important;
-        }
-      </style>
-      <div class="modal-box pix-modal-wrapper" style="max-width:400px;text-align:center;">
-        <button type="button" class="modal-close" id="pixCloseBtn" aria-label="Fechar">×</button>
-        <h2>Pague com Pix para ativar sua assinatura</h2>
-        <div id="pixQrCode" style="margin:16px auto; display:flex; align-items:center; justify-content:center;">
-          <span class="muted" style="font-size:12px">Gerando QR Code…</span>
-        </div>
-        <textarea readonly style="width:100%;font-size:11px;padding:8px" rows="4">${pix.code || ""}</textarea>
-        <button id="pixCopyBtn" class="btn btn-primary btn-sm mt-2">Copiar código</button>
-        <p class="muted mt-2" style="font-size:13px">Assim que o pagamento for confirmado, sua assinatura ativa automaticamente — não precisa recarregar a página.</p>
-      </div>`;
-      
-    document.body.appendChild(overlay); renderQRCode(qs("#pixQrCode", overlay), pix.code);
-    let handled = false; let stopWatching = null;
-    const unsubscribe = onDBChange(() => {
-      const user = currentUser();
-      if (user && isSubscriptionActive(user) && !handled) { handled = true; overlay.remove(); toast("Pagamento confirmado — assinatura ativa!", "success"); Promise.resolve().then(() => { if (typeof stopWatching === "function") stopWatching(); }); render({ navigation: true }); }
-    });
-    stopWatching = unsubscribe;
-    qs("#pixCopyBtn", overlay).addEventListener("click", () => { navigator.clipboard.writeText(pix.code || ""); toast("Código copiado!", "success"); });
-    qs("#pixCloseBtn", overlay).addEventListener("click", () => { overlay.remove(); handled = true; if (typeof stopWatching === "function") stopWatching(); });
-  }
-
-  async function publishProject(data) {
-    const user = currentUser(); if (!user) throw new Error("Você precisa entrar na sua conta.");
-    if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
-    const moderation = moderateProject(data);
-    const project = { id: uid("pj"), title: sanitizeText(data.title.trim()), description: sanitizeText(data.description.trim()), images: (data.images || []).slice(0, 6), categoryId: data.categoryId, link: data.link.trim(), ownerName: sanitizeText(data.ownerName.trim()), contact: sanitizeText(data.contact.trim()), ownerId: user.id, createdAt: nowISO(), status: moderation.status };
-    const saved = await addProject(project);
-    if (moderation.status === "rejected") { try { await fetch(`${WORKER_URL}/notify-auto-rejection`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + await auth.currentUser.getIdToken() }, body: JSON.stringify({ projectId: project.id, rejectReason: moderation.rejectReason }) }); } catch (err) {} }
-    return saved;
-  }
-
-  async function resendProject(projectId, data) {
-    const user = currentUser(); if (!user) throw new Error("Você precisa entrar na sua conta.");
-    const existing = db.projects.find((p) => p.id === projectId); if (!existing || existing.ownerId !== user.id) throw new Error("Projeto não encontrado.");
-    const moderation = moderateProject(data);
-    const updates = { title: sanitizeText(data.title.trim()), description: sanitizeText(data.description.trim()), images: (data.images && data.images.length ? data.images : existing.images || []).slice(0, 6), categoryId: data.categoryId, link: data.link.trim(), ownerName: sanitizeText(data.ownerName.trim()), contact: sanitizeText(data.contact.trim()), status: moderation.status };
-    const saved = await updateProject(projectId, updates);
-    if (moderation.status === "rejected") { try { await fetch(`${WORKER_URL}/notify-auto-rejection`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + await auth.currentUser.getIdToken() }, body: JSON.stringify({ projectId, rejectReason: moderation.rejectReason }) }); } catch (err) {} }
-    return saved;
-  }
-
-  function createPost(content) {
-    const user = currentUser();
-    if (!user) throw new Error("Entre na sua conta para publicar.");
-    if (!content || content.trim().length < 2) throw new Error("Escreva algo antes de publicar.");
-    if (containsLink(content)) throw new Error("Não é permitido incluir links nas publicações da comunidade.");
-    const post = { id: uid("post"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), comments: [] };
-    return addPost(post);
-  }
-
-  function createComment(postId, content) {
-    const user = currentUser();
-    if (!user) throw new Error("Entre na sua conta para comentar.");
-    if (!content || !content.trim()) throw new Error("Escreva um comentário.");
-    if (containsLink(content)) throw new Error("Não é permitido incluir links nos comentários.");
-    const post = db.posts.find((p) => p.id === postId);
-    if (!post) throw new Error("Publicação não encontrada.");
-    const comment = { id: uid("cm"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO(), replies: [] };
-    const resultado = addComment(postId, comment);
-    if (post.authorId && post.authorId !== user.id) {
-      enviarNotificacaoPush({
-        targetUserId: post.authorId,
-        title: "Novo comentário",
-        body: `${user.name} comentou na sua publicação.`,
-        data: { tipo: "comentario", postId },
-      });
-    }
-    return resultado;
-  }
-
-  function createReply(postId, commentId, content) {
-    const user = currentUser();
-    if (!user) throw new Error("Entre na sua conta para responder.");
-    if (!content || !content.trim()) throw new Error("Escreva uma resposta.");
-    if (containsLink(content)) throw new Error("Não é permitido incluir links nas respostas.");
-    const post = db.posts.find((p) => p.id === postId);
-    const comment = post && post.comments.find((c) => c.id === commentId);
-    if (!comment) throw new Error("Comentário não encontrado.");
-    const reply = { id: uid("rp"), authorId: user.id, content: sanitizeText(content.trim()), createdAt: nowISO() };
-    const resultado = addReply(postId, commentId, reply);
-    if (comment.authorId && comment.authorId !== user.id) {
-      enviarNotificacaoPush({
-        targetUserId: comment.authorId,
-        title: "Nova resposta",
-        body: `${user.name} respondeu ao seu comentário.`,
-        data: { tipo: "resposta", postId },
-      });
-    }
-    return resultado;
-  }
-
-  function requestWithdrawal(amount, pixKey) {
-    const user = currentUser(); if (!user) throw new Error("Entre na sua conta.");
-    const available = availableCommission(user.id);
-    if (!pixKey || !pixKey.trim()) throw new Error("Informe sua chave Pix para receber o saque.");
-    if (amount < MIN_WITHDRAW) throw new Error(`O saque mínimo é ${fmtBRL(MIN_WITHDRAW)}.`);
-    if (amount > available) throw new Error("Valor solicitado maior que o saldo disponível.");
-    return addWithdrawalRequest({ id: uid("wd"), userId: user.id, amount, pixKey: sanitizeText(pixKey.trim()), status: "pending", createdAt: nowISO() });
-  }
 
   function availableCommission(userId) {
     const earned = db.commissions.filter((c) => c.referrerId === userId && (c.status === "available" || c.status === "pending")).reduce((s, c) => (c.status === "available" ? s + c.amount : s), 0);
@@ -265,12 +83,7 @@ import { uid, nowISO } from "./seed.js";
   }
   function pendingCommission(userId) { return db.commissions.filter((c) => c.referrerId === userId && c.status === "pending").reduce((s, c) => s + c.amount, 0); }
   function totalEarnings(userId) { return db.commissions.filter((c) => c.referrerId === userId).reduce((s, c) => s + c.amount, 0); }
-  
-  function lastPixKey(userId) {
-    const mine = db.withdrawals.filter((w) => w.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return mine.length ? mine[0].pixKey || "" : "";
-  }
-
+  function lastPixKey(userId) { const mine = db.withdrawals.filter((w) => w.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); return mine.length ? mine[0].pixKey || "" : ""; }
   function myNotifications(userId) { return db.notifications.filter((n) => n.userId === userId && !n.resolved).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); }
   function unreadNotificationsCount(userId) { return myNotifications(userId).filter((n) => !n.read).length; }
 
@@ -278,17 +91,11 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser();
     document.body.classList.toggle("is-guest", !user); document.body.classList.toggle("is-admin", !!user && user.role === "admin");
     
-    // Controle rigoroso do Widget de Suporte
     const existingWidget = document.getElementById("supportWidget");
-    if (user && user.role !== "admin") {
-        if (!existingWidget) initSupportChatWidget(user);
+    if (user && user.role !== "admin") { if (!existingWidget) initSupportChatWidget(user);
     } else if (existingWidget) {
-        // Se fizer logout ou for admin, removemos completamente da tela
         existingWidget.remove();
-        if (chatListenerUnsubscribe) {
-            chatListenerUnsubscribe();
-            chatListenerUnsubscribe = null;
-        }
+        if (chatListenerUnsubscribe) { chatListenerUnsubscribe(); chatListenerUnsubscribe = null; }
     }
 
     if (user) {
@@ -1235,7 +1042,11 @@ import { uid, nowISO } from "./seed.js";
               const div = document.createElement("div");
               div.className = `chat-msg ${msg.sender === "user" ? "user-sent" : "admin-received"}`;
               const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-              div.innerHTML = `${escapeHtml(msg.text)} <span class="support-msg-time" style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:4px;">${time}</span>`;
+              
+              // NOME EM CIMA DA MENSAGEM (Você vs Suporte)
+              const senderName = msg.sender === "user" ? "Você" : "Suporte";
+              
+              div.innerHTML = `<div style="font-size:10.5px; font-weight:bold; margin-bottom:2px; opacity:0.8;">${senderName}</div>${escapeHtml(msg.text)} <span class="support-msg-time" style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:4px;">${time}</span>`;
               body.appendChild(div);
           });
 
