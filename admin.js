@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v14 - Correções Mobile e Chat)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v15 - Correções Mobile e Chat)
    ========================================================= */
 
 import { auth, rtdb } from "./firebase-config.js"; 
@@ -128,16 +128,18 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     
     bindThemeToggle(); bindNav(); bindForms();
     
-    // Injetar Correção de CSS para Dispositivos Móveis (Resolve a imagem_1e7481.png)
+    // Injetar Correção de CSS para Dispositivos Móveis - Botões Perfeitamente Alinhados
     if (!document.getElementById("adminChatFixCSS")) {
         const adminChatFix = document.createElement("style");
         adminChatFix.id = "adminChatFixCSS";
         adminChatFix.innerHTML = `
           .admin-chat-header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+          .admin-chat-header .chat-actions { display: flex; gap: 8px; }
           @media (max-width: 768px) {
-              .admin-chat-header { flex-direction: column; align-items: flex-start; padding: 16px; }
-              .admin-chat-header > div { width: 100%; display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; }
-              .admin-chat-header button { flex: 1; margin: 0; padding: 10px 0; }
+              .admin-chat-header { flex-direction: column !important; align-items: stretch !important; padding: 16px !important; gap: 12px !important; }
+              .admin-chat-header h3, .admin-chat-header span { text-align: center !important; }
+              .admin-chat-header > div, .admin-chat-header > form, .admin-chat-header .chat-actions { display: flex !important; width: 100% !important; gap: 8px !important; flex-wrap: nowrap !important; justify-content: center !important; }
+              .admin-chat-header button { flex: 1 !important; margin: 0 !important; padding: 12px 8px !important; font-size: 14px !important; white-space: nowrap !important; border-radius: 8px !important; }
           }
         `;
         document.head.appendChild(adminChatFix);
