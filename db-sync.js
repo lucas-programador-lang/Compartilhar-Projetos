@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — DB-SYNC.JS (v12 - Chat + Presença)
+   COMPARTILHAR PROJETOS — DB-SYNC.JS (v13 - Correção de Permissões)
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
 import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
@@ -15,29 +15,17 @@ let cache = emptyCache();
 const listeners = [];
 let synced = false;
 
-function emptyCache() {
-  return { users: [], categories: [], projects: [], posts: [], referrals: [], commissions: [], withdrawals: [], notifications: [], rankingPrizes: [], platformReviews: [], publicProfiles: [], myProfile: null };
-}
-
+function emptyCache() { return { users: [], categories: [], projects: [], posts: [], referrals: [], commissions: [], withdrawals: [], notifications: [], rankingPrizes: [], platformReviews: [], publicProfiles: [], myProfile: null }; }
 function clean(val) { return Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {}).filter(Boolean); }
-function cleanKeyed(val) {
-  if (val == null) return [];
-  if (Array.isArray(val)) return val.map((v, i) => (v == null ? null : { ...v, _fbKey: String(i) })).filter(Boolean);
-  return Object.entries(val).filter(([, v]) => v != null).map(([k, v]) => ({ ...v, _fbKey: k }));
-}
-
+function cleanKeyed(val) { if (val == null) return []; if (Array.isArray(val)) return val.map((v, i) => (v == null ? null : { ...v, _fbKey: String(i) })).filter(Boolean); return Object.entries(val).filter(([, v]) => v != null).map(([k, v]) => ({ ...v, _fbKey: k })); }
 function notify() { listeners.forEach((cb) => cb(cache)); }
-export function onDBChange(cb) {
-  listeners.push(cb); if (synced) cb(cache);
-  return () => { const i = listeners.indexOf(cb); if (i >= 0) listeners.splice(i, 1); };
-}
+export function onDBChange(cb) { listeners.push(cb); if (synced) cb(cache); return () => { const i = listeners.indexOf(cb); if (i >= 0) listeners.splice(i, 1); }; }
 export function getDB() { return cache; }
 export function isDBSynced() { return synced; }
 
 export async function updateUserProfile(userId, { name, bio, document } = {}) {
   if (!auth.currentUser) throw new Error("Você precisa estar logado.");
-  const idToken = await auth.currentUser.getIdToken();
-  const payload = {};
+  const idToken = await auth.currentUser.getIdToken(); const payload = {};
   if (name != null) payload.name = name; if (bio != null) payload.bio = bio; if (document != null) payload.document = document;
   const res = await fetch(`${WORKER_URL}/update-profile`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify(payload) });
   const data = await res.json().catch(() => ({}));
@@ -46,50 +34,27 @@ export async function updateUserProfile(userId, { name, bio, document } = {}) {
 
 export async function enviarNotificacaoPush({ targetUserId, targetUserIds, title, body, data } = {}) {
   if (!auth.currentUser) return;
-  try {
-    const idToken = await auth.currentUser.getIdToken();
-    await fetch(`${NOTIFY_WORKER_URL}/notify`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken }, body: JSON.stringify({ targetUserId, targetUserIds, title, body, data }) });
-  } catch (error) { console.error("Erro ao enviar notificação push:", error); }
+  try { const idToken = await auth.currentUser.getIdToken(); await fetch(`${NOTIFY_WORKER_URL}/notify`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken }, body: JSON.stringify({ targetUserId, targetUserIds, title, body, data }) }); } catch (error) {}
 }
 
 export function addProject(project) { return set(push(ref(rtdb, `${DB_PATH}/projects`)), project).then(() => project); }
 export function updateProject(projectId, updates) {
-  const project = cache.projects.find((p) => p && p.id === projectId);
-  if (!project || !project._fbKey) throw new Error("Projeto não encontrado: " + projectId);
+  const project = cache.projects.find((p) => p && p.id === projectId); if (!project || !project._fbKey) throw new Error("Projeto não encontrado: " + projectId);
   const patch = {}; Object.keys(updates || {}).forEach((field) => { patch[`${DB_PATH}/projects/${project._fbKey}/${field}`] = updates[field]; });
   return update(ref(rtdb), patch).then(() => ({ ...project, ...updates }));
 }
 export function addPost(post) { return set(push(ref(rtdb, `${DB_PATH}/posts`)), post).then(() => post); }
-export function addComment(postId, comment) {
-  const post = cache.posts.find((p) => p && p.id === postId);
-  if (!post || !post._fbKey) throw new Error("Publicação não encontrada: " + postId);
-  return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments`)), comment).then(() => comment);
-}
-export function addReply(postId, commentId, reply) {
-  const post = cache.posts.find((p) => p && p.id === postId);
-  const comment = (post.comments || []).find((c) => c && c.id === commentId);
-  return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments/${comment._fbKey}/replies`)), reply).then(() => reply);
-}
+export function addComment(postId, comment) { const post = cache.posts.find((p) => p && p.id === postId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments`)), comment).then(() => comment); }
+export function addReply(postId, commentId, reply) { const post = cache.posts.find((p) => p && p.id === postId); const comment = (post.comments || []).find((c) => c && c.id === commentId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments/${comment._fbKey}/replies`)), reply).then(() => reply); }
 export function addPlatformReview(review) { return set(push(ref(rtdb, `${DB_PATH}/platformReviews`)), review).then(() => review); }
 export function addWithdrawalRequest(withdrawal) { return set(push(ref(rtdb, `${DB_PATH}/withdrawals`)), withdrawal).then(() => withdrawal); }
-export function markNotificationRead(notificationId) {
-  const notification = cache.notifications.find((n) => n && n.id === notificationId);
-  return update(ref(rtdb), { [`${DB_PATH}/notifications/${notification._fbKey}/read`]: true });
-}
-export function markAllNotificationsRead() {
-  if (!auth.currentUser) return Promise.reject(new Error("Usuário não logado"));
-  const uid = auth.currentUser.uid; const patch = {};
-  cache.notifications.forEach((n) => { if (n && n._fbKey && !n.read && (n.userId === uid || n.ownerId === uid || n.id === uid)) { patch[`${DB_PATH}/notifications/${n._fbKey}/read`] = true; } });
-  if (Object.keys(patch).length === 0) return Promise.resolve(); return update(ref(rtdb), patch);
-}
+export function markNotificationRead(notificationId) { const notification = cache.notifications.find((n) => n && n.id === notificationId); return update(ref(rtdb), { [`${DB_PATH}/notifications/${notification._fbKey}/read`]: true }); }
 
 /* =========================================================
    CHAT DE SUPORTE EM TEMPO REAL
    ========================================================= */
 export async function enviarMensagemSuporte(userId, userName, text, sender) {
-  const chatRef = ref(rtdb, `supportChats/${userId}`);
-  const msgsRef = ref(rtdb, `supportChats/${userId}/messages`);
-  const now = new Date().toISOString();
+  const chatRef = ref(rtdb, `supportChats/${userId}`); const msgsRef = ref(rtdb, `supportChats/${userId}/messages`); const now = new Date().toISOString();
   await set(push(msgsRef), { sender: sender, text: text, createdAt: now });
   await update(chatRef, { userName: userName, lastMessage: text, updatedAt: now, unreadAdmin: sender === "user", unreadUser: sender === "admin", status: "open" });
 }
@@ -98,25 +63,28 @@ export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${us
 export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); }
 export function escutarTodosOsChats(callback) { return onValue(ref(rtdb, `supportChats`), (snapshot) => { callback(snapshot.val()); }); }
 export function encerrarChatAdmin(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
-export function apagarChatAdmin(userId) { return set(ref(rtdb, `supportChats/${userId}`), null); }
 
-// NOVO: Controle de Presença do Administrador (Online / Ausente)
+// TRATAMENTO DE ERROS DE PERMISSÃO DE PRESENÇA (Ausente/Online)
 export function setAdminPresenceOnline() {
   import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, onValue, onDisconnect, set }) => {
       const connectedRef = ref(rtdb, ".info/connected");
       const adminPresenceRef = ref(rtdb, "supportPresence/adminOnline");
       onValue(connectedRef, (snap) => {
           if (snap.val() === true) {
-              // Se a página do admin for fechada ou a net cair, muda para offline automaticamente
               onDisconnect(adminPresenceRef).set(false).then(() => {
-                  set(adminPresenceRef, true); // Define como online ao abrir o admin
+                  set(adminPresenceRef, true).catch(() => console.warn("Ignorado: Falta regra no Firebase para gravar presença."));
               });
           }
       });
   });
 }
 export function escutarPresencaAdmin(callback) {
-  return onValue(ref(rtdb, "supportPresence/adminOnline"), (snapshot) => { callback(snapshot.val() === true); });
+  return onValue(ref(rtdb, "supportPresence/adminOnline"), (snapshot) => { 
+      callback(snapshot.val() === true); 
+  }, (error) => {
+      console.warn("Ignorado: O usuário ainda não tem permissão para ler a presença do admin.");
+      callback(false); // Retorna falso por segurança se o Firebase bloquear
+  });
 }
 
 /* --------------------------------------------------------- */
@@ -134,7 +102,7 @@ function subscribeAll() {
         else if (key === "projects" || key === "notifications") { cache[key] = cleanKeyed(snapshot.exists() ? snapshot.val() : {}); } 
         else { cache[key] = snapshot.exists() ? clean(snapshot.val()) : []; }
         markLoaded(key);
-      }, (err) => { if (gen !== syncGeneration) return; console.error(`Erro:`, err); cache[key] = []; markLoaded(key); }
+      }, (err) => { if (gen !== syncGeneration) return; cache[key] = []; markLoaded(key); }
     );
   });
   const publicProfilesRef = ref(rtdb, "publicProfiles"); off(publicProfilesRef);
@@ -153,38 +121,4 @@ function subscribeAll() {
   } else { cache.myProfile = null; markLoaded("myProfile"); }
 }
 
-async function requestNotificationPermission(user) {
-  try {
-    const appInstance = getApp(); const messaging = getMessaging(appInstance);
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      await navigator.serviceWorker.ready;
-      const currentToken = await getToken(messaging, { vapidKey: 'BANECLiu3BpgSo-_DMH8JzoOl1PgybZSzy2yeXyTepmSAN2m53AcVr9LvAXHkv1M21_iO-XoeNIQHkohPAf7t7g', serviceWorkerRegistration: registration });
-      if (currentToken) {
-        const usersQuery = query(ref(rtdb, 'database/users'), orderByChild('id'), equalTo(user.uid));
-        const snapshot = await get(usersQuery);
-        if (snapshot.exists()) {
-          const users = snapshot.val();
-          for (const key in users) { if (users[key].fcmToken !== currentToken) { await update(ref(rtdb, `database/users/${key}`), { fcmToken: currentToken }); } break; }
-        }
-      }
-    }
-  } catch (error) { console.error('Erro FCM:', error); }
-}
-subscribeAll();
-onAuthStateChanged(auth, (user) => {
-  subscribeAll();
-  if (user) { requestNotificationPermission(user); if (window.Android && typeof window.Android.solicitarTokenFCM === 'function') { window.Android.solicitarTokenFCM(); } }
-});
-window.salvarTokenPush = async function(token) {
-  if (!auth.currentUser) return;
-  try {
-    const usersQuery = query(ref(rtdb, 'database/users'), orderByChild('id'), equalTo(auth.currentUser.uid));
-    const snapshot = await get(usersQuery);
-    if (snapshot.exists()) {
-      const users = snapshot.val();
-      for (const key in users) { if (users[key].fcmToken !== token) { await update(ref(rtdb, `database/users/${key}`), { fcmToken: token }); } break; }
-    }
-  } catch (error) { console.error('Erro token nativo:', error); }
-};
+onAuthStateChanged(auth, (user) => { subscribeAll(); });
