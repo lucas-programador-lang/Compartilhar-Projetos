@@ -5,8 +5,8 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
-  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush, addPlatformReview,
-  enviarMensagemSuporte, escutarChatUsuario, marcarChatLidoUser, escutarPresencaAdmin, notificarDigitacao
+  getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush, addPlatformReview, addProjectReview,
+  enviarMensagemSuporte, escutarChatUsuario, marcarChatLidoUser, escutarPresencaAdmin, notificarDigitacao, reabrirChatUsuario, encerrarChatUsuario
 } from "./db-sync.js";
 import { uid, nowISO } from "./seed.js";
 
@@ -581,19 +581,14 @@ import { uid, nowISO } from "./seed.js";
           const ok = await confirmActionUser("Sair da conversa de suporte? O chat será encerrado.", { title: "Sair do Chat", confirmLabel: "Sim, sair", neutral: true });
           if (!ok) return;
           isChatClosed = true; localStorage.setItem(hiddenKey, "1"); applyChatState(true);
-          import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, update }) => {
-              import("./firebase-config.js").then(({ rtdb }) => { update(ref(rtdb, `supportChats/${user.id}`), { status: "closed" }); });
-          });
+          encerrarChatUsuario(user.id);
       });
 
       restartBtn.addEventListener("click", () => {
           isChatClosed = false; localStorage.removeItem(hiddenKey); applyChatState(false); setTimeout(() => input.focus(), 100);
-          import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, update, set }) => {
-              import("./firebase-config.js").then(({ rtdb }) => {
-                  set(ref(rtdb, `supportChats/${user.id}/messages`), null);
-                  update(ref(rtdb, `supportChats/${user.id}`), { status: "open", lastMessage: "", unreadAdmin: false, unreadUser: false });
-              });
-          });
+          // Só reabre a conversa (volta status para "open"); o histórico
+          // de mensagens é mantido, nunca apagado.
+          reabrirChatUsuario(user.id);
       });
 
       form.addEventListener("submit", (e) => {
@@ -825,9 +820,9 @@ import { uid, nowISO } from "./seed.js";
         rStars += getStarSvg(14, i <= r.rating);
       }
       return `
-      <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-color, rgba(255,255,255,0.05));">
+      <div style="background: var(--surface-alt, rgba(255,255,255,0.03)); padding: 16px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border, rgba(255,255,255,0.05));">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <strong style="font-size: 14px; color: var(--text-main);">${escapeHtml(r.userName)}</strong>
+          <strong style="font-size: 14px; color: var(--ink-900);">${escapeHtml(r.userName)}</strong>
           <div style="display: flex; align-items: center; gap: 2px;">${rStars}</div>
         </div>
         <p style="font-size: 14.5px; color: var(--ink-700); margin: 0; line-height: 1.5;">${escapeHtml(r.comment)}</p>
@@ -1089,12 +1084,11 @@ import { uid, nowISO } from "./seed.js";
         if (!user) return; const targetProject = db.projects.find(p => p.id === projectId); if (!targetProject) return;
 
         const newReview = { userId: user.id, userName: user.name, rating: rating, comment: sanitizeText(commentInput), createdAt: nowISO() };
-        const updatedReviews = [...(targetProject.reviews || []), newReview];
-        
+
         const btn = projectReviewForm.querySelector("button[type='submit']");
         btn.disabled = true; btn.textContent = "Enviando...";
 
-        updateProject(projectId, { reviews: updatedReviews }).then(() => { toast("Avaliação enviada com sucesso!", "success"); render({ navigation: false }); }).catch(err => { toast(err.message || "Erro ao enviar avaliação.", "error"); btn.disabled = false; btn.textContent = "Enviar Avaliação"; });
+        addProjectReview(projectId, newReview).then(() => { toast("Avaliação enviada com sucesso!", "success"); render({ navigation: false }); }).catch(err => { toast(err.message || "Erro ao enviar avaliação.", "error"); btn.disabled = false; btn.textContent = "Enviar Avaliação"; });
       });
     }
 
