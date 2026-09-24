@@ -190,6 +190,8 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
 
         renderAdminChatList();
         if (activeChatUserId) renderAdminActiveChat();
+    }, (error) => {
+        console.error("Erro ao carregar conversas de suporte:", error);
     });
 
     const form = qs("#adminChatForm"); const input = qs("#adminChatInput");
