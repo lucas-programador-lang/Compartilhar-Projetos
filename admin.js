@@ -1,5 +1,5 @@
 /* =========================================================
-   COMPARTILHAR PROJETOS — ADMIN.JS (v13 - Presença e Datas no Chat)
+   COMPARTILHAR PROJETOS — ADMIN.JS (v14 - Correções Mobile e Chat)
    ========================================================= */
 
 import { auth, rtdb } from "./firebase-config.js"; 
@@ -128,6 +128,21 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     
     bindThemeToggle(); bindNav(); bindForms();
     
+    // Injetar Correção de CSS para Dispositivos Móveis (Resolve a imagem_1e7481.png)
+    if (!document.getElementById("adminChatFixCSS")) {
+        const adminChatFix = document.createElement("style");
+        adminChatFix.id = "adminChatFixCSS";
+        adminChatFix.innerHTML = `
+          .admin-chat-header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+          @media (max-width: 768px) {
+              .admin-chat-header { flex-direction: column; align-items: flex-start; padding: 16px; }
+              .admin-chat-header > div { width: 100%; display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; }
+              .admin-chat-header button { flex: 1; margin: 0; padding: 10px 0; }
+          }
+        `;
+        document.head.appendChild(adminChatFix);
+    }
+
     if (auth.currentUser) {
       try { bindSupportChat(); } catch (e) { console.error("Erro ao iniciar chat:", e); }
     }
@@ -293,7 +308,11 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
         const div = document.createElement("div");
         div.className = msg.sender === "admin" ? "admin-sent" : "user-received";
         const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-        div.innerHTML = `${escapeHtml(msg.text)} <span style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:6px;">${time}</span>`;
+        
+        // NOME EM CIMA DA MENSAGEM (Você vs Nome do Utilizador)
+        const senderName = msg.sender === "admin" ? "Você" : escapeHtml(chat.userName || "Usuário");
+        
+        div.innerHTML = `<div style="font-size:11.5px; font-weight:bold; margin-bottom:2px; opacity:0.85;">${senderName}</div>${escapeHtml(msg.text)} <span style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:6px;">${time}</span>`;
         msgsEl.appendChild(div);
     });
 
