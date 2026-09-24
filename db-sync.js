@@ -2,7 +2,7 @@
    COMPARTILHAR PROJETOS — DB-SYNC.JS (v14 - A Digitar...)
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
-import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo, onDisconnect } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -43,6 +43,17 @@ export function updateProject(projectId, updates) {
   const patch = {}; Object.keys(updates || {}).forEach((field) => { patch[`${DB_PATH}/projects/${project._fbKey}/${field}`] = updates[field]; });
   return update(ref(rtdb), patch).then(() => ({ ...project, ...updates }));
 }
+// Avaliação de projeto: usa push() num sub-nó em vez de reescrever o
+// array "reviews" inteiro, evitando que duas avaliações simultâneas
+// se sobrescrevam (a última escrita apagaria a outra). O front-end
+// já impede reenvio pelo mesmo usuário, e a chave gerada pelo push()
+// funciona como trava adicional no lado do banco: como o caminho é
+// sempre novo, duas escritas concorrentes nunca colidem no mesmo nó.
+export function addProjectReview(projectId, review) {
+  const project = cache.projects.find((p) => p && p.id === projectId);
+  if (!project || !project._fbKey) throw new Error("Projeto não encontrado: " + projectId);
+  return set(push(ref(rtdb, `${DB_PATH}/projects/${project._fbKey}/reviews`)), review).then(() => review);
+}
 export function addPost(post) { return set(push(ref(rtdb, `${DB_PATH}/posts`)), post).then(() => post); }
 export function addComment(postId, comment) { const post = cache.posts.find((p) => p && p.id === postId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments`)), comment).then(() => comment); }
 export function addReply(postId, commentId, reply) { const post = cache.posts.find((p) => p && p.id === postId); const comment = (post.comments || []).find((c) => c && c.id === commentId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments/${comment._fbKey}/replies`)), reply).then(() => reply); }
@@ -63,11 +74,23 @@ export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${us
 export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); }
 export function escutarTodosOsChats(callback) { return onValue(ref(rtdb, `supportChats`), (snapshot) => { callback(snapshot.val()); }); }
 export function encerrarChatAdmin(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
+// (Para o Usuário) Reabrir/iniciar uma nova conversa depois de ter saído —
+// só muda o status de volta para "open"; NUNCA apaga o histórico de
+// mensagens (o admin precisa continuar vendo a conversa anterior).
+export function reabrirChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "open", unreadAdmin: false, unreadUser: false }); }
+// (Para o Usuário) Sair da conversa — marca como fechada do próprio lado
+// do usuário, sem apagar mensagens.
+export function encerrarChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
 
 export function setAdminPresenceOnline() {
-  import("https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js").then(({ ref, onValue, onDisconnect, set }) => {
-      const connectedRef = ref(rtdb, ".info/connected"); const adminPresenceRef = ref(rtdb, "supportPresence/adminOnline");
-      onValue(connectedRef, (snap) => { if (snap.val() === true) { onDisconnect(adminPresenceRef).set(false).then(() => { set(adminPresenceRef, true).catch(() => {}); }); } });
+  const connectedRef = ref(rtdb, ".info/connected");
+  const adminPresenceRef = ref(rtdb, "supportPresence/adminOnline");
+  onValue(connectedRef, (snap) => {
+    if (snap.val() === true) {
+      onDisconnect(adminPresenceRef).set(false).then(() => {
+        set(adminPresenceRef, true).catch(() => {});
+      });
+    }
   });
 }
 export function escutarPresencaAdmin(callback) { return onValue(ref(rtdb, "supportPresence/adminOnline"), (snapshot) => { callback(snapshot.val() === true); }, () => { callback(false); }); }
@@ -89,7 +112,8 @@ function subscribeAll() {
     onValue(nodeRef, (snapshot) => {
         if (gen !== syncGeneration) return;
         if (key === "posts") { cache.posts = cleanKeyed(snapshot.exists() ? snapshot.val() : {}); cache.posts.forEach((p) => { p.comments = cleanKeyed(p.comments); p.comments.forEach((c) => { c.replies = cleanKeyed(c.replies); }); }); } 
-        else if (key === "projects" || key === "notifications") { cache[key] = cleanKeyed(snapshot.exists() ? snapshot.val() : {}); } 
+        else if (key === "projects") { cache.projects = cleanKeyed(snapshot.exists() ? snapshot.val() : {}); cache.projects.forEach((p) => { p.reviews = cleanKeyed(p.reviews); }); }
+        else if (key === "notifications") { cache[key] = cleanKeyed(snapshot.exists() ? snapshot.val() : {}); } 
         else { cache[key] = snapshot.exists() ? clean(snapshot.val()) : []; }
         markLoaded(key);
       }, (err) => { if (gen !== syncGeneration) return; cache[key] = []; markLoaded(key); }
