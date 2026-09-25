@@ -23,10 +23,11 @@ export function onDBChange(cb) { listeners.push(cb); if (synced) cb(cache); retu
 export function getDB() { return cache; }
 export function isDBSynced() { return synced; }
 
-export async function updateUserProfile(userId, { name, bio, document } = {}) {
+export async function updateUserProfile(userId, { name, bio, document, fcmToken } = {}) {
   if (!auth.currentUser) throw new Error("Você precisa estar logado.");
   const idToken = await auth.currentUser.getIdToken(); const payload = {};
   if (name != null) payload.name = name; if (bio != null) payload.bio = bio; if (document != null) payload.document = document;
+  if (fcmToken != null) payload.fcmToken = fcmToken;
   const res = await fetch(`${WORKER_URL}/update-profile`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify(payload) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || "Erro ao atualizar perfil"); return data;
@@ -36,6 +37,32 @@ export async function enviarNotificacaoPush({ targetUserId, targetUserIds, title
   if (!auth.currentUser) return;
   try { const idToken = await auth.currentUser.getIdToken(); await fetch(`${NOTIFY_WORKER_URL}/notify`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken }, body: JSON.stringify({ targetUserId, targetUserIds, title, body, data }) }); } catch (error) {}
 }
+
+/* =========================================================
+   TOKEN DE PUSH DO APK (chamado pelo wrapper nativo do app)
+   ========================================================= */
+// O app instalado (gerado pelo wrapper que empacota o site em APK) chama
+// window.salvarTokenPush(token) assim que o token FCM nativo é gerado.
+// Isso pode acontecer ANTES do usuário estar logado (ex: app recém-aberto),
+// então guardamos o token em memória e salvamos assim que o login acontecer.
+let pendingFcmToken = null;
+
+async function salvarTokenPushNoBackend(token) {
+  if (!auth.currentUser) { pendingFcmToken = token; return; }
+  try {
+    await updateUserProfile(auth.currentUser.uid, { fcmToken: token });
+    pendingFcmToken = null;
+  } catch (err) {
+    // Mantém o token pendente para tentar de novo no próximo login/reload.
+    pendingFcmToken = token;
+    console.error("Falha ao salvar token push:", err);
+  }
+}
+
+window.salvarTokenPush = function (token) {
+  if (!token) return;
+  salvarTokenPushNoBackend(token);
+};
 
 export function addProject(project) { return set(push(ref(rtdb, `${DB_PATH}/projects`)), project).then(() => project); }
 export function updateProject(projectId, updates) {
@@ -134,6 +161,12 @@ function subscribeAll() {
       }, (err) => { if (gen !== syncGeneration) return; cache.myProfile = null; markLoaded("myProfile"); }
     );
   } else { cache.myProfile = null; markLoaded("myProfile"); }
+
+  // Se um token de push chegou antes do login (app aberto sem sessão ainda),
+  // salva agora que já temos um usuário autenticado.
+  if (uid && pendingFcmToken) {
+    salvarTokenPushNoBackend(pendingFcmToken);
+  }
 }
 
 onAuthStateChanged(auth, (user) => { subscribeAll(); });
