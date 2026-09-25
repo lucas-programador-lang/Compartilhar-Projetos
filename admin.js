@@ -320,7 +320,21 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
   }
 
   function renderWithdrawals() {
-    qs("#withdrawTable tbody").innerHTML = db.withdrawals.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((w) => { const label = { pending: ["badge-warning", "Em análise"], approved: ["badge-success", "Aprovado"], rejected: ["badge-danger", "Recusado"] }[w.status]; return `<tr><td>${escapeHtml(userById(w.userId)?.name || "—")}</td><td>${fmtBRL(w.amount)}</td><td class="muted" style="font-family:var(--font-mono);font-size:12.5px">${escapeHtml(w.pixKey || "—")}</td><td>${fmtDate(w.createdAt)}</td><td><span class="badge ${label[0]}">${label[1]}</span></td><td class="flex gap-1">${w.status === "pending" ? `<button class="btn btn-sm btn-primary" data-approve="${w.id}">Aprovar</button><button class="btn btn-sm btn-danger" data-reject="${w.id}">Recusar</button>` : `<span class="muted" style="font-size:12px">Concluído</span>`}</td></tr>`; }).join("") || `<tr><td colspan="6" class="muted text-center">Nenhuma solicitação de saque (mínimo ${fmtBRL(MIN_WITHDRAW)}).</td></tr>`; qsa("[data-approve]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => { const withdrawalId = btn.getAttribute("data-approve"); const withdrawal = db.withdrawals.find((w) => w.id === withdrawalId); await adminFetch("/admin/withdrawal-decision", { withdrawalId, decision: "approved" }); if (withdrawal) { enviarNotificacaoPush({ targetUserId: withdrawal.userId, title: "Saque aprovado", body: `Seu saque de ${fmtBRL(withdrawal.amount)} foi aprovado.`, data: { tipo: "saque_aprovado", withdrawalId }, }); } toast("Saque aprovado.", "success"); renderAll(); }))); qsa("[data-reject]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => { const withdrawalId = btn.getAttribute("data-reject"); const withdrawal = db.withdrawals.find((w) => w.id === withdrawalId); await adminFetch("/admin/withdrawal-decision", { withdrawalId, decision: "rejected" }); if (withdrawal) { enviarNotificacaoPush({ targetUserId: withdrawal.userId, title: "Saque recusado", body: `Seu saque de ${fmtBRL(withdrawal.amount)} foi recusado.`, data: { tipo: "saque_recusado", withdrawalId }, }); } toast("Saque recusado.", "success"); renderAll(); })));
+    qs("#withdrawTable tbody").innerHTML = db.withdrawals.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((w) => { const label = { pending: ["badge-warning", "Em análise"], approved: ["badge-success", "Aprovado"], rejected: ["badge-danger", "Recusado"] }[w.status]; return `<tr><td>${escapeHtml(userById(w.userId)?.name || "—")}</td><td>${fmtBRL(w.amount)}</td><td class="muted" style="font-family:var(--font-mono);font-size:12.5px">${escapeHtml(w.pixKey || "—")}</td><td>${fmtDate(w.createdAt)}</td><td><span class="badge ${label[0]}">${label[1]}</span></td><td class="flex gap-1">${w.status === "pending" ? `<button class="btn btn-sm btn-primary" data-approve="${w.id}">Aprovar</button><button class="btn btn-sm btn-danger" data-reject="${w.id}">Recusar</button>` : `<span class="muted" style="font-size:12px">Concluído</span>`}</td></tr>`; }).join("") || `<tr><td colspan="6" class="muted text-center">Nenhuma solicitação de saque (mínimo ${fmtBRL(MIN_WITHDRAW)}).</td></tr>`;
+
+    qsa("[data-approve]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => {
+      const withdrawalId = btn.getAttribute("data-approve");
+      await adminFetch("/admin/withdrawal-decision", { withdrawalId, decision: "approved" });
+      toast("Saque aprovado.", "success");
+      renderAll();
+    })));
+
+    qsa("[data-reject]").forEach((btn) => btn.addEventListener("click", () => withButtonLock(btn, async () => {
+      const withdrawalId = btn.getAttribute("data-reject");
+      await adminFetch("/admin/withdrawal-decision", { withdrawalId, decision: "rejected" });
+      toast("Saque recusado.", "success");
+      renderAll();
+    })));
   }
 
   function renderRankingPrizes() {
