@@ -43,21 +43,22 @@ export function updateProject(projectId, updates) {
   const patch = {}; Object.keys(updates || {}).forEach((field) => { patch[`${DB_PATH}/projects/${project._fbKey}/${field}`] = updates[field]; });
   return update(ref(rtdb), patch).then(() => ({ ...project, ...updates }));
 }
-// Avaliação de projeto: usa push() num sub-nó em vez de reescrever o
-// array "reviews" inteiro, evitando que duas avaliações simultâneas
-// se sobrescrevam (a última escrita apagaria a outra). O front-end
-// já impede reenvio pelo mesmo usuário, e a chave gerada pelo push()
-// funciona como trava adicional no lado do banco: como o caminho é
-// sempre novo, duas escritas concorrentes nunca colidem no mesmo nó.
+// A chave do review é o próprio uid de quem avalia (em vez de push()):
+// assim a regra de segurança consegue recusar uma segunda avaliação do
+// mesmo usuário só checando se aquele caminho já existe (!data.exists()),
+// sem precisar de orderByChild (que as regras do Realtime Database não
+// suportam).
 export function addProjectReview(projectId, review) {
   const project = cache.projects.find((p) => p && p.id === projectId);
   if (!project || !project._fbKey) throw new Error("Projeto não encontrado: " + projectId);
-  return set(push(ref(rtdb, `${DB_PATH}/projects/${project._fbKey}/reviews`)), review).then(() => review);
+  return set(ref(rtdb, `${DB_PATH}/projects/${project._fbKey}/reviews/${review.userId}`), review).then(() => review);
 }
 export function addPost(post) { return set(push(ref(rtdb, `${DB_PATH}/posts`)), post).then(() => post); }
 export function addComment(postId, comment) { const post = cache.posts.find((p) => p && p.id === postId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments`)), comment).then(() => comment); }
 export function addReply(postId, commentId, reply) { const post = cache.posts.find((p) => p && p.id === postId); const comment = (post.comments || []).find((c) => c && c.id === commentId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments/${comment._fbKey}/replies`)), reply).then(() => reply); }
-export function addPlatformReview(review) { return set(push(ref(rtdb, `${DB_PATH}/platformReviews`)), review).then(() => review); }
+// Mesma lógica: chave = uid do usuário, para a regra de segurança poder
+// recusar uma segunda avaliação da plataforma pelo mesmo usuário.
+export function addPlatformReview(review) { return set(ref(rtdb, `${DB_PATH}/platformReviews/${review.userId}`), review).then(() => review); }
 export function addWithdrawalRequest(withdrawal) { return set(push(ref(rtdb, `${DB_PATH}/withdrawals`)), withdrawal).then(() => withdrawal); }
 export function markNotificationRead(notificationId) { const notification = cache.notifications.find((n) => n && n.id === notificationId); return update(ref(rtdb), { [`${DB_PATH}/notifications/${notification._fbKey}/read`]: true }); }
 
