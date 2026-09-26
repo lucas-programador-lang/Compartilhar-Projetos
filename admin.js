@@ -196,7 +196,59 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
 
     const form = qs("#adminChatForm"); const input = qs("#adminChatInput");
     const closeBtn = qs("#closeActiveChatBtn"); const endBtn = qs("#endActiveChatBtn");
-    
+    const adminImageInput = qs("#adminImageInput"); const adminAttachPreview = qs("#adminAttachPreview");
+    let pendingAdminImages = [];
+
+    // Redimensiona para no máximo 1280px e reexporta como JPEG a 70% de
+    // qualidade, para não sobrecarregar o Realtime Database com fotos
+    // de vários MB (mesma lógica usada no script.js para o usuário).
+    function fileToDataURL(file, maxSize = 1280, quality = 0.7) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    let { width, height } = img;
+                    if (width > maxSize || height > maxSize) {
+                        if (width > height) { height = Math.round(height * (maxSize / width)); width = maxSize; }
+                        else { width = Math.round(width * (maxSize / height)); height = maxSize; }
+                    }
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL("image/jpeg", quality));
+                };
+                img.onerror = reject;
+                img.src = reader.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderAdminAttachPreview() {
+        if (!adminAttachPreview) return;
+        if (pendingAdminImages.length === 0) { adminAttachPreview.style.display = "none"; adminAttachPreview.innerHTML = ""; return; }
+        adminAttachPreview.style.display = "flex";
+        adminAttachPreview.innerHTML = pendingAdminImages.map((src, i) =>
+            `<div class="support-attach-thumb"><img src="${src}"><button type="button" data-i="${i}">&times;</button></div>`
+        ).join("");
+        adminAttachPreview.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+            pendingAdminImages.splice(parseInt(b.getAttribute("data-i")), 1);
+            renderAdminAttachPreview();
+        }));
+    }
+
+    if (adminImageInput) {
+        adminImageInput.addEventListener("change", async () => {
+            const files = Array.from(adminImageInput.files).slice(0, 4);
+            for (const f of files) { const durl = await fileToDataURL(f); pendingAdminImages.push(durl); }
+            adminImageInput.value = "";
+            renderAdminAttachPreview();
+        });
+    }
+
     // Captura quando o ADMIN digita
     let adminTypingTimeout;
     if (input) {
@@ -209,10 +261,24 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     }
 
     if (form) {
-        form.addEventListener("submit", (e) => {
-            e.preventDefault(); const text = input.value.trim(); if (!text || !activeChatUserId) return; input.value = "";
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            const images = pendingAdminImages.slice();
+            if ((!text && images.length === 0) || !activeChatUserId) return;
+            input.value = ""; pendingAdminImages = []; renderAdminAttachPreview();
             clearTimeout(adminTypingTimeout); notificarDigitacao(activeChatUserId, "admin", false);
-            enviarMensagemSuporte(activeChatUserId, allChatsData[activeChatUserId]?.userName || "Usuário", text, "admin").then(() => { playAdminChatSound("send"); }).catch(err => toast("Erro: " + err.message, "error"));
+            const userName = allChatsData[activeChatUserId]?.userName || "Usuário";
+            try {
+                if (images.length > 0) {
+                    for (let i = 0; i < images.length; i++) {
+                        await enviarMensagemSuporte(activeChatUserId, userName, i === 0 ? text : "", "admin", images[i]);
+                    }
+                } else {
+                    await enviarMensagemSuporte(activeChatUserId, userName, text, "admin");
+                }
+                playAdminChatSound("send");
+            } catch (err) { toast("Erro: " + err.message, "error"); }
         });
     }
 
@@ -270,7 +336,13 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
         const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         const senderName = msg.sender === "admin" ? "Você" : escapeHtml(chat.userName || "Usuário");
         
-        div.innerHTML = `<div style="font-size:11.5px; font-weight:bold; margin-bottom:2px; opacity:0.85;">${senderName}</div>${escapeHtml(msg.text)} <span style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:6px;">${time}</span>`;
+        const imageHtml = msg.imageData ? `<img src="${msg.imageData}" class="chat-msg-image" alt="Imagem enviada">` : "";
+        const textHtml = msg.text ? escapeHtml(msg.text) : "";
+        // Check de lida (✓✓) só nas mensagens que O ADMIN enviou.
+        const readTicks = msg.sender === "admin"
+            ? `<svg class="chat-msg-ticks ${msg.read ? 'is-read' : ''}" width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 5.5L4.5 9L11 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 5.5L9 9L15.5 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+            : "";
+        div.innerHTML = `<div style="font-size:11.5px; font-weight:bold; margin-bottom:2px; opacity:0.85;">${senderName}</div>${imageHtml}${textHtml} <span style="display:inline-flex; align-items:center; gap:3px; float:right; font-size:10px; opacity:0.7; margin-top:6px;">${time}${readTicks}</span>`;
         msgsEl.appendChild(div);
     });
 
