@@ -21,6 +21,8 @@ import { onDBChange } from "/db-sync.js";
 
   let firebaseUser = null;
   let db = null;
+  let authReady = false;
+  let dbReady = false;
 
   function currentUser() {
     if (!firebaseUser || !db || !db.myProfile) return null;
@@ -120,8 +122,16 @@ import { onDBChange } from "/db-sync.js";
   };
 
   document.addEventListener("DOMContentLoaded", bindHeaderInteractions);
-  onAuthStateChanged(auth, (user) => { firebaseUser = user; refreshHeader(); bindHeaderInteractions(); });
-  onDBChange((newDb) => { db = newDb; refreshHeader(); bindHeaderInteractions(); });
+  onAuthStateChanged(auth, (user) => {
+    firebaseUser = user;
+    authReady = true;
+    if (dbReady) { refreshHeader(); bindHeaderInteractions(); }
+  });
+  onDBChange((newDb) => {
+    db = newDb;
+    dbReady = true;
+    if (authReady) { refreshHeader(); bindHeaderInteractions(); }
+  });
 
   /* =========================================================
      MENU MOBILE INFALÍVEL (DELEGAÇÃO DE EVENTOS)
