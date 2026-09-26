@@ -215,11 +215,17 @@
 <section class="section-tight">
   <div class="cta-band">
     <h2>Pronto para publicar seu primeiro projeto?</h2>
-    <p>Crie sua conta gratuita e conheça a comunidade antes de assinar.</p>
+    
+    <!-- Texto e Botão para quem NÃO TEM conta (Visitantes) -->
+    <p class="guest-only">Crie sua conta gratuita e conheça a comunidade antes de assinar.</p>
     <a href="register.html" class="btn btn-gold btn-lg guest-only">Cadastrar grátis</a>
+
+    <!-- Texto e Botão para quem JÁ TEM conta (Logados) -->
+    <p class="auth-only">Escolha o plano ideal para você e mostre ao mundo o que está construindo.</p>
+    <a href="index.html#/planos" class="btn btn-gold btn-lg auth-only">Assinar para publicar</a>
+    
   </div>
 </section>
-
 <!-- ===== FOOTER ===== -->
 <footer class="site-footer">
   <div class="container footer-grid">
