@@ -1411,10 +1411,30 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
 .chat-msg-time, .support-msg-time {
   font-size: 10px;
   opacity: 0.65;
-  margin-top: 3px;
   text-align: right;
-  display: block;
   clear: both;
+}
+/* Linha com o texto da mensagem e o horário/check lado a lado, com
+   espaço mínimo garantido entre eles mesmo quando o texto é curto
+   (evita o "opa16:43✓✓" grudado que o float:right causava). */
+.support-msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.support-msg-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.support-msg-row .support-msg-time {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 0;
+  white-space: nowrap;
 }
 /* Check de mensagem lida (✓✓ estilo WhatsApp) */
 .chat-msg-ticks {
@@ -1491,6 +1511,100 @@ body:not(.is-guest) #mobileNav a[href*="register"] {
   gap: 10px;
 }
 .support-restart p { margin: 0; font-size: 13px; color: var(--ink-600); }
+
+/* Tela de boas-vindas com FAQ, exibida ao abrir o balão de suporte,
+   antes de iniciar uma conversa de fato. */
+.support-welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface-warm, var(--surface));
+}
+.support-welcome-hero {
+  padding: 22px 20px 18px;
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-600, var(--gold-500)));
+  color: #1a1204;
+}
+.support-welcome-eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  opacity: .75;
+}
+.support-welcome-hero h3 { margin: 0; font-size: 19px; }
+
+.support-start-chat-btn {
+  margin: 14px 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt, #fff);
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s ease, transform .12s ease;
+}
+.support-start-chat-btn:hover { border-color: var(--gold-500); transform: translateY(-1px); }
+.support-start-chat-btn strong { display: block; font-size: 14px; }
+.support-start-chat-btn small { display: block; font-size: 12px; color: var(--ink-600); margin-top: 2px; }
+.support-start-chat-btn svg { flex-shrink: 0; color: var(--gold-500); }
+
+.support-faq-head {
+  padding: 4px 20px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+.support-faq-list { padding: 0 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.support-faq-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt, #fff);
+  overflow: hidden;
+}
+.support-faq-q {
+  width: 100%;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  color: var(--ink-900);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.support-faq-plus {
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--ink-500);
+  transition: transform .15s ease;
+}
+.support-faq-item.is-open .support-faq-plus { transform: rotate(45deg); }
+.support-faq-a {
+  max-height: 0;
+  overflow: hidden;
+  padding: 0 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-600);
+  transition: max-height .2s ease, padding .2s ease;
+}
+.support-faq-item.is-open .support-faq-a { max-height: 220px; padding: 0 14px 14px; }
+
 .support-footer {
   padding: 12px;
   background: var(--surface);
