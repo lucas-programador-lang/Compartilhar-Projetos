@@ -53,12 +53,13 @@
       <span class="brand-name">Compartilhar <em>Projetos</em></span>
     </a>
 
+    <!-- Menu Principal Desktop -->
     <nav class="main-nav">
       <a href="index.html#/explorar">Explorar</a>
       <a href="index.html#/comunidade">Comunidade</a>
       <a href="index.html#/planos">Planos</a>
       <a href="index.html#/ranking">Ranking</a>
-      <a href="apk.html">Baixar app</a>
+      <a href="index.html#/indicacoes" class="auth-only">Indicações</a>
     </nav>
 
     <div class="header-actions">
@@ -67,25 +68,60 @@
         <span id="themeIcon"></span>
       </button>
 
-      <a href="index.html" class="btn btn-ghost btn-sm guest-only">Voltar ao site</a>
+      <!-- Ações para Visitantes (Deslogados) -->
+      <div class="guest-only header-guest-actions">
+        <a href="login.html" class="btn btn-ghost btn-sm">Entrar</a>
+        <a href="register.html" class="btn btn-primary btn-sm">Cadastrar</a>
+      </div>
+
+      <!-- Ações para Usuários (Logados) com Avatar e Pílula -->
+      <div class="auth-only header-user-actions">
+        <span class="sub-pill" id="subPill">—</span>
+        
+        <!-- Avatar e Menu -->
+        <button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar-circle" id="avatarInitial">?</span>
+        </button>
+
+        <div class="user-menu" id="userMenu">
+          <a href="#" onclick="tentarAcessarPainel(event)">Meu painel</a>
+          <a href="index.html#/perfil">Meu perfil</a>
+          <a href="index.html#/indicacoes">Indicações</a>
+          <a href="index.html#/ranking">Ranking</a>
+          <a href="index.html#/planos">Assinatura</a>
+          <a href="index.html#/avaliar">Avaliar plataforma</a>
+          <a href="admin.html" class="admin-only">Painel admin</a>
+          <button id="logoutBtn" style="color: var(--danger);">Sair</button>
+        </div>
+      </div>
       
-      <!-- Botão Hambúrguer para Telemóvel e APK -->
+      <!-- Botão Hambúrguer para Telemóvel -->
       <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
         <span></span><span></span><span></span>
       </button>
     </div>
   </div>
   
-  <!-- MENU MOBILE RESPONSIVO -->
+  <!-- MENU MOBILE RESPONSIVO COMPLETO -->
   <nav class="mobile-nav" id="mobileNav">
     <a href="index.html#/explorar">Explorar projetos</a>
     <a href="index.html#/comunidade">Comunidade</a>
     <a href="index.html#/planos">Planos</a>
     <a href="index.html#/ranking">Ranking</a>
-    <a href="sobre.html">Sobre</a>
+    <a href="sobre.html">Sobre nós</a>
     <a href="como-funciona.html">Como funciona</a>
     <a href="apk.html">Baixar app</a>
-    <a href="index.html#/avaliar">Avaliar plataforma</a>
+    
+    <!-- Opções para quem está Logado -->
+    <a href="index.html#/indicacoes" class="auth-only">Indicações</a>
+    <a href="#" onclick="tentarAcessarPainel(event)" class="auth-only">Meu painel</a>
+    <a href="index.html#/perfil" class="auth-only">Meu perfil</a>
+    <a href="index.html#/avaliar" class="auth-only">Avaliar plataforma</a>
+    <button id="logoutBtnMobile" class="auth-only" style="color: var(--danger);">Sair</button>
+    
+    <!-- Opções para quem NÃO está Logado -->
+    <a href="login.html" class="guest-only">Entrar</a>
+    <a href="register.html" class="guest-only btn-fill">Cadastrar</a>
   </nav>
 </header>
 
@@ -110,7 +146,7 @@
       <p>Os serviços premium da plataforma exigem uma assinatura paga. Atualmente, os pagamentos são processados exclusivamente via Pix. O acesso aos recursos pagos é liberado após a confirmação do recebimento. Não oferecemos reembolsos para períodos de assinatura já iniciados e parcialmente utilizados, exceto quando exigido por lei.</p>
 
       <h2>5. Propriedade Intelectual e Conteúdo do Usuário</h2>
-      <p>Você mantém todos os direitos de propriedade intelectual sobre os projetos, códigos e imagens que publicar na plataforma. Ao enviar conteúdo, você concede ao Compartilhar Projetos uma licença não exclusiva para exibir e distribuir esse conteúdo dentro do ambiente da plataforma. É estritamente proibido publicar materiais protegidos por direitos autorais de terceiros sem a devida autorização.</p>
+      <p>Você mantém todos os direitos de propriedade intelectual sobre os projetos, códigos e imagens que publicar na plataforma. Ao enviar conteúdo, você concede ao Compartilhar Projetos uma licença não exclusiva para exibir e distribute esse conteúdo dentro do ambiente da plataforma. É estritamente proibido publicar materiais protegidos por direitos autorais de terceiros sem a devida autorização.</p>
 
       <h2>6. Uso Aceitável</h2>
       <p>Você concorda em não utilizar a plataforma para atividades ilegais, envio de spam, distribuição de malware, ofensas ou qualquer ação que comprometa a integridade do sistema ou a segurança de outros usuários.</p>
