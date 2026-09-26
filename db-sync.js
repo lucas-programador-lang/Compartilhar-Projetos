@@ -92,14 +92,35 @@ export function markNotificationRead(notificationId) { const notification = cach
 /* =========================================================
    CHAT DE SUPORTE EM TEMPO REAL
    ========================================================= */
-export async function enviarMensagemSuporte(userId, userName, text, sender) {
+// imageData (opcional): dataURL base64 de uma imagem anexada, mesmo
+// padrão já usado para fotos de projeto (sem Firebase Storage).
+export async function enviarMensagemSuporte(userId, userName, text, sender, imageData) {
   const chatRef = ref(rtdb, `supportChats/${userId}`); const msgsRef = ref(rtdb, `supportChats/${userId}/messages`); const now = new Date().toISOString();
-  await set(push(msgsRef), { sender: sender, text: text, createdAt: now });
-  await update(chatRef, { userName: userName, lastMessage: text, updatedAt: now, unreadAdmin: sender === "user", unreadUser: sender === "admin", status: "open" });
+  const msg = { sender: sender, text: text || "", createdAt: now, read: false };
+  if (imageData) msg.imageData = imageData;
+  await set(push(msgsRef), msg);
+  const lastMessagePreview = text ? text : "📷 Foto";
+  await update(chatRef, { userName: userName, lastMessage: lastMessagePreview, updatedAt: now, unreadAdmin: sender === "user", unreadUser: sender === "admin", status: "open" });
 }
 export function escutarChatUsuario(userId, callback) { return onValue(ref(rtdb, `supportChats/${userId}`), (snapshot) => { callback(snapshot.val()); }); }
-export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadUser: false }); }
-export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); }
+// Marca como lidas (read: true) todas as mensagens do OUTRO remetente
+// que ainda não foram lidas — usado para os checks ✓✓ estilo WhatsApp.
+function marcarMensagensComoLidas(userId, senderToMark) {
+  const msgsRef = ref(rtdb, `supportChats/${userId}/messages`);
+  get(msgsRef).then((snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    const updates = {};
+    Object.entries(data).forEach(([msgId, msg]) => {
+      if (msg && msg.sender === senderToMark && !msg.read) {
+        updates[`${msgId}/read`] = true;
+      }
+    });
+    if (Object.keys(updates).length > 0) update(msgsRef, updates);
+  }).catch(() => {});
+}
+export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadUser: false }); marcarMensagensComoLidas(userId, "admin"); }
+export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); marcarMensagensComoLidas(userId, "user"); }
 export function escutarTodosOsChats(callback) { return onValue(ref(rtdb, `supportChats`), (snapshot) => { callback(snapshot.val()); }); }
 export function encerrarChatAdmin(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
 // (Para o Usuário) Reabrir/iniciar uma nova conversa depois de ter saído —
