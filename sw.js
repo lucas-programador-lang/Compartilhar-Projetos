@@ -21,8 +21,3 @@ self.addEventListener('activate', (event) => {
   );
   self.clients.claim();
 });
-
-self.addEventListener('fetch', (event) => {
-  // Ignora todas as interceptações de rede e deixa o app/site seguir o fluxo normal da web
-  return;
-});
