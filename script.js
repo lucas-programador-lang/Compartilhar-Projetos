@@ -78,6 +78,34 @@ import { uid, nowISO } from "./seed.js";
   function userById(id) { return (db.publicProfiles || []).find((u) => u.id === id); }
   function getStarSvg(size, isFull) { return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${isFull ? '#facc15' : 'none'}" stroke="${isFull ? '#facc15' : '#475569'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`; }
   function fileToDataURL(file) { return new Promise((res, rej) => { const reader = new FileReader(); reader.onload = () => res(reader.result); reader.onerror = rej; reader.readAsDataURL(file); }); }
+  // Versão com compressão para fotos do chat de suporte: redimensiona
+  // para no máximo 1280px no lado maior e reexporta como JPEG a 70% de
+  // qualidade, para não sobrecarregar o Realtime Database com fotos de
+  // celular de vários MB.
+  function fileToCompressedDataURL(file, maxSize = 1280, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+              const img = new Image();
+              img.onload = () => {
+                  let { width, height } = img;
+                  if (width > maxSize || height > maxSize) {
+                      if (width > height) { height = Math.round(height * (maxSize / width)); width = maxSize; }
+                      else { width = Math.round(width * (maxSize / height)); height = maxSize; }
+                  }
+                  const canvas = document.createElement("canvas");
+                  canvas.width = width; canvas.height = height;
+                  const ctx = canvas.getContext("2d");
+                  ctx.drawImage(img, 0, 0, width, height);
+                  resolve(canvas.toDataURL("image/jpeg", quality));
+              };
+              img.onerror = reject;
+              img.src = reader.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+      });
+  }
   function sanitizeText(str) { return escapeHtml(str).slice(0, 5000); }
   
   const LINK_PATTERN = /(https?:\/\/|www\.)\S+|\b[a-z0-9-]+\s*[(\[]?\s*\.\s*[)\]]?\s*(com|net|org|br|io|me|co|app|dev|xyz|info|shop|site|online|link|click)\b/i;
@@ -515,8 +543,13 @@ import { uid, nowISO } from "./seed.js";
                   <p class="muted text-center" style="font-size:13px; margin-bottom: 16px; padding: 0 20px;">A conversa de suporte foi encerrada. Precisa de mais ajuda?</p>
                   <button class="btn btn-primary btn-sm" id="restartChatBtn" type="button">Iniciar novo chat</button>
               </div>
+              <div class="support-attach-preview" id="supportAttachPreview" style="display:none"></div>
               <form class="support-footer" id="supportForm">
-                  <input type="text" id="supportInput" placeholder="Escreva a sua mensagem..." required autocomplete="off">
+                  <label class="support-attach-btn" title="Anexar foto">
+                      <input type="file" id="supportImageInput" accept="image/*" multiple hidden>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                  </label>
+                  <input type="text" id="supportInput" placeholder="Escreva a sua mensagem..." autocomplete="off">
                   <button type="submit">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                   </button>
@@ -591,11 +624,46 @@ import { uid, nowISO } from "./seed.js";
           reabrirChatUsuario(user.id);
       });
 
-      form.addEventListener("submit", (e) => {
-          e.preventDefault(); const text = input.value.trim(); if (!text) return;
-          input.value = "";
+      const imageInput = document.getElementById("supportImageInput");
+      const attachPreview = document.getElementById("supportAttachPreview");
+      let pendingChatImages = [];
+
+      function renderAttachPreview() {
+          if (pendingChatImages.length === 0) { attachPreview.style.display = "none"; attachPreview.innerHTML = ""; return; }
+          attachPreview.style.display = "flex";
+          attachPreview.innerHTML = pendingChatImages.map((src, i) =>
+              `<div class="support-attach-thumb"><img src="${src}"><button type="button" data-i="${i}">&times;</button></div>`
+          ).join("");
+          attachPreview.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+              pendingChatImages.splice(parseInt(b.getAttribute("data-i")), 1);
+              renderAttachPreview();
+          }));
+      }
+
+      imageInput.addEventListener("change", async () => {
+          const files = Array.from(imageInput.files).slice(0, 4);
+          for (const f of files) { const durl = await fileToCompressedDataURL(f); pendingChatImages.push(durl); }
+          imageInput.value = "";
+          renderAttachPreview();
+      });
+
+      form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const text = input.value.trim();
+          const images = pendingChatImages.slice();
+          if (!text && images.length === 0) return;
+          input.value = ""; pendingChatImages = []; renderAttachPreview();
           clearTimeout(typingTimeout); notificarDigitacao(user.id, "user", false);
-          enviarMensagemSuporte(user.id, user.name, text, "user").then(() => playSupportSound("send")).catch(err => toast("Erro ao enviar: " + err.message, "error"));
+          try {
+              if (images.length > 0) {
+                  for (let i = 0; i < images.length; i++) {
+                      await enviarMensagemSuporte(user.id, user.name, i === 0 ? text : "", "user", images[i]);
+                  }
+              } else {
+                  await enviarMensagemSuporte(user.id, user.name, text, "user");
+              }
+              playSupportSound("send");
+          } catch (err) { toast("Erro ao enviar: " + err.message, "error"); }
       });
 
       let lastMsgCount = 0;
@@ -638,7 +706,13 @@ import { uid, nowISO } from "./seed.js";
                   
                   const senderName = msg.sender === "user" ? "Você" : "Suporte";
                   
-                  div.innerHTML = `<div style="font-size:10.5px; font-weight:bold; margin-bottom:2px; opacity:0.8;">${senderName}</div>${escapeHtml(msg.text)} <span class="support-msg-time" style="display:block; text-align:right; font-size:10px; opacity:0.7; margin-top:4px;">${time}</span>`;
+                  const imageHtml = msg.imageData ? `<img src="${msg.imageData}" class="chat-msg-image" alt="Imagem enviada">` : "";
+                  const textHtml = msg.text ? escapeHtml(msg.text) : "";
+                  // Check de lida (✓✓) só faz sentido nas mensagens que EU enviei (sender "user").
+                  const readTicks = msg.sender === "user"
+                      ? `<svg class="chat-msg-ticks ${msg.read ? 'is-read' : ''}" width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 5.5L4.5 9L11 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 5.5L9 9L15.5 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+                      : "";
+                  div.innerHTML = `<div style="font-size:10.5px; font-weight:bold; margin-bottom:2px; opacity:0.8;">${senderName}</div>${imageHtml}${textHtml} <span class="support-msg-time" style="display:inline-flex; align-items:center; gap:3px; float:right; font-size:10px; opacity:0.7; margin-top:4px;">${time}${readTicks}</span>`;
                   body.appendChild(div);
               });
           }
