@@ -122,14 +122,19 @@ function marcarMensagensComoLidas(userId, senderToMark) {
 export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadUser: false }); marcarMensagensComoLidas(userId, "admin"); }
 export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); marcarMensagensComoLidas(userId, "user"); }
 export function escutarTodosOsChats(callback) { return onValue(ref(rtdb, `supportChats`), (snapshot) => { callback(snapshot.val()); }); }
-export function encerrarChatAdmin(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
-// (Para o Usuário) Reabrir/iniciar uma nova conversa depois de ter saído —
-// só muda o status de volta para "open"; NUNCA apaga o histórico de
-// mensagens (o admin precisa continuar vendo a conversa anterior).
+// Encerrar (admin ou usuário) agora APAGA o histórico de mensagens —
+// mudança intencional: ao reabrir/iniciar de novo, a conversa começa
+// vazia. status "closed" continua sendo setado por compatibilidade
+// (ex.: para não reaparecer sozinha antes do usuário reabrir).
+export function encerrarChatAdmin(userId) {
+  return update(ref(rtdb, `supportChats/${userId}`), { status: "closed", messages: null, lastMessage: "", unreadAdmin: false, unreadUser: false });
+}
+// (Para o Usuário) Reabrir/iniciar uma nova conversa depois de ter saído.
 export function reabrirChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "open", unreadAdmin: false, unreadUser: false }); }
-// (Para o Usuário) Sair da conversa — marca como fechada do próprio lado
-// do usuário, sem apagar mensagens.
-export function encerrarChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
+// (Para o Usuário) Sair da conversa — também apaga o histórico.
+export function encerrarChatUsuario(userId) {
+  return update(ref(rtdb, `supportChats/${userId}`), { status: "closed", messages: null, lastMessage: "", unreadAdmin: false, unreadUser: false });
+}
 
 export function setAdminPresenceOnline() {
   const connectedRef = ref(rtdb, ".info/connected");
