@@ -683,7 +683,8 @@ import { uid, nowISO } from "./seed.js";
       restartBtn.addEventListener("click", () => {
           isChatClosed = false; localStorage.removeItem(hiddenKey);
           reabrirChatUsuario(user.id);
-          showWelcomeScreen();
+          showChatScreen();
+          setTimeout(() => input.focus(), 100);
       });
 
       const imageInput = document.getElementById("supportImageInput");
