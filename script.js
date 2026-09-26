@@ -535,7 +535,41 @@ import { uid, nowISO } from "./seed.js";
                       <button class="support-close" id="closeChatBtn">&times;</button>
                   </div>
               </div>
-              <div class="support-body" id="supportBody" style="padding-top: 0;">
+              <div class="support-welcome" id="supportWelcome">
+                  <div class="support-welcome-hero">
+                      <p class="support-welcome-eyebrow">Bem-vindo ao Suporte</p>
+                      <h3>Como podemos ajudar?</h3>
+                  </div>
+                  <button class="support-start-chat-btn" id="startNewChatBtn" type="button">
+                      <span>
+                          <strong>Iniciar novo chat com o suporte</strong>
+                          <small>Fale diretamente com a nossa equipe</small>
+                      </span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                  <div class="support-faq-head">
+                      <span>Perguntas frequentes</span>
+                  </div>
+                  <div class="support-faq-list" id="supportFaqList">
+                      <div class="support-faq-item">
+                          <button type="button" class="support-faq-q">O que é o Compartilhar Projetos?<span class="support-faq-plus">+</span></button>
+                          <div class="support-faq-a">É uma plataforma de assinatura para publicar e descobrir projetos incríveis, com programa de indicação e ranking mensal.</div>
+                      </div>
+                      <div class="support-faq-item">
+                          <button type="button" class="support-faq-q">Como funciona o pagamento?<span class="support-faq-plus">+</span></button>
+                          <div class="support-faq-a">Exclusivamente via Pix. Você escolhe um plano, gera o QR Code, paga, e a assinatura é ativada automaticamente assim que o pagamento é confirmado.</div>
+                      </div>
+                      <div class="support-faq-item">
+                          <button type="button" class="support-faq-q">Meu projeto foi rejeitado, e agora?<span class="support-faq-plus">+</span></button>
+                          <div class="support-faq-a">Você recebe uma notificação explicando o motivo e pode editar e reenviar o mesmo projeto com as correções, sem precisar publicar do zero.</div>
+                      </div>
+                      <div class="support-faq-item">
+                          <button type="button" class="support-faq-q">Como recebo minha comissão de indicação?<span class="support-faq-plus">+</span></button>
+                          <div class="support-faq-a">A comissão fica disponível no seu painel assim que o indicado assina um plano. Você solicita o saque (mínimo de R$ 10,00) e recebe via Pix depois da aprovação.</div>
+                      </div>
+                  </div>
+              </div>
+              <div class="support-body" id="supportBody" style="padding-top: 0; display:none;">
                   <!-- Mensagens entram aqui -->
               </div>
               <div class="support-restart" id="supportRestart" style="display:none; flex-direction:column; align-items:center; justify-content:center; flex:1;">
@@ -576,6 +610,33 @@ import { uid, nowISO } from "./seed.js";
       const restartBox = document.getElementById("supportRestart");
       const restartBtn = document.getElementById("restartChatBtn");
       const statusText = document.getElementById("supportStatusText");
+      const welcomeBox = document.getElementById("supportWelcome");
+      const startNewChatBtn = document.getElementById("startNewChatBtn");
+
+      // Controla qual "tela" do widget está visível: boas-vindas (FAQ),
+      // ou a conversa em si (que por sua vez pode estar aberta ou
+      // encerrada/aguardando reinício — ver applyChatState).
+      function showWelcomeScreen() {
+          welcomeBox.style.display = "flex";
+          body.style.display = "none"; form.style.display = "none"; restartBox.style.display = "none";
+      }
+      function showChatScreen() {
+          welcomeBox.style.display = "none";
+          applyChatState(isChatClosed);
+      }
+
+      // FAQ expansível (acordeão simples)
+      document.querySelectorAll("#supportFaqList .support-faq-q").forEach((btn) => {
+          btn.addEventListener("click", () => {
+              const item = btn.closest(".support-faq-item");
+              item.classList.toggle("is-open");
+          });
+      });
+
+      startNewChatBtn.addEventListener("click", () => {
+          showChatScreen();
+          if (!isChatClosed) setTimeout(() => input.focus(), 100);
+      });
 
       escutarPresencaAdmin((isOnline) => {
           if (isOnline) {
@@ -592,11 +653,12 @@ import { uid, nowISO } from "./seed.js";
               body.style.display = "flex"; form.style.display = "flex"; restartBox.style.display = "none";
           }
       }
-      applyChatState(isChatClosed);
-
       fab.addEventListener("click", () => {
           chatWin.classList.add("open"); badge.style.display = "none"; marcarChatLidoUser(user.id);
-          if (!isChatClosed) setTimeout(() => input.focus(), 100);
+          // Sempre mostra a tela de boas-vindas/FAQ primeiro ao abrir o
+          // balão; a conversa só aparece depois de clicar em "Iniciar
+          // novo chat com o suporte".
+          showWelcomeScreen();
           body.scrollTop = body.scrollHeight;
       });
       
@@ -611,17 +673,17 @@ import { uid, nowISO } from "./seed.js";
       });
 
       endBtnUser.addEventListener("click", async () => {
-          const ok = await confirmActionUser("Sair da conversa de suporte? O chat será encerrado.", { title: "Sair do Chat", confirmLabel: "Sim, sair", neutral: true });
+          const ok = await confirmActionUser("Sair da conversa de suporte? O histórico desta conversa será apagado.", { title: "Sair do Chat", confirmLabel: "Sim, sair", neutral: true });
           if (!ok) return;
-          isChatClosed = true; localStorage.setItem(hiddenKey, "1"); applyChatState(true);
-          encerrarChatUsuario(user.id);
+          isChatClosed = true; localStorage.setItem(hiddenKey, "1");
+          encerrarChatUsuario(user.id); // agora também apaga as mensagens (db-sync.js)
+          chatWin.classList.remove("open");
       });
 
       restartBtn.addEventListener("click", () => {
-          isChatClosed = false; localStorage.removeItem(hiddenKey); applyChatState(false); setTimeout(() => input.focus(), 100);
-          // Só reabre a conversa (volta status para "open"); o histórico
-          // de mensagens é mantido, nunca apagado.
+          isChatClosed = false; localStorage.removeItem(hiddenKey);
           reabrirChatUsuario(user.id);
+          showWelcomeScreen();
       });
 
       const imageInput = document.getElementById("supportImageInput");
@@ -712,7 +774,7 @@ import { uid, nowISO } from "./seed.js";
                   const readTicks = msg.sender === "user"
                       ? `<svg class="chat-msg-ticks ${msg.read ? 'is-read' : ''}" width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 5.5L4.5 9L11 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 5.5L9 9L15.5 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
                       : "";
-                  div.innerHTML = `<div style="font-size:10.5px; font-weight:bold; margin-bottom:2px; opacity:0.8;">${senderName}</div>${imageHtml}${textHtml} <span class="support-msg-time" style="display:inline-flex; align-items:center; gap:3px; float:right; font-size:10px; opacity:0.7; margin-top:4px;">${time}${readTicks}</span>`;
+                  div.innerHTML = `<div style="font-size:10.5px; font-weight:bold; margin-bottom:2px; opacity:0.8;">${senderName}</div>${imageHtml}<div class="support-msg-row"><span class="support-msg-text">${textHtml}</span><span class="support-msg-time">${time}${readTicks}</span></div>`;
                   body.appendChild(div);
               });
           }
