@@ -342,7 +342,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
         const readTicks = msg.sender === "admin"
             ? `<svg class="chat-msg-ticks ${msg.read ? 'is-read' : ''}" width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 5.5L4.5 9L11 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 5.5L9 9L15.5 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
             : "";
-        div.innerHTML = `<div style="font-size:11.5px; font-weight:bold; margin-bottom:2px; opacity:0.85;">${senderName}</div>${imageHtml}${textHtml} <span style="display:inline-flex; align-items:center; gap:3px; float:right; font-size:10px; opacity:0.7; margin-top:6px;">${time}${readTicks}</span>`;
+        div.innerHTML = `<div style="font-size:11.5px; font-weight:bold; margin-bottom:2px; opacity:0.85;">${senderName}</div>${imageHtml}<div class="support-msg-row"><span class="support-msg-text">${textHtml}</span><span class="support-msg-time">${time}${readTicks}</span></div>`;
         msgsEl.appendChild(div);
     });
 
