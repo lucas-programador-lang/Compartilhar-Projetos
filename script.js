@@ -1163,4 +1163,150 @@ import { uid, nowISO } from "./seed.js";
     } else if (userReview) {
       contentHtml = `<div class="panel text-center" style="border-color: var(--green-700); padding: 40px 20px;"><div style="font-size: 48px; margin-bottom: 16px;">🎉</div><h3 style="color: var(--text-main); margin-bottom: 8px;">Avaliação recebida!</h3><p style="color: var(--green-700); font-weight: 600; font-size: 16px; margin: 0;">✓ Você já avaliou a plataforma.</p><div style="margin-top: 16px; display: inline-flex; gap: 4px;">${getStarSvg(24, userReview.overallRating >= 1)}${getStarSvg(24, userReview.overallRating >= 2)}${getStarSvg(24, userReview.overallRating >= 3)}${getStarSvg(24, userReview.overallRating >= 4)}${getStarSvg(24, userReview.overallRating >= 5)}</div><p class="muted" style="margin-top: 24px;">Obrigado por ajudar a construir um Compartilhar Projetos melhor!</p><a href="#/" class="btn btn-primary mt-3">Voltar ao início</a></div>`;
     } else {
-      contentHtml = `<form id="platformReviewForm" class="panel"><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">1. Como você avalia sua experiência geral?</label><div id="platformRatingStars" style="display: flex; gap: 12px; cursor: pointer; margin-top: 12px;"><span data-val="1">${getStarSvg(36, false)}</span><span data-val="2">${getStarSvg(36, false)}</span><span data-val="3">${getStarSvg(36, false)}</span><span data-val="4">${getStarSvg(36, false)}</span><span data-val="5">${getStarSvg(36, false)}</span></div><input type="hidden" name="overallRating" id="overallRatingVal" value="0" required></div><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">2. Quão fácil é publicar e explorar projetos?</label><select name="usabilityScore" required style="margin-top: 12px; width: 100%; padding: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-main); font-size: 15px;"><option value="" style="color: #000;">Selecione...</option><option value="very_easy" style="color: #000;">Muito fácil</option><option value="easy" style="color: #000;">Fácil</option><option value="neutral" style="color: #000;">Razoável</option><option value="hard" style="color: #000;">Difícil</option><option value="very_hard" style="color: #000;">Muito difícil</option></select></div><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">3. Você recomendaria a plataforma para outros desenvolvedores e designers?</label><div style="display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px;"><label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;"><input type="radio" name="wouldRecommend" value="yes" required style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Sim</label><label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;"><input type="radio" name="wouldRecommend" value="maybe" style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Talvez</label><label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;"><input type="radio" name="wouldRecommend" value="no" style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Não</label></div></div><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">4. O que po
+      contentHtml = `<form id="platformReviewForm" class="panel"><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">1. Como você avalia sua experiência geral?</label><div id="platformRatingStars" style="display: flex; gap: 12px; cursor: pointer; margin-top: 12px;"><span data-val="1">${getStarSvg(36, false)}</span><span data-val="2">${getStarSvg(36, false)}</span><span data-val="3">${getStarSvg(36, false)}</span><span data-val="4">${getStarSvg(36, false)}</span><span data-val="5">${getStarSvg(36, false)}</span></div><input type="hidden" name="overallRating" id="overallRatingVal" value="0" required></div><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">2. Quão fácil é publicar e explorar projetos?</label><select name="usabilityScore" required style="margin-top: 12px; width: 100%; padding: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-main); font-size: 15px;"><option value="" style="color: #000;">Selecione...</option><option value="very_easy" style="color: #000;">Muito fácil</option><option value="easy" style="color: #000;">Fácil</option><option value="neutral" style="color: #000;">Razoável</option><option value="hard" style="color: #000;">Difícil</option><option value="very_hard" style="color: #000;">Muito difícil</option></select></div><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">3. Você recomendaria a plataforma para outros desenvolvedores e designers?</label><div style="display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px;"><label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;"><input type="radio" name="wouldRecommend" value="yes" required style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Sim</label><label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;"><input type="radio" name="wouldRecommend" value="maybe" style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Talvez</label><label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; color: var(--text-main); font-size: 15px;"><input type="radio" name="wouldRecommend" value="no" style="width: 20px; height: 20px; accent-color: var(--gold-500);"> Não</label></div></div><div class="field" style="margin-bottom: 32px;"><label style="font-size: 15.5px; font-weight: 600; color: var(--text-main);">4. O que podemos melhorar?</label><textarea name="feedbackText" rows="4" placeholder="Deixe sugestões de novas funcionalidades, críticas ou elogios..." style="margin-top: 12px; width: 100%; padding: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-main); font-family: inherit; font-size: 15px; resize: vertical;"></textarea></div><div class="field-error" id="platformReviewError" style="display: none; margin-bottom: 16px;"></div><button type="submit" class="btn btn-gold btn-block" style="padding: 16px; font-size: 16px; font-weight: 600;">Enviar Avaliação</button></form>`;
+    }
+
+    return `<section class="section" style="padding-top: 52px; max-width: 680px; margin: 0 auto;"><div class="container"><span class="tag-label">Feedback</span><h2 style="margin-bottom: 6px;">Avalie a Plataforma</h2><p class="muted" style="margin-bottom: 32px;">Sua opinião ajuda a melhorar o Compartilhar Projetos para toda a comunidade de criadores.</p>${contentHtml}</div></section>`;
+  }
+
+  // =========================================================
+  // EVENTOS DAS PÁGINAS
+  // =========================================================
+  function bindPageEvents(path) {
+    qsa("[data-mark-read]").forEach((btn) => { btn.addEventListener("click", () => { const id = btn.getAttribute("data-mark-read"); btn.disabled = true; markNotificationRead(id).catch((err) => { toast(err.message || "Não foi possível marcar como lida.", "error"); btn.disabled = false; }); }); });
+    const markAllBtn = qs("#markAllReadBtn"); if (markAllBtn) { markAllBtn.addEventListener("click", () => { markAllBtn.disabled = true; const unreadNotifs = myNotifications(currentUser().id).filter(n => !n.read); Promise.all(unreadNotifs.map(n => markNotificationRead(n.id))).then(() => { toast("Todas as notificações marcadas como lidas!", "success"); }).catch(err => { toast("Erro ao marcar notificações.", "error"); markAllBtn.disabled = false; }); }); }
+    const showAllBtn = qs("#showAllNotifsBtn"); if (showAllBtn) { showAllBtn.addEventListener("click", () => { qs("#allNotifsContainer").style.display = "block"; showAllBtn.style.display = "none"; }); }
+
+    const search = qs("#searchInput"); const catFilter = qs("#catFilter");
+    if (search) search.addEventListener("input", debounce(() => updateExploreQuery(), 350));
+    if (catFilter) catFilter.addEventListener("change", () => updateExploreQuery());
+
+    qsa("[data-plan]").forEach((btn) => { btn.addEventListener("click", async () => { if (!currentUser()) { location.href = "login.html?redirect=planos"; return; } const planId = btn.getAttribute("data-plan"); const originalText = btn.textContent; try { btn.disabled = true; let doc = currentUser().document; if (!doc) { doc = await showDocumentModal(); } btn.textContent = "Gerando Pix..."; const result = await startPixPayment(planId, doc); showPixModal(result); } catch (err) { if (err.message !== "cancelado") toast(err.message, "error"); } finally { btn.disabled = false; btn.textContent = originalText; } }); });
+
+    const publishForm = qs("#publishForm");
+    if (publishForm) {
+      const imageInput = qs("#imageInput"); pendingImages = [];
+      if (imageInput) { imageInput.addEventListener("change", async () => { const files = Array.from(imageInput.files).slice(0, 4); pendingImages = []; for (const f of files) { const durl = await fileToDataURL(f); pendingImages.push(durl); } renderUploadPreview(); }); }
+      publishForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(publishForm); qs("#publishError").style.display = "none"; const editingProjectId = fd.get("editingProjectId"); const payload = { title: fd.get("title"), description: fd.get("description"), categoryId: fd.get("categoryId"), link: fd.get("link"), ownerName: fd.get("ownerName"), contact: fd.get("contact"), images: pendingImages }; Promise.resolve().then(() => editingProjectId ? resendProject(editingProjectId, payload) : publishProject(payload)).then((project) => { toast(editingProjectId ? "Projeto reenviado com sucesso!" : "Projeto enviado com sucesso!", "success"); navigate("/painel"); }).catch((err) => { qs("#publishError").textContent = err.message; qs("#publishError").style.display = "block"; }); });
+    }
+
+    const postSubmit = qs("#postSubmit"); if (postSubmit) { postSubmit.addEventListener("click", () => { const input = qs("#postInput"); Promise.resolve().then(() => createPost(input.value)).then(() => { navigate("/comunidade"); }).catch((err) => toast(friendlyError(err, "Sem links na comunidade."), "error")); }); }
+    qsa(".like-toggle").forEach((btn) => { btn.addEventListener("click", () => { const postId = btn.getAttribute("data-post"); btn.disabled = true; Promise.resolve().then(() => handleToggleLike(postId)).then(() => render({ navigation: false })).catch((err) => { toast(err.message || "Falha ao curtir.", "error"); }).finally(() => { btn.disabled = false; }); }); });
+    qsa(".comment-toggle").forEach((btn) => { btn.addEventListener("click", () => { const sec = qs(`[data-post-comments="${btn.getAttribute("data-post")}"]`); sec.style.display = sec.style.display === "none" ? "block" : "none"; }); });
+    qsa(".reply-toggle").forEach((btn) => { btn.addEventListener("click", () => { const form = qs(`.comment-reply-form[data-post="${btn.getAttribute("data-post")}"][data-comment="${btn.getAttribute("data-comment")}"]`); form.style.display = form.style.display === "none" ? "flex" : "none"; }); });
+    qsa(".comment-new-form").forEach((form) => { form.addEventListener("submit", (e) => { e.preventDefault(); const input = form.querySelector("input"); Promise.resolve().then(() => createComment(form.getAttribute("data-post"), input.value)).then(() => render({ navigation: false })).catch((err) => toast(friendlyError(err, "Sem links."), "error")); }); });
+    qsa(".comment-reply-form:not(.comment-new-form)").forEach((form) => { form.addEventListener("submit", (e) => { e.preventDefault(); const input = form.querySelector("input"); Promise.resolve().then(() => createReply(form.getAttribute("data-post"), form.getAttribute("data-comment"), input.value)).then(() => render({ navigation: false })).catch((err) => toast(friendlyError(err, "Sem links."), "error")); }); });
+
+    const profileForm = qs("#profileForm");
+    if (profileForm) { profileForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(profileForm); const user = currentUser(); const rawDoc = fd.get("document"); const digits = onlyDigits(rawDoc); if (digits && !isValidDocument(digits)) { toast("CPF/CNPJ inválido.", "error"); return; } updateUserProfile(user.id, { name: fd.get("name").trim() || user.name, bio: sanitizeText(fd.get("bio") || ""), document: digits || user.document || "", }).then(() => toast("Perfil atualizado!", "success")).catch((err) => toast(err.message, "error")); }); }
+
+    const copyBtn = qs("#copyRefLink"); 
+    if (copyBtn) { 
+        copyBtn.addEventListener("click", () => { 
+            const linkText = qs("#refLinkText").textContent;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile && (typeof Android !== "undefined" || navigator.share)) {
+                window.compartilharConteudo(
+                    "Convite: Compartilhar Projetos", 
+                    "Faça parte da nossa vitrine de criadores e desenvolvedores. Cadastre-se gratuitamente, publique seu portfólio e dê mais visibilidade às suas ideias!", 
+                    linkText
+                );
+            } else {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(linkText).then(() => toast("Link copiado!", "success")).catch(() => fallbackCopy(linkText));
+                } else {
+                    fallbackCopy(linkText);
+                }
+            }
+
+            function fallbackCopy(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text; textArea.style.position = "fixed"; textArea.style.opacity = "0";
+                document.body.appendChild(textArea); textArea.focus(); textArea.select();
+                try { document.execCommand('copy'); toast("Link copiado!", "success"); } catch (err) { toast("Erro ao copiar o link.", "error"); }
+                document.body.removeChild(textArea);
+            }
+        }); 
+    }
+    const withdrawForm = qs("#withdrawForm"); if (withdrawForm) { withdrawForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(withdrawForm); Promise.resolve().then(() => requestWithdrawal(parseFloat(fd.get("amount")), fd.get("pixKey"))).then(() => { toast("Saque enviado!", "success"); render({ navigation: false }); }).catch((err) => toast(err.message, "error")); }); }
+
+    const projectReviewForm = qs("#projectReviewForm");
+    if (projectReviewForm) {
+      const stars = qsa("#starRatingInput span");
+      const ratingInput = qs("#projectRatingVal");
+
+      stars.forEach(star => {
+        star.addEventListener("click", () => {
+          const val = parseInt(star.getAttribute("data-val"));
+          ratingInput.value = val;
+          stars.forEach(s => { const isFull = parseInt(s.getAttribute("data-val")) <= val; s.innerHTML = getStarSvg(32, isFull); });
+        });
+      });
+
+      projectReviewForm.addEventListener("submit", (e) => {
+        e.preventDefault(); const rating = parseInt(ratingInput.value);
+        if (rating === 0) { toast("Por favor, dê uma nota em estrelas.", "error"); return; }
+        const commentInput = projectReviewForm.querySelector("textarea[name='comment']").value.trim();
+        const projectId = projectReviewForm.getAttribute("data-project"); const user = currentUser();
+        if (!user) return; const targetProject = db.projects.find(p => p.id === projectId); if (!targetProject) return;
+
+        const newReview = { userId: user.id, userName: user.name, rating: rating, comment: sanitizeText(commentInput), createdAt: nowISO() };
+
+        const btn = projectReviewForm.querySelector("button[type='submit']");
+        btn.disabled = true; btn.textContent = "Enviando...";
+
+        addProjectReview(projectId, newReview).then(() => { toast("Avaliação enviada com sucesso!", "success"); render({ navigation: false }); }).catch(err => { toast(err.message || "Erro ao enviar avaliação.", "error"); btn.disabled = false; btn.textContent = "Enviar Avaliação"; });
+      });
+    }
+
+    const platformReviewForm = qs("#platformReviewForm");
+    if (platformReviewForm) {
+      const platformStars = qsa("#platformRatingStars span");
+      const platformRatingInput = qs("#overallRatingVal");
+
+      platformStars.forEach(star => {
+        star.addEventListener("click", () => {
+          const val = parseInt(star.getAttribute("data-val"));
+          platformRatingInput.value = val;
+          platformStars.forEach(s => { const isFull = parseInt(s.getAttribute("data-val")) <= val; s.innerHTML = getStarSvg(32, isFull); });
+        });
+      });
+
+      platformReviewForm.addEventListener("submit", async (e) => {
+        e.preventDefault(); const errorEl = qs("#platformReviewError"); errorEl.style.display = "none";
+        const fd = new FormData(platformReviewForm); const overallRating = parseInt(fd.get("overallRating"));
+        
+        if (overallRating === 0) { errorEl.textContent = "Por favor, dê uma nota na primeira pergunta."; errorEl.style.display = "block"; return; }
+        const user = currentUser(); if (!user) return;
+        const submitBtn = platformReviewForm.querySelector("button[type='submit']"); submitBtn.disabled = true; submitBtn.textContent = "Enviando...";
+        const newPlatformReview = { id: uid("prev"), userId: user.id, userName: user.name, overallRating: overallRating, usabilityScore: fd.get("usabilityScore"), wouldRecommend: fd.get("wouldRecommend"), feedbackText: sanitizeText(fd.get("feedbackText")), createdAt: nowISO() };
+        try { await addPlatformReview(newPlatformReview); toast("Feedback enviado! Obrigado por ajudar.", "success"); navigate("/"); } catch (err) { errorEl.textContent = err.message || "Ocorreu um erro."; errorEl.style.display = "block"; submitBtn.disabled = false; submitBtn.textContent = "Enviar Avaliação"; }
+      });
+    }
+  }
+
+  function renderUploadPreview() { const box = qs("#uploadPreview"); if (!box) return; box.innerHTML = pendingImages.map((src, i) => `<div class="rm"><img src="${src}"><button type="button" data-i="${i}">×</button></div>`).join(""); qsa("#uploadPreview button").forEach((b) => b.addEventListener("click", () => { pendingImages.splice(parseInt(b.getAttribute("data-i")), 1); renderUploadPreview(); })); }
+  function updateExploreQuery() { const q = qs("#searchInput") ? qs("#searchInput").value : ""; const cat = qs("#catFilter") ? qs("#catFilter").value : ""; const aba = currentRoute().params.aba || ""; let hash = "/explorar?"; const parts = []; if (q) parts.push("q=" + encodeURIComponent(q)); if (cat) parts.push("cat=" + encodeURIComponent(cat)); if (aba) parts.push("aba=" + encodeURIComponent(aba)); location.hash = hash + parts.join("&"); }
+
+  // =========================================================
+  // INICIALIZAÇÃO
+  // =========================================================
+  onAuthStateChanged(auth, async (user) => { 
+      firebaseUser = user; authReady = true; dbReady = false; 
+      if (user) {
+          const savedToken = localStorage.getItem("fcm_token_temp");
+          if (savedToken && (!db || !db.myProfile || db.myProfile.fcmToken !== savedToken)) { try { await updateUserProfile(user.uid, { fcmToken: savedToken }); } catch(e){} }
+      }
+      render({ navigation: true }); 
+  });
+
+  onDBChange((newDb) => { db = newDb; dbReady = true; render({ navigation: false }); });
+  window.addEventListener("hashchange", () => render({ navigation: true }));
+  document.addEventListener("DOMContentLoaded", () => { bindGlobalUI(); render({ navigation: true }); if (typeof Android !== "undefined" && Android.siteTotalmenteCarregado) Android.siteTotalmenteCarregado(); });
+
+  window.tentarAcessarPainel = function(event) { event.preventDefault(); if (typeof Android !== "undefined") { Android.solicitarBiometria(); } else { navigate("/painel"); } };
+  window.biometriaAprovada = function() { navigate("/painel"); };
+  window.alertaSemInternet = function() { toast("Conexão perdida. O aplicativo recarregará quando a rede voltar.", "error"); };
+  window.salvarTokenPush = async function(token) { localStorage.setItem("fcm_token_temp", token); setTimeout(async () => { const user = currentUser(); if (user && user.fcmToken !== token) { try { await updateUserProfile(user.id, { fcmToken: token }); } catch (err) {} } }, 3000); };
+})();
