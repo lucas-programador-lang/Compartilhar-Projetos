@@ -2,7 +2,7 @@
    COMPARTILHAR PROJETOS — DB-SYNC.JS (v14 - A Digitar...)
    ========================================================= */
 import { rtdb, auth } from "./firebase-config.js";
-import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo, onDisconnect } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+import { ref, set, update, push, onValue, off, get, child, query, orderByChild, equalTo, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -102,6 +102,15 @@ export function addProjectReview(projectId, review) {
   return set(ref(rtdb, `${DB_PATH}/projects/${project._fbKey}/reviews/${review.userId}`), review).then(() => review);
 }
 export function addPost(post) { return set(push(ref(rtdb, `${DB_PATH}/posts`)), post).then(() => post); }
+// Curtida fica em posts/{postId}/likes/{uid} = true — a chave é o próprio
+// uid de quem curtiu, igual a addPlatformReview/addProjectReview, pra cada
+// pessoa só poder escrever (curtir/descurtir) a própria curtida.
+export function toggleLike(postId, userId, currentlyLiked) {
+  const post = cache.posts.find((p) => p && p.id === postId);
+  if (!post || !post._fbKey) throw new Error("Publicação não encontrada.");
+  const likeRef = ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/likes/${userId}`);
+  return currentlyLiked ? remove(likeRef) : set(likeRef, true);
+}
 export function addComment(postId, comment) { const post = cache.posts.find((p) => p && p.id === postId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments`)), comment).then(() => comment); }
 export function addReply(postId, commentId, reply) { const post = cache.posts.find((p) => p && p.id === postId); const comment = (post.comments || []).find((c) => c && c.id === commentId); return set(push(ref(rtdb, `${DB_PATH}/posts/${post._fbKey}/comments/${comment._fbKey}/replies`)), reply).then(() => reply); }
 // Mesma lógica: chave = uid do usuário, para a regra de segurança poder
