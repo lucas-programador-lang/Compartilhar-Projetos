@@ -6,7 +6,7 @@ import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush, addPlatformReview, addProjectReview,
-  enviarMensagemSuporte, escutarChatUsuario, marcarChatLidoUser, escutarPresencaAdmin, notificarDigitacao, reabrirChatUsuario, encerrarChatUsuario
+  enviarMensagemSuporte, escutarChatUsuario, marcarChatLidoUser, escutarPresencaAdmin, notificarDigitacao, reabrirChatUsuario, encerrarChatUsuario, registrarVisualizacao
 } from "./db-sync.js";
 import { uid, nowISO } from "./seed.js";
 
@@ -384,7 +384,7 @@ import { uid, nowISO } from "./seed.js";
     let seg = path.split("/").filter(Boolean); let html = "";
     if (path === "/" || path === "") html = viewHome();
     else if (path === "/explorar") html = viewExplore(params);
-    else if (seg[0] === "projeto" && seg[1]) html = viewProjectDetail(seg[1]);
+    else if (seg[0] === "projeto" && seg[1]) { html = viewProjectDetail(seg[1]); registrarVisualizacao(seg[1]); }
     else if (path === "/publicar") html = viewPublish(params);
     else if (path === "/comunidade") html = viewCommunity();
     else if (path === "/planos") html = viewPlans();
@@ -924,17 +924,38 @@ import { uid, nowISO } from "./seed.js";
 
   function viewExplore(params) {
     const search = (params.q || "").toLowerCase();
+    const aba = params.aba === "alta" || params.aba === "novos" ? params.aba : "todos";
     let list = db.projects.filter((p) => p.status === "published");
     if (search) list = list.filter((p) => p.title.toLowerCase().includes(search) || p.description.toLowerCase().includes(search));
-    const grouped = {}; db.categories.forEach(c => grouped[c.id] = { name: c.name, projects: [] }); grouped["geral"] = { name: "Geral", projects: [] };
-    list.forEach(p => { const cId = p.categoryId || "geral"; if(grouped[cId]) grouped[cId].projects.push(p); });
-    const categoriesHtml = Object.values(grouped).filter(g => g.projects.length > 0).map(g => `<div class="category-section" style="margin-bottom: 48px;"><h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--gold-500, #d4af37); padding-bottom: 8px; display: inline-block;">${escapeHtml(g.name)}</h3><div class="project-grid">${g.projects.map(projectCard).join("")}</div></div>`).join("");
-    return `<section class="section" style="padding-top:44px"><div class="container"><div class="section-head"><div><span class="tag-label">Catálogo</span><h2>Explorar projetos</h2><p>Descubra o que criadores de todo o Brasil estão construindo agora.</p></div></div><div class="filters-bar" style="margin-bottom: 32px;"><input id="searchInput" class="search-input" type="search" placeholder="Buscar projetos por nome ou descrição…" value="${escapeHtml(params.q || "")}"></div>${categoriesHtml || emptyState("Nenhum projeto encontrado", "Tente ajustar a busca.")}</div></section>`;
+
+    const qSuffix = params.q ? "q=" + encodeURIComponent(params.q) + "&" : "";
+    const tabsHtml = `<div class="explore-tabs" style="display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;">
+      <a href="#/explorar?${qSuffix}aba=todos" class="btn btn-sm ${aba === "todos" ? "btn-primary" : "btn-ghost"}">Todos</a>
+      <a href="#/explorar?${qSuffix}aba=alta" class="btn btn-sm ${aba === "alta" ? "btn-primary" : "btn-ghost"}">Em Alta</a>
+      <a href="#/explorar?${qSuffix}aba=novos" class="btn btn-sm ${aba === "novos" ? "btn-primary" : "btn-ghost"}">Novidades</a>
+    </div>`;
+
+    let bodyHtml;
+    if (aba === "alta") {
+      const sorted = list.slice().sort((a, b) => (b.views || 0) - (a.views || 0));
+      bodyHtml = `<div class="project-grid">${sorted.map(projectCard).join("") || emptyState("Nenhum projeto encontrado", "Tente ajustar a busca.")}</div>`;
+    } else if (aba === "novos") {
+      const sorted = list.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      bodyHtml = `<div class="project-grid">${sorted.map(projectCard).join("") || emptyState("Nenhum projeto encontrado", "Tente ajustar a busca.")}</div>`;
+    } else {
+      const grouped = {}; db.categories.forEach(c => grouped[c.id] = { name: c.name, projects: [] }); grouped["geral"] = { name: "Geral", projects: [] };
+      list.forEach(p => { const cId = p.categoryId || "geral"; if(grouped[cId]) grouped[cId].projects.push(p); });
+      bodyHtml = Object.values(grouped).filter(g => g.projects.length > 0).map(g => `<div class="category-section" style="margin-bottom: 48px;"><h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--gold-500, #d4af37); padding-bottom: 8px; display: inline-block;">${escapeHtml(g.name)}</h3><div class="project-grid">${g.projects.map(projectCard).join("")}</div></div>`).join("") || emptyState("Nenhum projeto encontrado", "Tente ajustar a busca.");
+    }
+
+    return `<section class="section" style="padding-top:44px"><div class="container"><div class="section-head"><div><span class="tag-label">Catálogo</span><h2>Explorar projetos</h2><p>Descubra o que criadores de todo o Brasil estão construindo agora.</p></div></div><div class="filters-bar" style="margin-bottom: 20px;"><input id="searchInput" class="search-input" type="search" placeholder="Buscar projetos por nome ou descrição…" value="${escapeHtml(params.q || "")}"></div>${tabsHtml}${bodyHtml}</div></section>`;
   }
 
   function projectCard(p) {
     const img = p.images && p.images[0];
-    return `<a href="#/projeto/${p.id}" class="project-card"><div class="pc-thumb">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}" loading="lazy">` : ""}<span class="pc-cat">${escapeHtml(categoryName(p.categoryId))}</span></div><div class="pc-body"><h3>${escapeHtml(p.title)}</h3><p>${escapeHtml(p.description)}</p><div class="pc-meta"><span class="author"><span class="pc-mini-avatar">${initials(p.ownerName)}</span>${escapeHtml(p.ownerName)}</span><span>${fmtDate(p.createdAt)}</span></div></div></a>`;
+    const views = p.views || 0;
+    const viewsLabel = views ? ` · ${views} ${views === 1 ? "visualização" : "visualizações"}` : "";
+    return `<a href="#/projeto/${p.id}" class="project-card"><div class="pc-thumb">${img ? `<img src="${img}" alt="${escapeHtml(p.title)}" loading="lazy">` : ""}<span class="pc-cat">${escapeHtml(categoryName(p.categoryId))}</span></div><div class="pc-body"><h3>${escapeHtml(p.title)}</h3><p>${escapeHtml(p.description)}</p><div class="pc-meta"><span class="author"><span class="pc-mini-avatar">${initials(p.ownerName)}</span>${escapeHtml(p.ownerName)}</span><span>${fmtDate(p.createdAt)}${viewsLabel}</span></div></div></a>`;
   }
 
   function viewProjectDetail(id) {
@@ -1256,7 +1277,7 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function renderUploadPreview() { const box = qs("#uploadPreview"); if (!box) return; box.innerHTML = pendingImages.map((src, i) => `<div class="rm"><img src="${src}"><button type="button" data-i="${i}">×</button></div>`).join(""); qsa("#uploadPreview button").forEach((b) => b.addEventListener("click", () => { pendingImages.splice(parseInt(b.getAttribute("data-i")), 1); renderUploadPreview(); })); }
-  function updateExploreQuery() { const q = qs("#searchInput") ? qs("#searchInput").value : ""; const cat = qs("#catFilter") ? qs("#catFilter").value : ""; let hash = "/explorar?"; const parts = []; if (q) parts.push("q=" + encodeURIComponent(q)); if (cat) parts.push("cat=" + encodeURIComponent(cat)); location.hash = hash + parts.join("&"); }
+  function updateExploreQuery() { const q = qs("#searchInput") ? qs("#searchInput").value : ""; const cat = qs("#catFilter") ? qs("#catFilter").value : ""; const aba = currentRoute().params.aba || ""; let hash = "/explorar?"; const parts = []; if (q) parts.push("q=" + encodeURIComponent(q)); if (cat) parts.push("cat=" + encodeURIComponent(cat)); if (aba) parts.push("aba=" + encodeURIComponent(aba)); location.hash = hash + parts.join("&"); }
 
   // =========================================================
   // INICIALIZAÇÃO
