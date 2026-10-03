@@ -33,6 +33,27 @@ export async function updateUserProfile(userId, { name, bio, document, fcmToken 
   if (!res.ok) throw new Error(data.message || "Erro ao atualizar perfil"); return data;
 }
 
+/* =========================================================
+   CONTADOR DE VISUALIZAÇÕES DE PROJETO
+   ========================================================= */
+// Conta no máximo 1 visualização por projeto por sessão do navegador
+// (sessionStorage), pra não inflar o contador só porque a pessoa
+// atualizou a página várias vezes seguidas.
+export function registrarVisualizacao(projectId) {
+  if (!projectId) return;
+  const chave = `view_${projectId}`;
+  try {
+    if (sessionStorage.getItem(chave)) return;
+    sessionStorage.setItem(chave, "1");
+  } catch (e) { /* sessionStorage indisponível — segue e registra mesmo assim */ }
+
+  fetch(`${WORKER_URL}/increment-view`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId }),
+  }).catch(() => {});
+}
+
 export async function enviarNotificacaoPush({ targetUserId, targetUserIds, title, body, data } = {}) {
   if (!auth.currentUser) return;
   try { const idToken = await auth.currentUser.getIdToken(); await fetch(`${NOTIFY_WORKER_URL}/notify`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken }, body: JSON.stringify({ targetUserId, targetUserIds, title, body, data }) }); } catch (error) {}
@@ -92,49 +113,23 @@ export function markNotificationRead(notificationId) { const notification = cach
 /* =========================================================
    CHAT DE SUPORTE EM TEMPO REAL
    ========================================================= */
-// imageData (opcional): dataURL base64 de uma imagem anexada, mesmo
-// padrão já usado para fotos de projeto (sem Firebase Storage).
-export async function enviarMensagemSuporte(userId, userName, text, sender, imageData) {
+export async function enviarMensagemSuporte(userId, userName, text, sender) {
   const chatRef = ref(rtdb, `supportChats/${userId}`); const msgsRef = ref(rtdb, `supportChats/${userId}/messages`); const now = new Date().toISOString();
-  const msg = { sender: sender, text: text || "", createdAt: now, read: false };
-  if (imageData) msg.imageData = imageData;
-  await set(push(msgsRef), msg);
-  const lastMessagePreview = text ? text : "📷 Foto";
-  await update(chatRef, { userName: userName, lastMessage: lastMessagePreview, updatedAt: now, unreadAdmin: sender === "user", unreadUser: sender === "admin", status: "open" });
+  await set(push(msgsRef), { sender: sender, text: text, createdAt: now });
+  await update(chatRef, { userName: userName, lastMessage: text, updatedAt: now, unreadAdmin: sender === "user", unreadUser: sender === "admin", status: "open" });
 }
 export function escutarChatUsuario(userId, callback) { return onValue(ref(rtdb, `supportChats/${userId}`), (snapshot) => { callback(snapshot.val()); }); }
-// Marca como lidas (read: true) todas as mensagens do OUTRO remetente
-// que ainda não foram lidas — usado para os checks ✓✓ estilo WhatsApp.
-function marcarMensagensComoLidas(userId, senderToMark) {
-  const msgsRef = ref(rtdb, `supportChats/${userId}/messages`);
-  get(msgsRef).then((snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-    const updates = {};
-    Object.entries(data).forEach(([msgId, msg]) => {
-      if (msg && msg.sender === senderToMark && !msg.read) {
-        updates[`${msgId}/read`] = true;
-      }
-    });
-    if (Object.keys(updates).length > 0) update(msgsRef, updates);
-  }).catch(() => {});
-}
-export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadUser: false }); marcarMensagensComoLidas(userId, "admin"); }
-export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); marcarMensagensComoLidas(userId, "user"); }
+export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadUser: false }); }
+export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); }
 export function escutarTodosOsChats(callback) { return onValue(ref(rtdb, `supportChats`), (snapshot) => { callback(snapshot.val()); }); }
-// Encerrar (admin ou usuário) agora APAGA o histórico de mensagens —
-// mudança intencional: ao reabrir/iniciar de novo, a conversa começa
-// vazia. status "closed" continua sendo setado por compatibilidade
-// (ex.: para não reaparecer sozinha antes do usuário reabrir).
-export function encerrarChatAdmin(userId) {
-  return update(ref(rtdb, `supportChats/${userId}`), { status: "closed", messages: null, lastMessage: "", unreadAdmin: false, unreadUser: false });
-}
-// (Para o Usuário) Reabrir/iniciar uma nova conversa depois de ter saído.
+export function encerrarChatAdmin(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
+// (Para o Usuário) Reabrir/iniciar uma nova conversa depois de ter saído —
+// só muda o status de volta para "open"; NUNCA apaga o histórico de
+// mensagens (o admin precisa continuar vendo a conversa anterior).
 export function reabrirChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "open", unreadAdmin: false, unreadUser: false }); }
-// (Para o Usuário) Sair da conversa — também apaga o histórico.
-export function encerrarChatUsuario(userId) {
-  return update(ref(rtdb, `supportChats/${userId}`), { status: "closed", messages: null, lastMessage: "", unreadAdmin: false, unreadUser: false });
-}
+// (Para o Usuário) Sair da conversa — marca como fechada do próprio lado
+// do usuário, sem apagar mensagens.
+export function encerrarChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
 
 export function setAdminPresenceOnline() {
   const connectedRef = ref(rtdb, ".info/connected");
