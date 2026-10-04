@@ -131,14 +131,14 @@ export function escutarChatUsuario(userId, callback) { return onValue(ref(rtdb, 
 export function marcarChatLidoUser(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadUser: false }); }
 export function marcarChatLidoAdmin(userId) { update(ref(rtdb, `supportChats/${userId}`), { unreadAdmin: false }); }
 export function escutarTodosOsChats(callback) { return onValue(ref(rtdb, `supportChats`), (snapshot) => { callback(snapshot.val()); }); }
-export function encerrarChatAdmin(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
+export function encerrarChatAdmin(userId) { return remove(ref(rtdb, `supportChats/${userId}`)); }
 // (Para o Usuário) Reabrir/iniciar uma nova conversa depois de ter saído —
 // só muda o status de volta para "open"; NUNCA apaga o histórico de
 // mensagens (o admin precisa continuar vendo a conversa anterior).
 export function reabrirChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "open", unreadAdmin: false, unreadUser: false }); }
 // (Para o Usuário) Sair da conversa — marca como fechada do próprio lado
 // do usuário, sem apagar mensagens.
-export function encerrarChatUsuario(userId) { return update(ref(rtdb, `supportChats/${userId}`), { status: "closed" }); }
+export function encerrarChatUsuario(userId) { return remove(ref(rtdb, `supportChats/${userId}`)); }
 
 export function setAdminPresenceOnline() {
   const connectedRef = ref(rtdb, ".info/connected");
