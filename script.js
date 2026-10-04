@@ -1308,13 +1308,23 @@ import { uid, nowISO } from "./seed.js";
       if (user) {
           const savedToken = localStorage.getItem("fcm_token_temp");
           if (savedToken && (!db || !db.myProfile || db.myProfile.fcmToken !== savedToken)) { try { await updateUserProfile(user.uid, { fcmToken: savedToken }); } catch(e){} }
+      } else if (sessionStorage.getItem("sessionExpiredNotice")) {
+          // firebase-config.js detectou 7 dias de inatividade e já deslogou;
+          // este é o momento certo de avisar, já que o estado "deslogado"
+          // acabou de ser confirmado pelo próprio Firebase (sem corrida com
+          // o carregamento da página).
+          sessionStorage.removeItem("sessionExpiredNotice");
+          toast("Sua sessão expirou por inatividade. Faça login novamente.", "error");
       }
       render({ navigation: true }); 
   });
 
   onDBChange((newDb) => { db = newDb; dbReady = true; render({ navigation: false }); });
   window.addEventListener("hashchange", () => render({ navigation: true }));
-  document.addEventListener("DOMContentLoaded", () => { bindGlobalUI(); render({ navigation: true }); if (typeof Android !== "undefined" && Android.siteTotalmenteCarregado) Android.siteTotalmenteCarregado(); });
+  document.addEventListener("DOMContentLoaded", () => {
+    bindGlobalUI(); render({ navigation: true });
+    if (typeof Android !== "undefined" && Android.siteTotalmenteCarregado) Android.siteTotalmenteCarregado();
+  });
 
   window.tentarAcessarPainel = function(event) { event.preventDefault(); if (typeof Android !== "undefined") { Android.solicitarBiometria(); } else { navigate("/painel"); } };
   window.biometriaAprovada = function() { navigate("/painel"); };
