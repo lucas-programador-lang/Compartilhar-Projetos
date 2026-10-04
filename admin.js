@@ -286,7 +286,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     if (endBtn) {
         endBtn.addEventListener("click", async () => {
             if (!activeChatUserId) return;
-            const ok = await confirmAction("Encerrar esta conversa? O utilizador terá de abrir um novo pedido de suporte.", { title: "Encerrar Chat", confirmLabel: "Sim, encerrar", neutral: true });
+            const ok = await confirmAction("Encerrar esta conversa? O histórico desta conversa será apagado e o utilizador terá de abrir um novo pedido de suporte.", { title: "Encerrar Chat", confirmLabel: "Sim, encerrar" });
             if (!ok) return;
             try { await encerrarChatAdmin(activeChatUserId); activeChatUserId = null; renderAdminChatList(); renderAdminActiveChat(); toast("Chat encerrado com sucesso.", "success"); } catch (err) { toast("Erro ao encerrar: " + err.message, "error"); }
         });
@@ -429,7 +429,16 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     const catForm = qs("#catForm"); if (catForm && !catForm.dataset.bound) { catForm.dataset.bound = "1"; catForm.addEventListener("submit", (e) => { e.preventDefault(); withButtonLock(catForm.querySelector('button[type="submit"]'), async () => { const input = qs("#newCatName"); const name = input.value.trim(); if (!name) return; await adminFetch("/admin/create-category", { name }); input.value = ""; toast("Categoria adicionada.", "success"); renderAll(); }); }); }
   }
 
-  onAuthStateChanged(auth, (user) => { firebaseUser = user; authReady = true; boot(); });
+  onAuthStateChanged(auth, (user) => {
+    firebaseUser = user; authReady = true;
+    if (!user && sessionStorage.getItem("sessionExpiredNotice")) {
+      // firebase-config.js detectou 7 dias de inatividade e já deslogou;
+      // este é o momento certo de avisar, sem corrida com o carregamento da página.
+      sessionStorage.removeItem("sessionExpiredNotice");
+      toast("Sua sessão expirou por inatividade. Faça login novamente.", "error");
+    }
+    boot();
+  });
   let lastRelevantSnapshot = null;
   function relevantSnapshot(database) { const { notifications, ...rest } = database; return JSON.stringify(rest); }
   onDBChange((newDb) => { db = newDb; const wasReady = dbReady; dbReady = isDBSynced(); if (dbReady) { const snap = relevantSnapshot(db); if (wasReady && snap === lastRelevantSnapshot) return; lastRelevantSnapshot = snap; } boot(); });
