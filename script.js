@@ -381,8 +381,8 @@ import { uid, nowISO } from "./seed.js";
 
     if (user) {
       const avatarEl = qs("#avatarInitial");
-      if (user.avatarUrl) { avatarEl.textContent = ""; avatarEl.style.backgroundImage = `url('${user.avatarUrl}')`; avatarEl.style.backgroundSize = "cover"; avatarEl.style.backgroundPosition = "center"; avatarEl.style.background = ""; }
-      else { avatarEl.style.backgroundImage = ""; avatarEl.textContent = initials(user.name); avatarEl.style.background = user.avatarColor || ""; }
+      if (user.avatarUrl) { avatarEl.textContent = ""; avatarEl.style.background = "none"; avatarEl.style.backgroundImage = `url('${user.avatarUrl}')`; avatarEl.style.backgroundSize = "cover"; avatarEl.style.backgroundPosition = "center"; }
+      else { avatarEl.style.backgroundImage = "none"; avatarEl.style.background = user.avatarColor || ""; avatarEl.textContent = initials(user.name); }
       const pill = qs("#subPill"); const active = isSubscriptionActive(user);
       pill.textContent = active ? "Assinatura ativa" : "Sem assinatura"; pill.className = "sub-pill " + (active ? "active" : "free");
     }
