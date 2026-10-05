@@ -23,11 +23,14 @@ export function onDBChange(cb) { listeners.push(cb); if (synced) cb(cache); retu
 export function getDB() { return cache; }
 export function isDBSynced() { return synced; }
 
-export async function updateUserProfile(userId, { name, bio, document, fcmToken } = {}) {
+export async function updateUserProfile(userId, { name, bio, document, fcmToken, avatarUrl } = {}) {
   if (!auth.currentUser) throw new Error("Você precisa estar logado.");
   const idToken = await auth.currentUser.getIdToken(); const payload = {};
   if (name != null) payload.name = name; if (bio != null) payload.bio = bio; if (document != null) payload.document = document;
   if (fcmToken != null) payload.fcmToken = fcmToken;
+  // avatarUrl usa !== undefined (não != null) porque "" é um valor válido
+  // aqui — significa "remover a foto e voltar pras iniciais coloridas".
+  if (avatarUrl !== undefined) payload.avatarUrl = avatarUrl;
   const res = await fetch(`${WORKER_URL}/update-profile`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify(payload) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || "Erro ao atualizar perfil"); return data;
