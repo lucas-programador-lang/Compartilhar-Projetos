@@ -46,8 +46,8 @@ import { onDBChange } from "/db-sync.js";
     const avatarInitial = qs("#avatarInitial");
     const subPill = qs("#subPill");
     if (user && avatarInitial && subPill) {
-      if (user.avatarUrl) { avatarInitial.textContent = ""; avatarInitial.style.backgroundImage = `url('${user.avatarUrl}')`; avatarInitial.style.backgroundSize = "cover"; avatarInitial.style.backgroundPosition = "center"; avatarInitial.style.background = ""; }
-      else { avatarInitial.style.backgroundImage = ""; avatarInitial.textContent = initials(user.name); avatarInitial.style.background = user.avatarColor || ""; }
+      if (user.avatarUrl) { avatarInitial.textContent = ""; avatarInitial.style.background = "none"; avatarInitial.style.backgroundImage = `url('${user.avatarUrl}')`; avatarInitial.style.backgroundSize = "cover"; avatarInitial.style.backgroundPosition = "center"; }
+      else { avatarInitial.style.backgroundImage = "none"; avatarInitial.style.background = user.avatarColor || ""; avatarInitial.textContent = initials(user.name); }
       const active = isSubscriptionActive(user);
       subPill.textContent = active ? "Assinatura ativa" : "Sem assinatura";
       subPill.className = "sub-pill " + (active ? "active" : "free");
