@@ -1101,7 +1101,7 @@ import { uid, nowISO } from "./seed.js";
           <div class="pd-row"><span>Categoria</span><span>${escapeHtml(categoryName(p.categoryId))}</span></div>
           <div class="pd-row"><span>Publicado em</span><span>${fmtDate(p.createdAt)}</span></div>
           <a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="margin-top: 16px;">Acessar projeto ↗</a>
-          <button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', location.origin + '/#/projeto/' + '${p.id}')">Compartilhar projeto</button>
+          <button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', location.origin + '/projeto/' + '${p.id}')">Compartilhar projeto</button>
         </aside>
       </div>
     </div>`;
