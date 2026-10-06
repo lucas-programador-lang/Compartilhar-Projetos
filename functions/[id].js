@@ -69,6 +69,11 @@ export async function onRequest(context) {
 
   const title = escapeHtml(project.title);
   const description = escapeHtml((project.description || "").slice(0, 200));
+  // Projetos mais antigos ainda guardam a foto como data: URL (não dá
+  // pra usar como og:image). Projetos novos têm uma URL http(s) de
+  // verdade (R2, via worker.js) — só essa forma funciona na prévia.
+  const firstImage = Array.isArray(project.images) ? project.images[0] : null;
+  const ogImage = firstImage && /^https?:\/\//.test(firstImage) ? firstImage : DEFAULT_OG_IMAGE;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -79,13 +84,13 @@ export async function onRequest(context) {
 <meta property="og:type" content="website">
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
-<meta property="og:image" content="${DEFAULT_OG_IMAGE}">
+<meta property="og:image" content="${ogImage}">
 <meta property="og:url" content="${SITE_ORIGIN}/projeto/${encodeURIComponent(id)}">
 <meta property="og:site_name" content="Compartilhar Projetos">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${title}">
 <meta name="twitter:description" content="${description}">
-<meta name="twitter:image" content="${DEFAULT_OG_IMAGE}">
+<meta name="twitter:image" content="${ogImage}">
 <link rel="canonical" href="${targetSpaUrl}">
 </head>
 <body>
