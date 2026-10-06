@@ -211,6 +211,23 @@ import { uid, nowISO } from "./seed.js";
   // =========================================================
   // AÇÕES DA PLATAFORMA (PROJETOS, COMUNIDADE, SAQUE)
   // =========================================================
+  // Sobe cada foto (já comprimida como data: URL) pro R2 via worker.js e
+  // devolve as URLs públicas reais. É isso que faz a prévia de
+  // compartilhamento (Open Graph) conseguir mostrar a foto do projeto —
+  // uma data: URL nunca funcionaria como og:image.
+  async function uploadProjectImages(dataUrls) {
+    if (!dataUrls || dataUrls.length === 0) return [];
+    if (!auth.currentUser) throw new Error("Você precisa estar logado.");
+    const idToken = await auth.currentUser.getIdToken();
+    const uploads = dataUrls.map(async (durl) => {
+      const res = await fetch(`${WORKER_URL}/upload-project-image`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken }, body: JSON.stringify({ imageDataUrl: durl }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Falha ao enviar imagem.");
+      return data.url;
+    });
+    return Promise.all(uploads);
+  }
+
   async function publishProject(data) {
     const user = currentUser(); if (!user) throw new Error("Você precisa entrar na sua conta.");
     if (!canPublish(user)) throw new Error("Sua assinatura não está ativa. Assine um plano para publicar.");
@@ -1207,8 +1224,21 @@ import { uid, nowISO } from "./seed.js";
     const publishForm = qs("#publishForm");
     if (publishForm) {
       const imageInput = qs("#imageInput"); pendingImages = [];
-      if (imageInput) { imageInput.addEventListener("change", async () => { const files = Array.from(imageInput.files).slice(0, 4); pendingImages = []; for (const f of files) { const durl = await fileToDataURL(f); pendingImages.push(durl); } renderUploadPreview(); }); }
-      publishForm.addEventListener("submit", (e) => { e.preventDefault(); const fd = new FormData(publishForm); qs("#publishError").style.display = "none"; const editingProjectId = fd.get("editingProjectId"); const payload = { title: fd.get("title"), description: fd.get("description"), categoryId: fd.get("categoryId"), link: fd.get("link"), ownerName: fd.get("ownerName"), contact: fd.get("contact"), images: pendingImages }; Promise.resolve().then(() => editingProjectId ? resendProject(editingProjectId, payload) : publishProject(payload)).then((project) => { toast(editingProjectId ? "Projeto reenviado com sucesso!" : "Projeto enviado com sucesso!", "success"); navigate("/painel"); }).catch((err) => { qs("#publishError").textContent = err.message; qs("#publishError").style.display = "block"; }); });
+      if (imageInput) { imageInput.addEventListener("change", async () => { const files = Array.from(imageInput.files).slice(0, 4); pendingImages = []; for (const f of files) { const durl = await fileToCompressedDataURL(f, 1280, 0.75); pendingImages.push(durl); } renderUploadPreview(); }); }
+      publishForm.addEventListener("submit", (e) => {
+        e.preventDefault(); const fd = new FormData(publishForm); qs("#publishError").style.display = "none";
+        const editingProjectId = fd.get("editingProjectId");
+        const submitBtn = publishForm.querySelector('button[type="submit"]'); submitBtn.disabled = true;
+        Promise.resolve()
+          .then(() => uploadProjectImages(pendingImages))
+          .then((imageUrls) => {
+            const payload = { title: fd.get("title"), description: fd.get("description"), categoryId: fd.get("categoryId"), link: fd.get("link"), ownerName: fd.get("ownerName"), contact: fd.get("contact"), images: imageUrls };
+            return editingProjectId ? resendProject(editingProjectId, payload) : publishProject(payload);
+          })
+          .then((project) => { toast(editingProjectId ? "Projeto reenviado com sucesso!" : "Projeto enviado com sucesso!", "success"); navigate("/painel"); })
+          .catch((err) => { qs("#publishError").textContent = err.message; qs("#publishError").style.display = "block"; })
+          .finally(() => { submitBtn.disabled = false; });
+      });
     }
 
     const postSubmit = qs("#postSubmit"); if (postSubmit) { postSubmit.addEventListener("click", () => { const input = qs("#postInput"); Promise.resolve().then(() => createPost(input.value)).then(() => { navigate("/comunidade"); }).catch((err) => toast(friendlyError(err, "Sem links na comunidade."), "error")); }); }
