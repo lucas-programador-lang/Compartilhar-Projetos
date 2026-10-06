@@ -1,0 +1,33 @@
+name: Compilar APK Android
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # ISSO CRIA O BOTÃO PARA COMPILAR O APK MANUALMENTE
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar Java 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Compilar o APK
+      # Aqui dizemos ao GitHub para entrar na pasta do Android antes de rodar o comando
+      run: |
+        cd CompartilharProjetosAndroid
+        chmod +x gradlew
+        ./gradlew assembleRelease
+
+    - name: Disponibilizar APK para Download
+      uses: actions/upload-artifact@v4
+      with:
+        name: CompartilharProjetos-APK
+        # O caminho onde o robô vai apanhar o ficheiro gerado
+        path: CompartilharProjetosAndroid/app/build/outputs/apk/release/app-release.apk
