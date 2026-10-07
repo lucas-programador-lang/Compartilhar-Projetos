@@ -13,15 +13,14 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Configurar Java 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v5 # Atualizado para v5 para remover o aviso de depreciação
       with:
         java-version: '17'
         distribution: 'temurin'
 
     - name: Compilar o APK
-      # Aqui dizemos ao GitHub para entrar na pasta do Android antes de rodar o comando
+      # Removido o 'cd' - o robô vai rodar direto na raiz onde está o gradlew
       run: |
-        cd CompartilharProjetosAndroid
         chmod +x gradlew
         ./gradlew assembleRelease
 
@@ -29,5 +28,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: CompartilharProjetos-APK
-        # O caminho onde o robô vai apanhar o ficheiro gerado
-        path: CompartilharProjetosAndroid/app/build/outputs/apk/release/app-release.apk
+        # Caminho corrigido, indo direto na pasta app
+        path: app/build/outputs/apk/release/app-release.apk
