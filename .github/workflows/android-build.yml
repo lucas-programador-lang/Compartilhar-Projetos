@@ -3,13 +3,13 @@ name: Compilar APK Android
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # ISSO CRIA O BOTÃO PARA COMPILAR O APK MANUALMENTE
+  workflow_dispatch:
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Permissão necessária para o robô publicar o APK
+      contents: write 
     steps:
     - name: Checkout do código
       uses: actions/checkout@v4
@@ -20,22 +20,22 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Compilar o APK
+    - name: Compilar o APK (Com Assinatura Automática)
       run: |
         chmod +x gradlew
-        ./gradlew assembleRelease
+        ./gradlew assembleDebug
 
     - name: Disponibilizar APK para Download (ZIP temporário)
       uses: actions/upload-artifact@v4
       with:
         name: CompartilharProjetos-APK
-        path: app/build/outputs/apk/release/*.apk
+        path: app/build/outputs/apk/debug/*.apk
 
     - name: Publicar APK no GitHub Releases (Link Permanente)
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0.${{ github.run_number }}
         name: Atualização Automática ${{ github.run_number }}
-        files: app/build/outputs/apk/release/*.apk
+        files: app/build/outputs/apk/debug/*.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
