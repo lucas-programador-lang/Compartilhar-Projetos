@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "421523492483",
+    "firebase_url": "https://compartilhar-projetos-default-rtdb.firebaseio.com",
+    "project_id": "compartilhar-projetos",
+    "storage_bucket": "compartilhar-projetos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:421523492483:android:e3e590bfa8ce3bba2655b6",
+        "android_client_info": {
+          "package_name": "br.com.compartilharprojetos.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDd834zQaFc0fwAKjROn6IrQAuGFHU3nj0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

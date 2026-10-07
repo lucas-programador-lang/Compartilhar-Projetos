@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- O seu tema principal atualizado -->
+    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#6C63FF</item>
+        <item name="android:statusBarColor">#0B0B10</item>
+        <item name="android:navigationBarColor">#0B0B10</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <!-- Fundo alterado para a cor escura, pois a nova Splash Screen fará a transição -->
+        <item name="android:windowBackground">#0B0B10</item>
+    </style>
+
+    <!-- O NOVO tema exigido pela API Splash Screen do Google -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Cor de fundo da tela de abertura -->
+        <item name="windowSplashScreenBackground">#0B0B10</item>
+        <!-- Sua logo oficial recortada (288x288) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/minha_logo</item>
+        <!-- O tema que o app vai usar DEPOIS que a logo sumir -->
+        <item name="postSplashScreenTheme">@style/AppTheme</item>
+    </style>
+</resources>

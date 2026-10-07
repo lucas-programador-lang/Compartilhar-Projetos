@@ -1,0 +1,4 @@
+br.com.compartilharprojetos.app.test.app-androidTest-0 C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\build\generated\res\resValues\androidTest\debug
+br.com.compartilharprojetos.app.test.app-mergeDebugAndroidTestResources-1 C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+br.com.compartilharprojetos.app.test.app-mergeDebugAndroidTestResources-2 C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+br.com.compartilharprojetos.app.test.app-debugAndroidTest-3 C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources

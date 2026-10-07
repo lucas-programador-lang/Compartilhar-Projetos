@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "br.com.compartilharprojetos.app-mergeReleaseResources-3:/values-v31/values-v31.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\josel\\.gradle\\caches\\9.0.0\\transforms\\304450de4f5fbd97ada15f75fcc5c9c0\\transformed\\core-splashscreen-1.0.1\\res\\values-v31\\values-v31.xml",
+                    "from": {
+                        "startLines": "2,9",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,473",
+                        "endLines": "8,13",
+                        "endColumns": "12,12",
+                        "endOffsets": "468,697"
+                    }
+                }
+            ]
+        }
+    ]
+}

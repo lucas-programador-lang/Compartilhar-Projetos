@@ -1,0 +1,537 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="br.com.compartilharprojetos.app"
+4    android:versionCode="1"
+5    android:versionName="1.0.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="23"
+9        android:targetSdkVersion="35" />
+10
+11    <!-- Permissões Básicas -->
+12    <uses-permission android:name="android.permission.INTERNET" />
+12-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:5:5-67
+12-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:5:22-64
+13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+13-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:6:5-79
+13-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:6:22-76
+14    <uses-permission android:name="android.permission.VIBRATE" />
+14-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:7:5-66
+14-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:7:22-63
+15    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+15-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:8:5-72
+15-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:8:22-69
+16
+17    <!-- Permissões para Geolocalização (Apoio HTML5) -->
+18    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+18-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:11:5-79
+18-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:11:22-76
+19    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+19-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:12:5-81
+19-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:12:22-78
+20
+21    <!-- Permissão para exibir notificações na barra de status (Android 13+) -->
+22    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+22-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:15:5-77
+22-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:15:22-74
+23
+24    <!-- Permissões para Câmera e Arquivos Modernos -->
+25    <uses-permission android:name="android.permission.CAMERA" />
+25-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:18:5-65
+25-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:18:22-62
+26
+27    <uses-feature
+27-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:19:5-85
+28        android:name="android.hardware.camera"
+28-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:19:19-57
+29        android:required="false" />
+29-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:19:58-82
+30
+31    <!-- Permissões de Armazenamento Inteligentes (Retrocompatibilidade) -->
+32    <uses-permission
+32-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:22:5-108
+33        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+33-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:22:22-78
+34        android:maxSdkVersion="28" />
+34-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:22:79-105
+35    <uses-permission
+35-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:23:5-107
+36        android:name="android.permission.READ_EXTERNAL_STORAGE"
+36-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:23:22-77
+37        android:maxSdkVersion="32" />
+37-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:23:78-104
+38    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+38-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:24:5-76
+38-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:24:22-73
+39
+40    <!-- Declaração de Visibilidade (Garante que a app consegue interagir com o WhatsApp) -->
+41    <queries>
+41-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:27:5-30:15
+42        <package android:name="com.whatsapp" />
+42-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:28:9-48
+42-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:28:18-45
+43        <package android:name="com.whatsapp.w4b" />
+43-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:29:9-52
+43-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:29:18-49
+44    </queries>
+45    <!-- suppress DeprecatedClassUsageInspection -->
+46    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+46-->[androidx.biometric:biometric:1.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\ebeaa23923805d53f23f000917d4bbd4\transformed\biometric-1.1.0\AndroidManifest.xml:27:5-74
+46-->[androidx.biometric:biometric:1.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\ebeaa23923805d53f23f000917d4bbd4\transformed\biometric-1.1.0\AndroidManifest.xml:27:22-71
+47    <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required by older versions of Google Play services to create IID tokens -->
+47-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:24:5-68
+47-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:24:22-65
+48    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+48-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:26:5-82
+48-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:26:22-79
+49    <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" />
+49-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:26:5-110
+49-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:26:22-107
+50    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+50-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:25:5-79
+50-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:25:22-76
+51    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" />
+51-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:26:5-88
+51-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:26:22-85
+52    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" />
+52-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:27:5-82
+52-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:27:22-79
+53
+54    <permission
+54-->[androidx.core:core:1.9.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\779b02ed175be62f2d05435f5252ae2f\transformed\core-1.9.0\AndroidManifest.xml:22:5-24:47
+55        android:name="br.com.compartilharprojetos.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+55-->[androidx.core:core:1.9.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\779b02ed175be62f2d05435f5252ae2f\transformed\core-1.9.0\AndroidManifest.xml:23:9-81
+56        android:protectionLevel="signature" />
+56-->[androidx.core:core:1.9.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\779b02ed175be62f2d05435f5252ae2f\transformed\core-1.9.0\AndroidManifest.xml:24:9-44
+57
+58    <uses-permission android:name="br.com.compartilharprojetos.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+58-->[androidx.core:core:1.9.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\779b02ed175be62f2d05435f5252ae2f\transformed\core-1.9.0\AndroidManifest.xml:26:5-97
+58-->[androidx.core:core:1.9.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\779b02ed175be62f2d05435f5252ae2f\transformed\core-1.9.0\AndroidManifest.xml:26:22-94
+59
+60    <application
+60-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:32:5-107:19
+61        android:allowBackup="true"
+61-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:33:9-35
+62        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+62-->[androidx.core:core:1.9.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\779b02ed175be62f2d05435f5252ae2f\transformed\core-1.9.0\AndroidManifest.xml:28:18-86
+63        android:dataExtractionRules="@xml/regras_de_backup"
+63-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:34:9-60
+64        android:extractNativeLibs="false"
+65        android:hardwareAccelerated="true"
+65-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:42:9-43
+66        android:icon="@mipmap/ic_launcher"
+66-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:36:9-43
+67        android:label="Compartilhar Projetos"
+67-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:37:9-46
+68        android:largeHeap="true"
+68-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:35:9-33
+69        android:roundIcon="@mipmap/ic_launcher_round"
+69-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:38:9-54
+70        android:supportsRtl="true"
+70-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:39:9-35
+71        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+71-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:40:9-65
+72        android:usesCleartextTraffic="false" >
+72-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:41:9-45
+73
+74        <!-- Definições padrão para o Firebase Push -->
+75        <meta-data
+75-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:45:9-47:50
+76            android:name="com.google.firebase.messaging.default_notification_channel_id"
+76-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:46:13-89
+77            android:value="default_channel_id" />
+77-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:47:13-47
+78        <meta-data
+78-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:49:9-51:60
+79            android:name="com.google.firebase.messaging.default_notification_icon"
+79-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:50:13-83
+80            android:resource="@mipmap/ic_launcher_round" />
+80-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:51:13-57
+81        <meta-data
+81-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:52:9-54:55
+82            android:name="com.google.firebase.messaging.default_notification_color"
+82-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:53:13-84
+83            android:resource="@android:color/black" />
+83-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:54:13-52
+84
+85        <!-- Ativa a verificação nativa do Google contra sites maliciosos e phishing -->
+86        <meta-data
+86-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:57:9-59:36
+87            android:name="android.webkit.WebView.EnableSafeBrowsing"
+87-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:58:13-69
+88            android:value="true" />
+88-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:59:13-33
+89
+90        <activity
+90-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:61:9-87:20
+91            android:name="br.com.compartilharprojetos.app.MainActivity"
+91-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:62:13-41
+92            android:exported="true"
+92-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:63:13-36
+93            android:resizeableActivity="true"
+93-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:67:13-46
+94            android:screenOrientation="portrait"
+94-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:65:13-49
+95            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+95-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:64:13-69
+96            android:windowSoftInputMode="adjustResize" >
+96-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:66:13-55
+97
+98            <!-- Liga o ficheiro XML que controla os atalhos de ecrã inicial -->
+99            <meta-data
+99-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:70:13-72:53
+100                android:name="android.app.shortcuts"
+100-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:71:17-53
+101                android:resource="@xml/shortcuts" />
+101-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:72:17-50
+102
+103            <intent-filter>
+103-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:74:13-77:29
+104                <action android:name="android.intent.action.MAIN" />
+104-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:75:17-69
+104-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:75:25-66
+105
+106                <category android:name="android.intent.category.LAUNCHER" />
+106-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:76:17-77
+106-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:76:27-74
+107            </intent-filter>
+108
+109            <!-- Deep Linking Clássico -->
+110            <intent-filter>
+110-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:80:13-86:29
+111                <action android:name="android.intent.action.VIEW" />
+111-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:81:17-69
+111-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:81:25-66
+112
+113                <category android:name="android.intent.category.DEFAULT" />
+113-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:82:17-76
+113-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:82:27-73
+114                <category android:name="android.intent.category.BROWSABLE" />
+114-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:83:17-78
+114-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:83:27-75
+115
+116                <data
+116-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:84:17-92
+117                    android:host="compartilhar-projetos.com.br"
+117-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:84:46-89
+118                    android:scheme="https" />
+118-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:84:23-45
+119                <data
+119-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:84:17-92
+120                    android:host="www.compartilhar-projetos.com.br"
+120-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:84:46-89
+121                    android:scheme="https" />
+121-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:84:23-45
+122            </intent-filter>
+123        </activity>
+124
+125        <provider
+126            android:name="androidx.core.content.FileProvider"
+126-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:90:13-62
+127            android:authorities="br.com.compartilharprojetos.app.provider"
+127-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:91:13-60
+128            android:exported="false"
+128-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:92:13-37
+129            android:grantUriPermissions="true" >
+129-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:93:13-47
+130            <meta-data
+130-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:94:13-96:54
+131                android:name="android.support.FILE_PROVIDER_PATHS"
+131-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:95:17-67
+132                android:resource="@xml/file_paths" />
+132-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:96:17-51
+133        </provider>
+134
+135        <service
+135-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:99:9-105:19
+136            android:name="br.com.compartilharprojetos.app.MyFirebaseMessagingService"
+136-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:100:13-55
+137            android:exported="false" >
+137-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:101:13-37
+138            <intent-filter>
+138-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:102:13-104:29
+139                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+139-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:103:17-78
+139-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:103:25-75
+140            </intent-filter>
+141        </service>
+142
+143        <receiver
+143-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:29:9-40:20
+144            android:name="com.google.firebase.iid.FirebaseInstanceIdReceiver"
+144-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:30:13-78
+145            android:exported="true"
+145-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:31:13-36
+146            android:permission="com.google.android.c2dm.permission.SEND" >
+146-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:32:13-73
+147            <intent-filter>
+147-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:33:13-35:29
+148                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+148-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:34:17-81
+148-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:34:25-78
+149            </intent-filter>
+150
+151            <meta-data
+151-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:37:13-39:40
+152                android:name="com.google.android.gms.cloudmessaging.FINISHED_AFTER_HANDLED"
+152-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:38:17-92
+153                android:value="true" />
+153-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:39:17-37
+154        </receiver>
+155        <!--
+156             FirebaseMessagingService performs security checks at runtime,
+157             but set to not exported to explicitly avoid allowing another app to call it.
+158        -->
+159        <service
+159-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:46:9-53:19
+160            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+160-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:47:13-82
+161            android:directBootAware="true"
+161-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:48:13-43
+162            android:exported="false" >
+162-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:49:13-37
+163            <intent-filter android:priority="-500" >
+163-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:102:13-104:29
+164                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+164-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:103:17-78
+164-->C:\Compartilhar Projetos\CompartilharProjetosAndroid\app\src\main\AndroidManifest.xml:103:25-75
+165            </intent-filter>
+166        </service>
+167        <service
+167-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:54:9-63:19
+168            android:name="com.google.firebase.components.ComponentDiscoveryService"
+168-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:55:13-84
+169            android:directBootAware="true"
+169-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:32:13-43
+170            android:exported="false" >
+170-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:56:13-37
+171            <meta-data
+171-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:57:13-59:85
+172                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingKtxRegistrar"
+172-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:58:17-122
+173                android:value="com.google.firebase.components.ComponentRegistrar" />
+173-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:59:17-82
+174            <meta-data
+174-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:60:13-62:85
+175                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingRegistrar"
+175-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:61:17-119
+176                android:value="com.google.firebase.components.ComponentRegistrar" />
+176-->[com.google.firebase:firebase-messaging:24.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\543444c5bab4699381eae0d83a6876d4\transformed\firebase-messaging-24.0.1\AndroidManifest.xml:62:17-82
+177            <meta-data
+177-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:37:13-39:85
+178                android:name="com.google.firebase.components:com.google.firebase.analytics.connector.internal.AnalyticsConnectorRegistrar"
+178-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:38:17-139
+179                android:value="com.google.firebase.components.ComponentRegistrar" />
+179-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:39:17-82
+180            <meta-data
+180-->[com.google.firebase:firebase-installations:18.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\2497909b1113df55fb2551706649090b\transformed\firebase-installations-18.0.0\AndroidManifest.xml:15:13-17:85
+181                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsKtxRegistrar"
+181-->[com.google.firebase:firebase-installations:18.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\2497909b1113df55fb2551706649090b\transformed\firebase-installations-18.0.0\AndroidManifest.xml:16:17-130
+182                android:value="com.google.firebase.components.ComponentRegistrar" />
+182-->[com.google.firebase:firebase-installations:18.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\2497909b1113df55fb2551706649090b\transformed\firebase-installations-18.0.0\AndroidManifest.xml:17:17-82
+183            <meta-data
+183-->[com.google.firebase:firebase-installations:18.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\2497909b1113df55fb2551706649090b\transformed\firebase-installations-18.0.0\AndroidManifest.xml:18:13-20:85
+184                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsRegistrar"
+184-->[com.google.firebase:firebase-installations:18.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\2497909b1113df55fb2551706649090b\transformed\firebase-installations-18.0.0\AndroidManifest.xml:19:17-127
+185                android:value="com.google.firebase.components.ComponentRegistrar" />
+185-->[com.google.firebase:firebase-installations:18.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\2497909b1113df55fb2551706649090b\transformed\firebase-installations-18.0.0\AndroidManifest.xml:20:17-82
+186            <meta-data
+186-->[com.google.firebase:firebase-common-ktx:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\7ca42297549c6eadfcbe54ff2f010840\transformed\firebase-common-ktx-21.0.0\AndroidManifest.xml:12:13-14:85
+187                android:name="com.google.firebase.components:com.google.firebase.ktx.FirebaseCommonLegacyRegistrar"
+187-->[com.google.firebase:firebase-common-ktx:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\7ca42297549c6eadfcbe54ff2f010840\transformed\firebase-common-ktx-21.0.0\AndroidManifest.xml:13:17-116
+188                android:value="com.google.firebase.components.ComponentRegistrar" />
+188-->[com.google.firebase:firebase-common-ktx:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\7ca42297549c6eadfcbe54ff2f010840\transformed\firebase-common-ktx-21.0.0\AndroidManifest.xml:14:17-82
+189            <meta-data
+189-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:35:13-37:85
+190                android:name="com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar"
+190-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:36:17-109
+191                android:value="com.google.firebase.components.ComponentRegistrar" />
+191-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:37:17-82
+192            <meta-data
+192-->[com.google.firebase:firebase-datatransport:18.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\79387f8eab01bf629b4f2d4f4d1c8ce9\transformed\firebase-datatransport-18.2.0\AndroidManifest.xml:25:13-27:85
+193                android:name="com.google.firebase.components:com.google.firebase.datatransport.TransportRegistrar"
+193-->[com.google.firebase:firebase-datatransport:18.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\79387f8eab01bf629b4f2d4f4d1c8ce9\transformed\firebase-datatransport-18.2.0\AndroidManifest.xml:26:17-115
+194                android:value="com.google.firebase.components.ComponentRegistrar" />
+194-->[com.google.firebase:firebase-datatransport:18.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\79387f8eab01bf629b4f2d4f4d1c8ce9\transformed\firebase-datatransport-18.2.0\AndroidManifest.xml:27:17-82
+195        </service>
+196
+197        <activity
+197-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\001e976a690029499808fa853a841577\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:9-22:45
+198            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+198-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\001e976a690029499808fa853a841577\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:19-85
+199            android:exported="false"
+199-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\001e976a690029499808fa853a841577\transformed\play-services-base-18.0.1\AndroidManifest.xml:22:19-43
+200            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+200-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\001e976a690029499808fa853a841577\transformed\play-services-base-18.0.1\AndroidManifest.xml:21:19-78
+201
+202        <receiver
+202-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:29:9-33:20
+203            android:name="com.google.android.gms.measurement.AppMeasurementReceiver"
+203-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:30:13-85
+204            android:enabled="true"
+204-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:31:13-35
+205            android:exported="false" >
+205-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:32:13-37
+206        </receiver>
+207
+208        <service
+208-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:35:9-38:40
+209            android:name="com.google.android.gms.measurement.AppMeasurementService"
+209-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:36:13-84
+210            android:enabled="true"
+210-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:37:13-35
+211            android:exported="false" />
+211-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:38:13-37
+212        <service
+212-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:39:9-43:72
+213            android:name="com.google.android.gms.measurement.AppMeasurementJobService"
+213-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:40:13-87
+214            android:enabled="true"
+214-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:41:13-35
+215            android:exported="false"
+215-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:42:13-37
+216            android:permission="android.permission.BIND_JOB_SERVICE" />
+216-->[com.google.android.gms:play-services-measurement:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\909085868f9d20d58322479efa007722\transformed\play-services-measurement-22.1.0\AndroidManifest.xml:43:13-69
+217
+218        <property
+218-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:30:9-32:61
+219            android:name="android.adservices.AD_SERVICES_CONFIG"
+219-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:31:13-65
+220            android:resource="@xml/ga_ad_services_config" />
+220-->[com.google.android.gms:play-services-measurement-api:22.1.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e033013b170bee7bf0705db123dc6318\transformed\play-services-measurement-api-22.1.0\AndroidManifest.xml:32:13-58
+221
+222        <provider
+222-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:23:9-28:39
+223            android:name="com.google.firebase.provider.FirebaseInitProvider"
+223-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:24:13-77
+224            android:authorities="br.com.compartilharprojetos.app.firebaseinitprovider"
+224-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:25:13-72
+225            android:directBootAware="true"
+225-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:26:13-43
+226            android:exported="false"
+226-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:27:13-37
+227            android:initOrder="100" />
+227-->[com.google.firebase:firebase-common:21.0.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\e80721b4ac225513fde77ac151831e55\transformed\firebase-common-21.0.0\AndroidManifest.xml:28:13-36
+228
+229        <uses-library
+229-->[androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] C:\Users\josel\.gradle\caches\9.0.0\transforms\3318e1eedfb5dc92507ac1d5b9cc01a2\transformed\ads-adservices-1.0.0-beta05\AndroidManifest.xml:23:9-25:40
+230            android:name="android.ext.adservices"
+230-->[androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] C:\Users\josel\.gradle\caches\9.0.0\transforms\3318e1eedfb5dc92507ac1d5b9cc01a2\transformed\ads-adservices-1.0.0-beta05\AndroidManifest.xml:24:13-50
+231            android:required="false" />
+231-->[androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] C:\Users\josel\.gradle\caches\9.0.0\transforms\3318e1eedfb5dc92507ac1d5b9cc01a2\transformed\ads-adservices-1.0.0-beta05\AndroidManifest.xml:25:13-37
+232
+233        <provider
+233-->[androidx.emoji2:emoji2:1.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\30688c0ad3de244d6658bdfc27788fb8\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+234            android:name="androidx.startup.InitializationProvider"
+234-->[androidx.emoji2:emoji2:1.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\30688c0ad3de244d6658bdfc27788fb8\transformed\emoji2-1.2.0\AndroidManifest.xml:25:13-67
+235            android:authorities="br.com.compartilharprojetos.app.androidx-startup"
+235-->[androidx.emoji2:emoji2:1.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\30688c0ad3de244d6658bdfc27788fb8\transformed\emoji2-1.2.0\AndroidManifest.xml:26:13-68
+236            android:exported="false" >
+236-->[androidx.emoji2:emoji2:1.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\30688c0ad3de244d6658bdfc27788fb8\transformed\emoji2-1.2.0\AndroidManifest.xml:27:13-37
+237            <meta-data
+237-->[androidx.emoji2:emoji2:1.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\30688c0ad3de244d6658bdfc27788fb8\transformed\emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+238                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+238-->[androidx.emoji2:emoji2:1.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\30688c0ad3de244d6658bdfc27788fb8\transformed\emoji2-1.2.0\AndroidManifest.xml:30:17-75
+239                android:value="androidx.startup" />
+239-->[androidx.emoji2:emoji2:1.2.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\30688c0ad3de244d6658bdfc27788fb8\transformed\emoji2-1.2.0\AndroidManifest.xml:31:17-49
+240            <meta-data
+240-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\6b84173a16e2671bd17853576c2a224b\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
+241                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+241-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\6b84173a16e2671bd17853576c2a224b\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
+242                android:value="androidx.startup" />
+242-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\josel\.gradle\caches\9.0.0\transforms\6b84173a16e2671bd17853576c2a224b\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
+243            <meta-data
+243-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+244                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+244-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+245                android:value="androidx.startup" />
+245-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+246        </provider>
+247
+248        <meta-data
+248-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a06bece1948fd9acf0c96ae931fa5cd1\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:9-122
+249            android:name="com.google.android.gms.version"
+249-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a06bece1948fd9acf0c96ae931fa5cd1\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:20-65
+250            android:value="@integer/google_play_services_version" />
+250-->[com.google.android.gms:play-services-basement:18.4.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a06bece1948fd9acf0c96ae931fa5cd1\transformed\play-services-basement-18.4.0\AndroidManifest.xml:6:66-119
+251
+252        <receiver
+252-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+253            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+253-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+254            android:directBootAware="false"
+254-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+255            android:enabled="true"
+255-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+256            android:exported="true"
+256-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+257            android:permission="android.permission.DUMP" >
+257-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+258            <intent-filter>
+258-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+259                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+259-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+259-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+260            </intent-filter>
+261            <intent-filter>
+261-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+262                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+262-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+262-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+263            </intent-filter>
+264            <intent-filter>
+264-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+265                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+265-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+265-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+266            </intent-filter>
+267            <intent-filter>
+267-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+268                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+268-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+268-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\josel\.gradle\caches\9.0.0\transforms\a032c8573a1dfb60c7756743e30c3635\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+269            </intent-filter>
+270        </receiver>
+271
+272        <service
+272-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\333ba3c61a8c7bbaf85deff8677be818\transformed\transport-backend-cct-3.1.9\AndroidManifest.xml:28:9-34:19
+273            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+273-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\333ba3c61a8c7bbaf85deff8677be818\transformed\transport-backend-cct-3.1.9\AndroidManifest.xml:29:13-103
+274            android:exported="false" >
+274-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\333ba3c61a8c7bbaf85deff8677be818\transformed\transport-backend-cct-3.1.9\AndroidManifest.xml:30:13-37
+275            <meta-data
+275-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\333ba3c61a8c7bbaf85deff8677be818\transformed\transport-backend-cct-3.1.9\AndroidManifest.xml:31:13-33:39
+276                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+276-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\333ba3c61a8c7bbaf85deff8677be818\transformed\transport-backend-cct-3.1.9\AndroidManifest.xml:32:17-94
+277                android:value="cct" />
+277-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\333ba3c61a8c7bbaf85deff8677be818\transformed\transport-backend-cct-3.1.9\AndroidManifest.xml:33:17-36
+278        </service>
+279        <service
+279-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\6d36c9bd00f762e47eaebc43b0b21bab\transformed\transport-runtime-3.1.9\AndroidManifest.xml:26:9-30:19
+280            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+280-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\6d36c9bd00f762e47eaebc43b0b21bab\transformed\transport-runtime-3.1.9\AndroidManifest.xml:27:13-117
+281            android:exported="false"
+281-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\6d36c9bd00f762e47eaebc43b0b21bab\transformed\transport-runtime-3.1.9\AndroidManifest.xml:28:13-37
+282            android:permission="android.permission.BIND_JOB_SERVICE" >
+282-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\6d36c9bd00f762e47eaebc43b0b21bab\transformed\transport-runtime-3.1.9\AndroidManifest.xml:29:13-69
+283        </service>
+284
+285        <receiver
+285-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\6d36c9bd00f762e47eaebc43b0b21bab\transformed\transport-runtime-3.1.9\AndroidManifest.xml:32:9-34:40
+286            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+286-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\6d36c9bd00f762e47eaebc43b0b21bab\transformed\transport-runtime-3.1.9\AndroidManifest.xml:33:13-132
+287            android:exported="false" /> <!-- The activities will be merged into the manifest of the hosting app. -->
+287-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\josel\.gradle\caches\9.0.0\transforms\6d36c9bd00f762e47eaebc43b0b21bab\transformed\transport-runtime-3.1.9\AndroidManifest.xml:34:13-37
+288        <activity
+288-->[com.google.android.play:core-common:2.0.3] C:\Users\josel\.gradle\caches\9.0.0\transforms\5f295e1ef92de7d9e1625e4bdb97e7d1\transformed\core-common-2.0.3\AndroidManifest.xml:14:9-18:65
+289            android:name="com.google.android.play.core.common.PlayCoreDialogWrapperActivity"
+289-->[com.google.android.play:core-common:2.0.3] C:\Users\josel\.gradle\caches\9.0.0\transforms\5f295e1ef92de7d9e1625e4bdb97e7d1\transformed\core-common-2.0.3\AndroidManifest.xml:15:13-93
+290            android:exported="false"
+290-->[com.google.android.play:core-common:2.0.3] C:\Users\josel\.gradle\caches\9.0.0\transforms\5f295e1ef92de7d9e1625e4bdb97e7d1\transformed\core-common-2.0.3\AndroidManifest.xml:16:13-37
+291            android:stateNotNeeded="true"
+291-->[com.google.android.play:core-common:2.0.3] C:\Users\josel\.gradle\caches\9.0.0\transforms\5f295e1ef92de7d9e1625e4bdb97e7d1\transformed\core-common-2.0.3\AndroidManifest.xml:17:13-42
+292            android:theme="@style/Theme.PlayCore.Transparent" />
+292-->[com.google.android.play:core-common:2.0.3] C:\Users\josel\.gradle\caches\9.0.0\transforms\5f295e1ef92de7d9e1625e4bdb97e7d1\transformed\core-common-2.0.3\AndroidManifest.xml:18:13-62
+293    </application>
+294
+295</manifest>

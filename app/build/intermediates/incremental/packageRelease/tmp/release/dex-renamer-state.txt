@@ -1,0 +1,4 @@
+#Tue Oct 06 01:51:45 AMT 2026
+base.0=C\:\\Compartilhar Projetos\\CompartilharProjetosAndroid\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
+renamed.0=classes.dex
+path.0=classes.dex

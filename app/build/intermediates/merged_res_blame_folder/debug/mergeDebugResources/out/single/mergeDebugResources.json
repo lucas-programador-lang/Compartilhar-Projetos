@@ -1,0 +1,98 @@
+[
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-hdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "br.com.compartilharprojetos.app-debug-6:/xml_shortcuts.xml.flat",
+        "source": "br.com.compartilharprojetos.app-main-8:/xml/shortcuts.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-anydpi-v26\\ic_launcher.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\drawable_minha_logo.png.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\drawable\\minha_logo.png"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\xml_regras_de_backup.xml.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\xml\\regras_de_backup.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-anydpi-v26\\ic_launcher_round.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\xml_shortcuts.xml.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\xml\\shortcuts.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-mdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xhdpi_ic_launcher_foreground.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xhdpi\\ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xxhdpi_ic_launcher_foreground.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xxhdpi\\ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xxxhdpi_ic_launcher_foreground.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xxxhdpi\\ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xxxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-mdpi_ic_launcher_foreground.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-mdpi\\ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\xml_network_security_config.xml.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\xml\\network_security_config.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-hdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\xml_file_paths.xml.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\xml\\file_paths.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-mdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\drawable_splash.xml.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\drawable\\splash.xml"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-hdpi_ic_launcher_foreground.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-hdpi\\ic_launcher_foreground.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-debug-6:\\mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\josel\\.gradle\\daemon\\9.0.0\\br.com.compartilharprojetos.app-main-8:\\mipmap-xxxhdpi\\ic_launcher.webp"
+    }
+]

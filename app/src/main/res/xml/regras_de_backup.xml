@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-network>
+        <!-- Impede que a cache de internet pesada faça backup automático -->
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="database" path="."/>
+    </cloud-network>
+    <device-transfer>
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="database" path="."/>
+    </device-transfer>
+</data-extraction-rules>

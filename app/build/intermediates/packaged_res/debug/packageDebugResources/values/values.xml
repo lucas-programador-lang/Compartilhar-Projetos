@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="http://schemas.android.com/tools">
+    <color name="ic_launcher_background">#0B0B10</color>
+    <string name="com.google.firebase.crashlytics.mapping_file_id" ns1:ignore="UnusedResources,TypographyDashes" translatable="false">00000000000000000000000000000000</string>
+    <string name="firebase_database_url" translatable="false">https://compartilhar-projetos-default-rtdb.firebaseio.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">421523492483</string>
+    <string name="google_api_key" translatable="false">AIzaSyDd834zQaFc0fwAKjROn6IrQAuGFHU3nj0</string>
+    <string name="google_app_id" translatable="false">1:421523492483:android:e3e590bfa8ce3bba2655b6</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyDd834zQaFc0fwAKjROn6IrQAuGFHU3nj0</string>
+    <string name="google_storage_bucket" translatable="false">compartilhar-projetos.firebasestorage.app</string>
+    <string name="project_id" translatable="false">compartilhar-projetos</string>
+    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#6C63FF</item>
+        <item name="android:statusBarColor">#0B0B10</item>
+        <item name="android:navigationBarColor">#0B0B10</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        
+        <item name="android:windowBackground">#0B0B10</item>
+    </style>
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        
+        <item name="windowSplashScreenBackground">#0B0B10</item>
+        
+        <item name="windowSplashScreenAnimatedIcon">@drawable/minha_logo</item>
+        
+        <item name="postSplashScreenTheme">@style/AppTheme</item>
+    </style>
+</resources>

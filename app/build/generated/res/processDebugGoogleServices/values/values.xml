@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="firebase_database_url" translatable="false">https://compartilhar-projetos-default-rtdb.firebaseio.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">421523492483</string>
+    <string name="google_api_key" translatable="false">AIzaSyDd834zQaFc0fwAKjROn6IrQAuGFHU3nj0</string>
+    <string name="google_app_id" translatable="false">1:421523492483:android:e3e590bfa8ce3bba2655b6</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyDd834zQaFc0fwAKjROn6IrQAuGFHU3nj0</string>
+    <string name="google_storage_bucket" translatable="false">compartilhar-projetos.firebasestorage.app</string>
+    <string name="project_id" translatable="false">compartilhar-projetos</string>
+</resources>
