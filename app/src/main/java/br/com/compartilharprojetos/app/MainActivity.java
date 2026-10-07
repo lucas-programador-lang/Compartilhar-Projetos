@@ -12,14 +12,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.Network;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.MediaStore;
@@ -52,11 +50,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.webkit.WebViewAssetLoader;
-import androidx.webkit.WebSettingsCompat;
-import androidx.webkit.WebViewFeature;
 
 import com.google.android.play.core.appupdate.AppUpdateManager;
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
@@ -139,19 +134,43 @@ public class MainActivity extends AppCompatActivity {
         monitorarRedeEmTempoReal();
 
         if (savedInstanceState == null) {
-            Intent intent = getIntent();
-            Uri data = (intent != null) ? intent.getData() : null;
-            if (data != null) webView.loadUrl(data.toString());
-            else {
-                String rotaDestino = (intent != null && intent.getExtras() != null) ? intent.getStringExtra("rota") : null;
-                if (rotaDestino != null && !rotaDestino.isEmpty()) webView.loadUrl(URL_HOME + "#" + rotaDestino);
-                else webView.loadUrl(URL_HOME);
-            }
+            processarIntentRecebida(getIntent());
         } else {
             webView.restoreState(savedInstanceState);
         }
 
         pedirPermissaoNotificacao();
+    }
+
+    // NOVA FUNÇÃO: Lê links recebidos de fora
+    private void processarIntentRecebida(Intent intent) {
+        if (intent == null) return;
+        
+        // Verifica se alguém partilhou um texto com o app
+        if (Intent.ACTION_SEND.equals(intent.getAction()) && "text/plain".equals(intent.getType())) {
+            String textoPartilhado = intent.getStringExtra(Intent.EXTRA_TEXT);
+            if (textoPartilhado != null) {
+                // Envia o link para o seu site web ler
+                webView.loadUrl(URL_HOME + "?linkRecebido=" + Uri.encode(textoPartilhado));
+                return;
+            }
+        }
+
+        // Lógica normal de abertura
+        Uri data = intent.getData();
+        if (data != null) {
+            webView.loadUrl(data.toString());
+        } else {
+            String rotaDestino = intent.getExtras() != null ? intent.getStringExtra("rota") : null;
+            if (rotaDestino != null && !rotaDestino.isEmpty()) webView.loadUrl(URL_HOME + "#" + rotaDestino);
+            else webView.loadUrl(URL_HOME);
+        }
+    }
+
+    // NOVA FUNÇÃO: Verifica se o telemóvel está no Modo Escuro
+    private boolean isModoEscuro() {
+        int nightModeFlags = getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        return nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES;
     }
 
     private void verificarAtualizacaoPlayStore() {
@@ -168,10 +187,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void configurarInterface() {
         FrameLayout rootLayout = new FrameLayout(this);
-        rootLayout.setBackgroundColor(Color.rgb(11, 11, 16));
+        int corFundo = isModoEscuro() ? Color.rgb(11, 11, 16) : Color.WHITE;
+        rootLayout.setBackgroundColor(corFundo);
 
         swipeRefreshLayout = new SwipeRefreshLayout(this);
-        swipeRefreshLayout.setProgressBackgroundColorSchemeColor(Color.WHITE);
+        swipeRefreshLayout.setProgressBackgroundColorSchemeColor(corFundo);
         swipeRefreshLayout.setColorSchemeColors(Color.rgb(108, 99, 255));
         swipeRefreshLayout.setOnRefreshListener(() -> {
             erroDeConexao = false;
@@ -198,7 +218,8 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void configurarWebView() {
-        webView.setBackgroundColor(Color.rgb(11, 11, 16));
+        int corFundo = isModoEscuro() ? Color.rgb(11, 11, 16) : Color.WHITE;
+        webView.setBackgroundColor(corFundo);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         
         WebSettings s = webView.getSettings();
@@ -303,12 +324,10 @@ public class MainActivity extends AppCompatActivity {
                 return super.shouldInterceptRequest(view, request);
             }
 
-            // AQUI ESTÁ A ATUALIZAÇÃO DO SUPORTE A PIX E GATEWAYS DE PAGAMENTO!
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
                 
-                // 1. Suporte para Apps Bancárias e Gateways (PIX, Mercado Pago, Cora, etc.)
                 if (url.startsWith("intent://") || url.startsWith("pix:") || url.contains("mercadopago") || url.contains("vizzionpay") || url.contains("primepag") || url.contains("cora") || url.contains("abacatepay")) {
                     try {
                         Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
@@ -316,17 +335,13 @@ public class MainActivity extends AppCompatActivity {
                             startActivity(intent);
                             return true;
                         }
-                    } catch (Exception e) {
-                        // Se falhar (ex: app não instalada), deixa a WebView tentar carregar a página web do gateway
-                    }
+                    } catch (Exception e) {}
                 }
                 
-                // 2. Apps Externas (WhatsApp, Telefone, Mapas)
                 if (url.startsWith("whatsapp://") || url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("geo:")) {
                     return abrirAppExterno(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                 }
                 
-                // 3. Links de fora do seu domínio abrem numa aba segura
                 if (url.startsWith("http") && !url.contains("compartilhar-projetos.com.br")) {
                     abrirLinkExternoComCustomTabs(url);
                     return true;
@@ -525,9 +540,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configurarJanela() {
-        getWindow().setStatusBarColor(Color.WHITE);
-        getWindow().setNavigationBarColor(Color.rgb(11, 11, 16));
-        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(true);
+        boolean escuro = isModoEscuro();
+        int corFundo = escuro ? Color.rgb(11, 11, 16) : Color.WHITE;
+        getWindow().setStatusBarColor(corFundo);
+        getWindow().setNavigationBarColor(corFundo);
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(!escuro);
     }
 
     private void abrirLinkExternoComCustomTabs(String url) {
@@ -606,8 +623,7 @@ public class MainActivity extends AppCompatActivity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (intent.getData() != null && webView != null) webView.loadUrl(intent.getData().toString());
-        else if (intent.getStringExtra("rota") != null && webView != null) webView.loadUrl(URL_HOME + "#" + intent.getStringExtra("rota"));
+        processarIntentRecebida(intent);
     }
 
     @Override protected void onPause() { super.onPause(); if (webView != null) webView.onPause(); }
