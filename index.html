@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compartilhar Projetos | A vitrine para suas ideias</title>
+
+<meta name="description" content="Publique seus projetos, receba feedback da comunidade e ganhe visibilidade. Assine para publicar e participe do nosso programa de afiliados.">
+
+<!-- Tags amigáveis para quando alguém compartilhar seu link no WhatsApp, Discord ou LinkedIn -->
+<meta property="og:title" content="Compartilhar Projetos | A vitrine para suas ideias">
+<meta property="og:description" content="Publique seus projetos, receba feedback da comunidade e ganhe visibilidade. Participe do nosso programa de afiliados.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/style.css?v=20">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+<link rel="manifest" href="/manifest.json">
+
+<!-- MEMÓRIA DE TEMA ANTI-PISCAR -->
+<script>
+  if (localStorage.getItem('theme') !== 'light') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner container">
+    <a href="#/" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar <em>Projetos</em></span>
+    </a>
+
+    <nav class="main-nav" id="mainNav">
+      <a href="#/explorar">Explorar</a>
+      <a href="#/comunidade">Comunidade</a>
+      <a href="#/planos">Planos</a>
+      <a href="#/ranking">Ranking</a>
+      <a href="#/indicacoes" class="auth-only">Indicações</a>
+    </nav>
+
+    <div class="header-actions">
+      <!-- Botão de Tema -->
+      <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding: 6px 10px; margin-right: 8px; color: var(--text-main); display: flex; align-items: center; justify-content: center; border: none;">
+        <span id="themeIcon"></span>
+      </button>
+
+      <div class="guest-only header-guest-actions">
+        <a href="/login.html" class="btn btn-ghost btn-sm">Entrar</a>
+        <a href="/register.html" class="btn btn-primary btn-sm">Cadastrar</a>
+      </div>
+      <div class="auth-only header-user-actions">
+        <span class="sub-pill" id="subPill">—</span>
+        <button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar-circle" id="avatarInitial">?</span>
+        </button>
+        <div class="user-menu" id="userMenu">
+          <!-- BIOMETRIA NO MENU PRINCIPAL -->
+          <a href="#" onclick="tentarAcessarPainel(event)">Meu painel</a>
+          <a href="#/perfil">Meu perfil</a>
+          <a href="#/indicacoes">Indicações</a>
+          <a href="#/ranking">Ranking</a>
+          <a href="#/planos">Assinatura</a>
+          <a href="#/avaliar">Avaliar plataforma</a>
+          <a href="/admin.html" class="admin-only">Painel admin</a>
+          <button id="logoutBtn">Sair</button>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- MENU MOBILE COM BIOMETRIA E CORREÇÃO DE SCROLL -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="#/explorar">Explorar projetos</a>
+    <a href="#/comunidade">Comunidade</a>
+    <a href="#/planos">Planos</a>
+    <a href="#/ranking">Ranking</a>
+    <a href="#/indicacoes" class="auth-only">Indicações</a>
+    
+    <!-- BIOMETRIA NO MENU MOBILE -->
+    <a href="#" onclick="tentarAcessarPainel(event)" class="auth-only">Meu painel</a>
+    
+    <a href="#/perfil" class="auth-only">Meu perfil</a>
+    <a href="#/avaliar" class="auth-only">Avaliar plataforma</a>
+    <button id="logoutBtnMobile" class="auth-only">Sair</button>
+    <a href="/login.html" class="guest-only">Entrar</a>
+    <a href="/register.html" class="guest-only btn-fill">Cadastrar</a>
+  </nav>
+</header>
+
+<main id="app" role="main"></main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Compartilhar <em>Projetos</em></span>
+      <p>A plataforma de assinatura para publicar e descobrir projetos incríveis.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Plataforma</h4>
+      <a href="#/explorar">Explorar projetos</a>
+      <a href="#/comunidade">Comunidade</a>
+      <a href="#/planos">Planos de assinatura</a>
+      <a href="#/ranking">Ranking</a>
+      <a href="#/avaliar">Avaliar plataforma</a>
+      <a href="https://chat.whatsapp.com/L9d1UKFRsKvIFtm0W9jPJi" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+        <svg width="18" height="18" viewBox="0 0 448 512" fill="#25D366">
+          <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+        </svg>
+        Canal no WhatsApp
+      </a>
+    </div>
+    <div class="footer-col">
+      <h4>Conta</h4>
+      <a href="/login.html" class="guest-only">Entrar</a>
+      <a href="/register.html" class="guest-only">Criar conta</a>
+      <a href="#/indicacoes" class="auth-only">Programa de indicação</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <a href="/admin.html">Área administrativa</a>
+      <a href="/sobre.html">Sobre</a>
+      <a href="/como-funciona.html">Como funciona</a>
+      <a href="/termos.html">Termos de Uso</a>
+      <a href="/privacidade.html">Política de Privacidade</a>
+      <a href="/apk.html">Baixar app</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© 2026 Compartilhar Projetos. Todos os direitos reservados.</span>
+  </div>
+</footer>
+
+<!-- ===== TOAST ===== -->
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script type="module" src="/script.js?v=22"></script>
+<script>
+  (function () {
+    function updateFade(wrap) {
+      wrap.classList.toggle('is-scrollable-left', wrap.scrollLeft > 4);
+      wrap.classList.toggle('is-scrollable-right', wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 4);
+    }
+
+    function updateAllFades() {
+      document.querySelectorAll('.table-wrap').forEach(updateFade);
+    }
+
+    document.addEventListener('scroll', function (e) {
+      if (e.target.classList && e.target.classList.contains('table-wrap')) {
+        updateFade(e.target);
+      }
+    }, true); 
+
+    var appEl = document.getElementById('app');
+    if (appEl) {
+      new MutationObserver(updateAllFades).observe(appEl, { childList: true, subtree: true });
+    }
+    window.addEventListener('resize', updateAllFades);
+
+    updateAllFades(); 
+  })();
+</script>
+<script src="/cookie-consent.js?"></script>
+
+</body>
+</html>

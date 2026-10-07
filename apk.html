@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baixar o app — Compartilhar Projetos</title>
+<meta name="description" content="Baixe o aplicativo Android da Compartilhar Projetos e publique seus projetos direto do celular.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20">
+<link rel="manifest" href="/manifest.json">
+<style>
+  /* Ajustes pontuais só desta página — nada aqui redefine tokens do
+     design system, só compõe com o que já existe em style.css. */
+  .apk-hero{ padding:72px 0 84px; }
+  .apk-hero .hero-inner{ grid-template-columns:1fr; text-align:center; }
+  .apk-hero .hero-cta{ justify-content:center; }
+  .apk-hero .hero-stats{ justify-content:center; }
+  .apk-meta{
+    display:flex; gap:18px; flex-wrap:wrap; justify-content:center;
+    font-family:var(--font-mono); font-size:12.5px; color:#a9b7dd; margin-top:18px;
+  }
+  .apk-meta strong{ color:#fff; font-weight:600; }
+  .warning-card{
+    background:var(--warning-bg); border:1.5px solid rgba(150,112,11,.25);
+    border-radius:var(--radius-lg); padding:22px 26px; display:flex; gap:14px; align-items:flex-start;
+  }
+  .warning-card .wc-icon{
+    flex:none; width:34px; height:34px; border-radius:50%; background:var(--warning); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-family:var(--font-display);
+  }
+  .warning-card p{ color:var(--ink-700); font-size:14px; line-height:1.6; }
+  .warning-card strong{ color:var(--navy-900); }
+</style>
+
+<!-- MEMÓRIA DE TEMA ANTI-PISCAR -->
+<script>
+  if (localStorage.getItem('theme') !== 'light') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+</head>
+<body class="is-guest">
+
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner container">
+    <a href="index.html#/" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar <em>Projetos</em></span>
+    </a>
+
+    <nav class="main-nav">
+      <a href="index.html#/explorar">Explorar</a>
+      <a href="index.html#/comunidade">Comunidade</a>
+      <a href="index.html#/planos">Planos</a>
+      <a href="index.html#/ranking">Ranking</a>
+      <a href="apk.html" class="active">Baixar app</a>
+    </nav>
+
+    <div class="header-actions">
+      <!-- Botão de Tema -->
+      <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding: 6px 10px; margin-right: 8px; color: var(--text-main); display: flex; align-items: center; justify-content: center; border: none;">
+        <span id="themeIcon"></span>
+      </button>
+
+      <!-- Ações para Visitantes (Deslogados) -->
+      <div class="guest-only header-guest-actions">
+        <a href="login.html" class="btn btn-ghost btn-sm">Entrar</a>
+        <a href="register.html" class="btn btn-primary btn-sm">Cadastrar</a>
+      </div>
+
+      <!-- Ações para Usuários (Logados) com Avatar e Pílula -->
+      <div class="auth-only header-user-actions">
+        <span class="sub-pill" id="subPill">—</span>
+
+        <!-- Botão de Notificações -->
+        <button class="notif-btn" id="notifBtn" aria-label="Notificações" style="background:transparent;border:none;color:var(--ink-700);margin-right:8px;position:relative;cursor:pointer;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:var(--danger);border-radius:50%;border:2px solid var(--surface);"></span>
+        </button>
+
+        <!-- Avatar e Menu -->
+        <button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar-circle" id="avatarInitial">?</span>
+        </button>
+
+        <div class="user-menu" id="userMenu">
+          <a href="#" onclick="tentarAcessarPainel(event)">Meu painel</a>
+          <a href="index.html#/perfil">Meu perfil</a>
+          <a href="index.html#/indicacoes">Indicações</a>
+          <a href="index.html#/ranking">Ranking</a>
+          <a href="index.html#/planos">Assinatura</a>
+          <a href="index.html#/avaliar">Avaliar plataforma</a>
+          <a href="admin.html" class="admin-only">Painel admin</a>
+          <button id="logoutBtn" style="color: var(--danger);">Sair</button>
+        </div>
+      </div>
+
+      <!-- Botão Hambúrguer para Telemóvel e APK -->
+      <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- MENU MOBILE RESPONSIVO -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html#/explorar">Explorar projetos</a>
+    <a href="index.html#/comunidade">Comunidade</a>
+    <a href="index.html#/planos">Planos</a>
+    <a href="index.html#/ranking">Ranking</a>
+    <a href="index.html#/indicacoes" class="auth-only">Indicações</a>
+    <a href="#" onclick="tentarAcessarPainel(event)" class="auth-only">Meu painel</a>
+    <a href="index.html#/perfil" class="auth-only">Meu perfil</a>
+    <a href="index.html#/avaliar" class="auth-only">Avaliar plataforma</a>
+    <button id="logoutBtnMobile" class="auth-only" style="color: var(--danger);">Sair</button>
+    <a href="sobre.html">Sobre</a>
+    <a href="como-funciona.html">Como funciona</a>
+    <a href="apk.html" class="active">Baixar app</a>
+    <a href="login.html" class="guest-only">Entrar</a>
+    <a href="register.html" class="guest-only btn-fill">Cadastrar</a>
+  </nav>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero apk-hero">
+  <div class="container hero-inner">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> Aplicativo Android</span>
+      <h1>Leve a <span class="accent">Compartilhar Projetos</span> no seu bolso.</h1>
+      <p class="lead" style="margin-left:auto;margin-right:auto">Publique projetos, acompanhe suas indicações e receba notificações de moderação direto pelo celular.</p>
+     <div class="hero-cta">
+        <a href="compartilhar-projetos.apk" download class="btn btn-gold btn-lg" id="downloadApkBtn">⬇ Baixar APK</a>
+        <a href="#instalar" class="btn btn-primary btn-lg">Como instalar</a>
+      </div>
+      <div class="apk-meta">
+        <span>Versão: <strong id="apkVersion">1.0.0</strong></span>
+        <span>Tamanho: <strong id="apkSize">—</strong></span>
+        <span>Requer: <strong>Android 8.0 ou superior</strong></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== AVISO ===== -->
+<section class="section-tight">
+  <div class="container" style="max-width:760px">
+    <div class="warning-card">
+      <span class="wc-icon">!</span>
+      <p>
+        <strong>Este app não está na Google Play Store.</strong> Como é instalado diretamente
+        (fora da loja oficial), o Android vai pedir permissão para "instalar de fontes desconhecidas"
+        antes de abrir o arquivo — isso é normal e esperado, não significa que o app tem problema.
+        Baixe apenas pelo link oficial desta página.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COMO INSTALAR ===== -->
+<section class="section" id="instalar">
+  <div class="container">
+    <div class="section-head">
+      <div><span class="tag-label">Passo a passo</span><h2>Como instalar no seu Android</h2></div>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">Passo 1</div>
+        <h3>Baixe o arquivo</h3>
+        <p>Toque no botão "Baixar APK" acima. O navegador vai salvar o arquivo na pasta de Downloads do seu celular.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Passo 2</div>
+        <h3>Permita a instalação</h3>
+        <p>Ao abrir o arquivo baixado, o Android pode bloquear a instalação. Toque em "Configurações" no aviso e ative "Permitir desta fonte" para o app usado (Navegador ou Gerenciador de Arquivos).</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">Passo 3</div>
+        <h3>Instale e abra</h3>
+        <p>Volte e toque em "Instalar". Quando terminar, abra o app normalmente pela tela inicial do seu celular.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DÚVIDAS ===== -->
+<section class="section-tight section-alt">
+  <div class="container" style="max-width:760px">
+    <div class="section-head">
+      <div><span class="tag-label">Dúvidas comuns</span><h2>Perguntas frequentes</h2></div>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
+      <h3 style="font-size:16px;margin-bottom:8px;color:var(--navy-900)">O app é seguro?</h3>
+      <p class="muted">Sim — é o mesmo site da Compartilhar Projetos, empacotado para funcionar como aplicativo. Baixe somente pelo link desta página oficial.</p>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
+      <h3 style="font-size:16px;margin-bottom:8px;color:var(--navy-900)">Minha conta funciona igual no app e no site?</h3>
+      <p class="muted">Sim, é a mesma conta — use o mesmo e-mail e senha do site para entrar pelo app.</p>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:16px;margin-bottom:8px;color:var(--navy-900)">O app não abriu ou ficou com a tela em branco. E agora?</h3>
+      <p class="muted">Verifique sua conexão com a internet e tente fechar e abrir o app novamente. Se persistir, acesse normalmente pelo navegador do celular em vez do app.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA FINAL ===== -->
+<section class="section-tight">
+  <div class="cta-band">
+    <h2>Pronto para instalar?</h2>
+    <p>Baixe agora e leve a plataforma para onde você for.</p>
+    <a href="compartilhar-projetos.apk" download class="btn btn-gold btn-lg">⬇ Baixar APK</a>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <span class="brand-name">Compartilhar <em>Projetos</em></span>
+      <p>A plataforma de assinatura para publicar e descobrir projetos incríveis.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Plataforma</h4>
+      <a href="index.html#/explorar">Explorar projetos</a>
+      <a href="index.html#/comunidade">Comunidade</a>
+      <a href="index.html#/planos">Planos de assinatura</a>
+      <a href="index.html#/ranking">Ranking</a>
+      <a href="index.html#/avaliar">Avaliar plataforma</a>
+      <a href="https://chat.whatsapp.com/L9d1UKFRsKvIFtm0W9jPJi" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+        <svg width="18" height="18" viewBox="0 0 448 512" fill="#25D366">
+          <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+        </svg>
+        Canal no WhatsApp
+      </a>
+    </div>
+    <div class="footer-col">
+      <h4>Conta</h4>
+      <a href="login.html" class="guest-only">Entrar</a>
+      <a href="register.html" class="guest-only">Criar conta</a>
+      <a href="index.html#/indicacoes" class="auth-only">Programa de indicação</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <a href="admin.html">Área administrativa</a>
+      <a href="sobre.html">Sobre</a>
+      <a href="como-funciona.html">Como funciona</a>
+      <a href="termos.html">Termos de Uso</a>
+      <a href="privacidade.html">Política de Privacidade</a>
+      <a href="apk.html" class="active">Baixar app</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© 2026 Compartilhar Projetos. Todos os direitos reservados.</span>
+  </div>
+</footer>
+
+<script>
+  // Preenche o tamanho do arquivo automaticamente checando o APK
+  (function () {
+    const sizeEl = document.getElementById("apkSize");
+    if (!sizeEl) return;
+    fetch("compartilhar-projetos.apk", { method: "HEAD" })
+      .then((res) => {
+        const bytes = res.headers.get("Content-Length");
+        if (!bytes) return;
+        const mb = (parseInt(bytes, 10) / (1024 * 1024)).toFixed(1);
+        sizeEl.textContent = mb + " MB";
+      })
+      .catch(() => {});
+  })();
+
+  // Script para o botão hambúrguer funcionar perfeitamente no telemóvel e APK
+  document.addEventListener("DOMContentLoaded", () => {
+    const hamburger = document.getElementById("hamburgerBtn");
+    const mobileNav = document.getElementById("mobileNav");
+    
+    if (hamburger && mobileNav) {
+      hamburger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = mobileNav.classList.contains("open");
+        if (isOpen) {
+          mobileNav.classList.remove("open");
+          document.body.style.overflow = "";
+          document.body.classList.remove("menu-open");
+        } else {
+          mobileNav.classList.add("open");
+          document.body.style.overflow = "hidden";
+          document.body.classList.add("menu-open");
+        }
+      });
+      
+      mobileNav.querySelectorAll("a, button").forEach((el) => {
+        el.addEventListener("click", () => {
+          mobileNav.classList.remove("open");
+          document.body.style.overflow = "";
+          document.body.classList.remove("menu-open");
+        });
+      });
+    }
+  });
+
+  // ===== CONTROLE DE TEMA (CLARO/ESCURO) INDEPENDENTE =====
+  (function() {
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    if (!themeToggle || !themeIcon) return;
+
+    const iconSun = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+    const iconMoon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      themeIcon.innerHTML = iconSun;
+    } else {
+      themeIcon.innerHTML = iconMoon;
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      if (currentTheme === 'dark') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+        themeIcon.innerHTML = iconMoon;
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        themeIcon.innerHTML = iconSun;
+      }
+    });
+  })();
+</script>
+<script type="module" src="/auth-visibility.js?v=2"></script>
+<script src="/cookie-consent.js?"></script>
+</body>
+</html>

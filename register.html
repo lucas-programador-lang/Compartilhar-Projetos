@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar conta — Compartilhar Projetos</title>
+<meta name="description" content="Crie sua conta gratuita na Compartilhar Projetos e comece a explorar projetos publicados pela comunidade.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
+<link rel="manifest" href="/manifest.json">
+
+<!-- MEMÓRIA DE TEMA ANTI-PISCAR -->
+<script>
+  if (localStorage.getItem('theme') !== 'light') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+</head>
+<body>
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect x="2" y="9" width="12" height="16" rx="2" fill="var(--gold-500)" transform="rotate(-8 8 17)"/>
+          <rect x="10" y="5" width="12" height="16" rx="2" fill="var(--blue-600)" transform="rotate(6 16 13)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Compartilhar <em>Projetos</em></span>
+    </a>
+
+    <nav class="main-nav">
+      <a href="index.html#/explorar">Explorar</a>
+      <a href="index.html#/comunidade">Comunidade</a>
+      <a href="index.html#/planos">Planos</a>
+      <a href="index.html#/ranking">Ranking</a>
+      <a href="apk.html">Baixar app</a>
+    </nav>
+
+    <div class="header-actions">
+      <!-- Botão de Tema -->
+      <button id="themeToggle" class="btn btn-ghost btn-sm" aria-label="Alternar tema" style="padding: 6px 10px; margin-right: 8px; color: var(--text-main); display: flex; align-items: center; justify-content: center; border: none;">
+        <span id="themeIcon"></span>
+      </button>
+
+      <a href="login.html" class="btn btn-ghost btn-sm guest-only">Entrar</a>
+      
+      <!-- Botão Hambúrguer para Telemóvel e APK -->
+      <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- MENU MOBILE RESPONSIVO -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html#/explorar">Explorar projetos</a>
+    <a href="index.html#/comunidade">Comunidade</a>
+    <a href="index.html#/planos">Planos</a>
+    <a href="index.html#/ranking">Ranking</a>
+    <a href="sobre.html">Sobre</a>
+    <a href="como-funciona.html">Como funciona</a>
+    <a href="apk.html">Baixar app</a>
+    <a href="index.html#/avaliar">Avaliar plataforma</a>
+    <a href="login.html" class="guest-only">Entrar</a>
+  </nav>
+</header>
+
+<main>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <h2>Criar conta gratuita</h2>
+      <p class="sub">Visualize todos os projetos publicados. Assine um plano quando quiser publicar o seu.</p>
+      <form id="registerForm" novalidate>
+        <div class="field">
+          <label for="registerName">Nome completo</label>
+          <input id="registerName" name="name" required placeholder="Seu nome" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="registerEmail">E-mail</label>
+          <input type="email" id="registerEmail" name="email" required placeholder="voce@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="registerPassword">Senha</label>
+          <input type="password" id="registerPassword" name="password" required minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="refCodeInput">Código de indicação (opcional)</label>
+          <input name="refCode" id="refCodeInput" placeholder="Ex.: MARINA7X">
+        </div>
+        <div class="field-error" id="registerError" role="alert"></div>
+        <button class="btn btn-primary btn-block" type="submit">Criar conta</button>
+      </form>
+      <div class="form-foot">Já tem conta? <a href="login.html" class="link" id="goLogin">Entrar</a></div>
+    </div>
+  </div>
+</main>
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+<script type="module" src="auth.js?v=20"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      const isAndroidApp = window.Android !== undefined || /wv/.test(navigator.userAgent);
+
+      if (isAndroidApp) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      } else {
+        navigator.serviceWorker.register('/sw.js')
+          .catch(err => console.error('Falha no SW:', err));
+      }
+    });
+  }
+
+  // Script para abrir/fechar o menu mobile nos telemóveis e APK
+  document.addEventListener("DOMContentLoaded", () => {
+    const hamburger = document.getElementById("hamburgerBtn");
+    const mobileNav = document.getElementById("mobileNav");
+    
+    if (hamburger && mobileNav) {
+      hamburger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = mobileNav.classList.contains("open");
+        if (isOpen) {
+          mobileNav.classList.remove("open");
+          document.body.style.overflow = "";
+          document.body.classList.remove("menu-open");
+        } else {
+          mobileNav.classList.add("open");
+          document.body.style.overflow = "hidden";
+          document.body.classList.add("menu-open");
+        }
+      });
+      
+      mobileNav.querySelectorAll("a, button").forEach((el) => {
+        el.addEventListener("click", () => {
+          mobileNav.classList.remove("open");
+          document.body.style.overflow = "";
+          document.body.classList.remove("menu-open");
+        });
+      });
+    }
+  });
+</script>
+
+<!-- SCRIPT DO TEMA -->
+<script>
+  (function() {
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    if (!themeToggle || !themeIcon) return;
+
+    const iconSun = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+    const iconMoon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      themeIcon.innerHTML = iconSun;
+    } else {
+      themeIcon.innerHTML = iconMoon;
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      if (currentTheme === 'dark') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+        themeIcon.innerHTML = iconMoon;
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        themeIcon.innerHTML = iconSun;
+      }
+    });
+  })();
+</script>
+
+<script src="/cookie-consent.js?"></script>
+</body>
+</html>
