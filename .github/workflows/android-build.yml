@@ -8,25 +8,34 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Permissão necessária para o robô publicar o APK
     steps:
     - name: Checkout do código
       uses: actions/checkout@v4
 
     - name: Configurar Java 17
-      uses: actions/setup-java@v5 # Atualizado para v5 para remover o aviso de depreciação
+      uses: actions/setup-java@v5
       with:
         java-version: '17'
         distribution: 'temurin'
 
     - name: Compilar o APK
-      # Removido o 'cd' - o robô vai rodar direto na raiz onde está o gradlew
       run: |
         chmod +x gradlew
         ./gradlew assembleRelease
 
-    - name: Disponibilizar APK para Download
+    - name: Disponibilizar APK para Download (ZIP temporário)
       uses: actions/upload-artifact@v4
       with:
         name: CompartilharProjetos-APK
-        # Caminho corrigido, indo direto na pasta app
         path: app/build/outputs/apk/release/app-release.apk
+
+    - name: Publicar APK no GitHub Releases (Link Permanente)
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: Atualização Automática ${{ github.run_number }}
+        files: app/build/outputs/apk/release/app-release.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
