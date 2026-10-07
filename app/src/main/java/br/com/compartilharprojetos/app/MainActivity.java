@@ -469,6 +469,16 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface public void mostrarToast(String mensagem) { runOnUiThread(() -> Toast.makeText(getApplicationContext(), mensagem, Toast.LENGTH_SHORT).show()); }
         @JavascriptInterface public void solicitarTokenFCM() { registrarTokenFCM(); }
         
+        // NOVO CÓDIGO: Informa a versão exata do app para o site
+        @JavascriptInterface
+        public String obterVersaoApp() {
+            try {
+                return MainActivity.this.getPackageManager().getPackageInfo(MainActivity.this.getPackageName(), 0).versionName;
+            } catch (Exception e) {
+                return "1.0.0";
+            }
+        }
+        
         @JavascriptInterface
         public void vibrarCelular() {
             Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
