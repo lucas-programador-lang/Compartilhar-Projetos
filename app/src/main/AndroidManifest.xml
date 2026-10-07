@@ -84,6 +84,13 @@
                 <data android:scheme="https" android:host="compartilhar-projetos.com.br" />
                 <data android:scheme="https" android:host="www.compartilhar-projetos.com.br" />
             </intent-filter>
+            
+            <!-- NOVA FUNÇÃO: Receber links e textos de outros aplicativos (Share Target) -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
         <provider
