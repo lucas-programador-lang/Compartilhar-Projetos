@@ -156,6 +156,30 @@ export function setAdminPresenceOnline() {
 }
 export function escutarPresencaAdmin(callback) { return onValue(ref(rtdb, "supportPresence/adminOnline"), (snapshot) => { callback(snapshot.val() === true); }, () => { callback(false); }); }
 
+// Mesma lógica do setAdminPresenceOnline, só que por usuário — é isso que
+// deixa o admin ver quem está online agora na lista de conversas de
+// suporte. onDisconnect garante que, se a pessoa fechar a aba ou cair a
+// conexão, o status volta pra "offline" sozinho (sem precisar de um
+// "tchau" explícito, que nunca dispara em quedas de internet).
+export function setUserPresenceOnline(userId) {
+  if (!userId) return;
+  const connectedRef = ref(rtdb, ".info/connected");
+  const userPresenceRef = ref(rtdb, `supportPresence/users/${userId}`);
+  onValue(connectedRef, (snap) => {
+    if (snap.val() === true) {
+      onDisconnect(userPresenceRef).set(false).then(() => {
+        set(userPresenceRef, true).catch(() => {});
+      });
+    }
+  });
+}
+// (Para o Admin) Escuta o status de todo mundo de uma vez só — devolve um
+// objeto { uid: true|false }, pra não precisar de 1 listener por usuário
+// na lista de conversas.
+export function escutarPresencaUsuarios(callback) {
+  return onValue(ref(rtdb, "supportPresence/users"), (snapshot) => { callback(snapshot.val() || {}); }, () => { callback({}); });
+}
+
 // NOVO: SISTEMA DE A DIGITAR...
 export function notificarDigitacao(userId, quem, isTyping) {
   update(ref(rtdb, `supportChats/${userId}`), { [`typing_${quem}`]: isTyping }).catch(()=>{});
