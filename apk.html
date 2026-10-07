@@ -263,18 +263,28 @@
 </footer>
 
 <script>
-  // Preenche o tamanho do arquivo automaticamente checando o APK
+  // Busca automaticamente a versão e o tamanho da última Release no GitHub
   (function () {
-    const sizeEl = document.getElementById("apkSize");
-    if (!sizeEl) return;
-    fetch("compartilhar-projetos.apk", { method: "HEAD" })
-      .then((res) => {
-        const bytes = res.headers.get("Content-Length");
-        if (!bytes) return;
-        const mb = (parseInt(bytes, 10) / (1024 * 1024)).toFixed(1);
-        sizeEl.textContent = mb + " MB";
+    fetch("https://api.github.com/repos/lucas-programador-lang/Compartilhar-Projetos/releases/latest")
+      .then(response => response.json())
+      .then(data => {
+        // Atualiza a versão (ex: v1.0.22)
+        const versionEl = document.getElementById("apkVersion");
+        if (versionEl && data.tag_name) {
+          versionEl.textContent = data.tag_name;
+        }
+
+        // Atualiza o tamanho do arquivo em MB
+        const sizeEl = document.getElementById("apkSize");
+        if (sizeEl && data.assets && data.assets.length > 0) {
+          const apkAsset = data.assets.find(asset => asset.name.endsWith('.apk'));
+          if (apkAsset && apkAsset.size) {
+            const mb = (apkAsset.size / (1024 * 1024)).toFixed(1);
+            sizeEl.textContent = mb + " MB";
+          }
+        }
       })
-      .catch(() => {});
+      .catch(error => console.log("Erro ao carregar dados do GitHub:", error));
   })();
 
   // Script para o botão hambúrguer funcionar perfeitamente no telemóvel e APK
