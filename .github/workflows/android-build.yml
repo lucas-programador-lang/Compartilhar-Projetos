@@ -20,6 +20,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Injetar Número da Versão Automática
+      run: |
+        sed -i -r 's/versionCode[[:space:]]*=?[[:space:]]*[0-9]+/versionCode = ${{ github.run_number }}/g' app/build.gradle*
+        sed -i -r 's/versionName[[:space:]]*=?[[:space:]]*"[^"]+"/versionName = "1.0.${{ github.run_number }}"/g' app/build.gradle*
+
     - name: Compilar o APK (Com Assinatura Automática)
       run: |
         chmod +x gradlew
