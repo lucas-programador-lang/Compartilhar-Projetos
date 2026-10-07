@@ -76,6 +76,48 @@ import { getDB, onDBChange } from "./db-sync.js";
     return map[err.code] || err.message || "Ocorreu um erro. Tente novamente.";
   }
 
+  function initialsFrom(name) {
+    return (name || "?").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+  }
+
+  // Busca o avatar/nome de quem já tem conta com esse e-mail, pra mostrar
+  // na tela de login como confirmação visual ("é essa conta mesmo").
+  // Rota pública no Worker — não expõe senha nem nada sensível.
+  async function lookupAvatarByEmail(email) {
+    const wrap = qs("#loginAvatarPreviewWrap");
+    const avatarEl = qs("#loginAvatarPreview");
+    const greetingEl = qs("#loginAvatarGreeting");
+    if (!wrap || !avatarEl || !greetingEl) return;
+
+    try {
+      const res = await fetch(`${WORKER_URL}/lookup-avatar-by-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({ found: false }));
+      if (!data.found) { wrap.style.display = "none"; return; }
+
+      if (data.avatarUrl) {
+        // Ordem importa: o "background" (atalho) tem que vir ANTES do
+        // backgroundImage, senão ele apaga a imagem que acabamos de setar.
+        avatarEl.style.background = "none";
+        avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
+        avatarEl.style.backgroundSize = "cover";
+        avatarEl.style.backgroundPosition = "center";
+        avatarEl.textContent = "";
+      } else {
+        avatarEl.style.backgroundImage = "none";
+        avatarEl.style.background = data.avatarColor || "#888";
+        avatarEl.textContent = initialsFrom(data.name);
+      }
+      greetingEl.textContent = data.name ? `Olá, ${data.name.split(" ")[0]}!` : "";
+      wrap.style.display = "flex";
+    } catch (err) {
+      wrap.style.display = "none";
+    }
+  }
+
   /* ---------- ações ---------- */
   async function registerUser({ name, email, password, refCode }) {
     email = email.trim().toLowerCase();
@@ -153,6 +195,23 @@ import { getDB, onDBChange } from "./db-sync.js";
     // garante que os dados do Realtime Database já estejam carregados
     // antes de permitir o envio dos formulários
     onDBChange(() => {});
+
+    const loginEmailInput = qs("#loginEmail");
+    if (loginEmailInput) {
+      let avatarLookupTimer;
+      loginEmailInput.addEventListener("input", () => {
+        clearTimeout(avatarLookupTimer);
+        const email = loginEmailInput.value.trim();
+        if (!isValidEmail(email)) {
+          const wrap = qs("#loginAvatarPreviewWrap");
+          if (wrap) wrap.style.display = "none";
+          return;
+        }
+        // Debounce: só busca 500ms depois que a pessoa parar de digitar,
+        // pra não disparar uma requisição a cada letra.
+        avatarLookupTimer = setTimeout(() => lookupAvatarByEmail(email), 500);
+      });
+    }
 
     const loginForm = qs("#loginForm");
     if (loginForm) {
