@@ -5,7 +5,7 @@
 import { auth, rtdb } from "./firebase-config.js"; 
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { ref, onValue, push, serverTimestamp, set } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js"; 
-import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsChats, enviarMensagemSuporte, marcarChatLidoAdmin, encerrarChatAdmin, setAdminPresenceOnline, notificarDigitacao } from "./db-sync.js";
+import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsChats, enviarMensagemSuporte, marcarChatLidoAdmin, encerrarChatAdmin, setAdminPresenceOnline, notificarDigitacao, escutarPresencaUsuarios } from "./db-sync.js";
 
 (function () {
   "use strict";
@@ -24,6 +24,7 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
 
   let activeChatUserId = null;
   let allChatsData = {};
+  let userPresenceData = {}; // { uid: true|false } — quem está online agora
   let supportBound = false;
 
   function currentUser() {
@@ -176,6 +177,11 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
     if (supportBound) return; supportBound = true;
 
     setAdminPresenceOnline();
+    escutarPresencaUsuarios((presence) => {
+        userPresenceData = presence;
+        renderAdminChatList();
+        if (activeChatUserId) renderAdminActiveChat();
+    });
 
     const chatsRef = ref(rtdb, "supportChats");
     let previousUnreadUids = new Set();
@@ -307,7 +313,8 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
         const time = chat.updatedAt ? new Date(chat.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
         const name = chat.userName || "Usuário desconhecido"; const initials = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
 
-        div.innerHTML = `<span class="aci-avatar">${escapeHtml(initials || "?")}</span><div class="aci-content"><div class="aci-header"><strong>${escapeHtml(name)}</strong><span class="muted" style="font-size:11px">${time}</span></div><div class="aci-lastmsg">${escapeHtml(chat.lastMessage || "...")}</div></div>`;
+        const isOnline = userPresenceData[uid] === true;
+        div.innerHTML = `<span style="position:relative;flex-shrink:0;display:inline-block"><span class="aci-avatar">${escapeHtml(initials || "?")}</span><span title="${isOnline ? "Online" : "Offline"}" style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:${isOnline ? "#4ade80" : "#94a3b8"};border:2px solid var(--surface, #fff);"></span></span><div class="aci-content"><div class="aci-header"><strong>${escapeHtml(name)}</strong><span class="muted" style="font-size:11px">${time}</span></div><div class="aci-lastmsg">${escapeHtml(chat.lastMessage || "...")}</div></div>`;
         div.addEventListener("click", () => { activeChatUserId = uid; if (chat.unreadAdmin) { marcarChatLidoAdmin(uid); } renderAdminChatList(); renderAdminActiveChat(); });
         listEl.appendChild(div);
     });
@@ -320,6 +327,9 @@ import { getDB, onDBChange, isDBSynced, enviarNotificacaoPush, escutarTodosOsCha
 
     const chat = allChatsData[activeChatUserId];
     emptyEl.style.display = "none"; activeEl.style.display = "flex"; nameEl.textContent = chat.userName || "Usuário";
+    const isOnline = userPresenceData[activeChatUserId] === true;
+    const statusEl = qs("#activeChatUserStatus");
+    if (statusEl) { statusEl.innerHTML = `<span class="support-status-dot" style="background:${isOnline ? "#4ade80" : "#94a3b8"}"></span>${isOnline ? "Online agora" : "Offline"}`; }
     msgsEl.innerHTML = "";
 
     const msgs = chat.messages ? Object.values(chat.messages) : [];
