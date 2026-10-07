@@ -6,7 +6,7 @@ import { auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   getDB, onDBChange, updateUserProfile, addProject, updateProject, addPost, addComment, addReply, addWithdrawalRequest, markNotificationRead, enviarNotificacaoPush, addPlatformReview, addProjectReview,
-  enviarMensagemSuporte, escutarChatUsuario, marcarChatLidoUser, escutarPresencaAdmin, notificarDigitacao, reabrirChatUsuario, encerrarChatUsuario, registrarVisualizacao, toggleLike
+  enviarMensagemSuporte, escutarChatUsuario, marcarChatLidoUser, escutarPresencaAdmin, notificarDigitacao, reabrirChatUsuario, encerrarChatUsuario, registrarVisualizacao, toggleLike, setUserPresenceOnline
 } from "./db-sync.js";
 import { uid, nowISO } from "./seed.js";
 
@@ -380,7 +380,11 @@ import { uid, nowISO } from "./seed.js";
     const user = currentUser(); if (!user) throw new Error("Você precisa entrar na sua conta.");
     const existing = db.projects.find((p) => p.id === projectId); if (!existing || existing.ownerId !== user.id) throw new Error("Projeto não encontrado.");
     const moderation = moderateProject(data);
-    const updates = { title: sanitizeText(data.title.trim()), description: sanitizeText(data.description.trim()), images: (data.images && data.images.length ? data.images : existing.images || []).slice(0, 6), categoryId: data.categoryId, link: data.link.trim(), ownerName: sanitizeText(data.ownerName.trim()), contact: sanitizeText(data.contact.trim()), status: moderation.status };
+    // Sem fallback pras fotos antigas aqui: pendingImages já chega completo
+    // e correto do form (fotos mantidas + novas), incluindo o caso da
+    // pessoa ter removido todas de propósito — nesse caso data.images
+    // vem [] mesmo, e é isso que deve ser salvo.
+    const updates = { title: sanitizeText(data.title.trim()), description: sanitizeText(data.description.trim()), images: (data.images || []).slice(0, 6), categoryId: data.categoryId, link: data.link.trim(), ownerName: sanitizeText(data.ownerName.trim()), contact: sanitizeText(data.contact.trim()), status: moderation.status };
     const saved = await updateProject(projectId, updates);
     if (moderation.status === "rejected") { try { await fetch(`${WORKER_URL}/notify-auto-rejection`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + await auth.currentUser.getIdToken() }, body: JSON.stringify({ projectId, rejectReason: moderation.rejectReason }) }); } catch (err) {} }
     return saved;
@@ -644,6 +648,7 @@ import { uid, nowISO } from "./seed.js";
   }
 
   function initSupportChatWidget(user) {
+      setUserPresenceOnline(user.id);
       const existing = document.getElementById("supportWidget");
       if (existing) existing.remove();
       if (chatListenerUnsubscribe) { chatListenerUnsubscribe(); chatListenerUnsubscribe = null; }
@@ -1256,7 +1261,7 @@ import { uid, nowISO } from "./seed.js";
           <div class="pd-row"><span>Categoria</span><span>${escapeHtml(categoryName(p.categoryId))}</span></div>
           <div class="pd-row"><span>Publicado em</span><span>${fmtDate(p.createdAt)}</span></div>
           <a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="margin-top: 16px;">Acessar projeto ↗</a>
-          <button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', location.origin + '/projeto/' + '${p.id}')">Compartilhar projeto</button>
+          <button type="button" class="btn btn-outline-gold btn-block" style="margin-top:8px" onclick="compartilharConteudo('${escapeHtml(p.title)}', 'Olha esse projeto na plataforma:', location.origin + '/projetos/' + '${p.id}')">Compartilhar projeto</button>
         </aside>
       </div>
     </div>`;
@@ -1268,7 +1273,7 @@ import { uid, nowISO } from "./seed.js";
     let editProj = null; if (params && params.edit) editProj = db.projects.find(p => p.id === params.edit && p.ownerId === user.id);
     const isEdit = !!editProj;
     const titleVal = editProj ? escapeHtml(editProj.title) : ""; const descVal = editProj ? escapeHtml(editProj.description) : ""; const linkVal = editProj ? escapeHtml(editProj.link) : ""; const catIdVal = editProj ? editProj.categoryId : ""; const ownerNameVal = editProj ? escapeHtml(editProj.ownerName) : escapeHtml(user.name); const contactVal = editProj ? escapeHtml(editProj.contact) : escapeHtml(user.email);
-    return `<section class="section" style="padding-top:44px;max-width:720px;margin:0 auto"><div class="container"><span class="tag-label">${isEdit ? "Revisão de Projeto" : "Novo projeto"}</span><h2 style="margin-bottom:6px">${isEdit ? "Editar e Reenviar Projeto" : "Publicar projeto"}</h2>${user.role === "admin" ? `<p class="field-hint" style="margin-bottom:20px">Você está publicando como administrador — não é necessário ter assinatura ativa.</p>` : `<div style="margin-bottom:26px"></div>`}${isEdit ? `<div class="badge badge-warning" style="margin-bottom: 20px; display: inline-block;">Corrija as informações abaixo para reenviar seu projeto.</div>` : `<p class="field-hint" style="margin-bottom:20px">Todas as postagens passam por revisão antes de serem publicadas na vitrine.</p>`}<form id="publishForm" class="panel">${isEdit ? `<input type="hidden" name="editingProjectId" value="${escapeHtml(editProj.id)}">` : ""}<div class="field"><label>Nome do projeto</label><input name="title" required placeholder="Ex.: Nimbus — painel financeiro" value="${titleVal}"></div><div class="field"><label>Descrição</label><textarea name="description" rows="5" required placeholder="Conte o que é, para quem serve e o que torna especial.">${descVal}</textarea></div><div class="field"><label>Categoria</label><select name="categoryId" required><option value="">Selecione…</option>${db.categories.map((c) => `<option value="${c.id}" ${c.id === catIdVal ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join("")}</select></div><div class="field"><label>Link do projeto</label><input name="link" type="url" required placeholder="https://" value="${linkVal}"></div><div class="field"><label>Nome do responsável</label><input name="ownerName" required value="${ownerNameVal}"></div><div class="field"><label>Forma de contato</label><input name="contact" required placeholder="E-mail ou telefone (WhatsApp)" value="${contactVal}"></div><div class="field"><label>Imagens do projeto ${isEdit ? "(Envie as imagens novamente)" : ""}</label><input type="file" id="imageInput" accept="image/*" multiple><div class="field-hint">Envie até 4 imagens do seu projeto.</div><div class="upload-preview" id="uploadPreview"></div></div><div class="field-error" id="publishError"></div><button class="btn btn-primary btn-block" type="submit">${isEdit ? "Reenviar Projeto" : "Publicar projeto"}</button></form></div></section>`;
+    return `<section class="section" style="padding-top:44px;max-width:720px;margin:0 auto"><div class="container"><span class="tag-label">${isEdit ? "Revisão de Projeto" : "Novo projeto"}</span><h2 style="margin-bottom:6px">${isEdit ? "Editar e Reenviar Projeto" : "Publicar projeto"}</h2>${user.role === "admin" ? `<p class="field-hint" style="margin-bottom:20px">Você está publicando como administrador — não é necessário ter assinatura ativa.</p>` : `<div style="margin-bottom:26px"></div>`}${isEdit ? `<div class="badge badge-warning" style="margin-bottom: 20px; display: inline-block;">Corrija as informações abaixo para reenviar seu projeto.</div>` : `<p class="field-hint" style="margin-bottom:20px">Todas as postagens passam por revisão antes de serem publicadas na vitrine.</p>`}<form id="publishForm" class="panel">${isEdit ? `<input type="hidden" name="editingProjectId" value="${escapeHtml(editProj.id)}">` : ""}<div class="field"><label>Nome do projeto</label><input name="title" required placeholder="Ex.: Nimbus — painel financeiro" value="${titleVal}"></div><div class="field"><label>Descrição</label><textarea name="description" rows="5" required placeholder="Conte o que é, para quem serve e o que torna especial.">${descVal}</textarea></div><div class="field"><label>Categoria</label><select name="categoryId" required><option value="">Selecione…</option>${db.categories.map((c) => `<option value="${c.id}" ${c.id === catIdVal ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join("")}</select></div><div class="field"><label>Link do projeto</label><input name="link" type="url" required placeholder="https://" value="${linkVal}"></div><div class="field"><label>Nome do responsável</label><input name="ownerName" required value="${ownerNameVal}"></div><div class="field"><label>Forma de contato</label><input name="contact" required placeholder="E-mail ou telefone (WhatsApp)" value="${contactVal}"></div><div class="field"><label>Imagens do projeto</label><input type="file" id="imageInput" accept="image/*" multiple><div class="field-hint">${isEdit ? "Remova ou adicione fotos — até 4 no total." : "Envie até 4 imagens do seu projeto."}</div><div class="upload-preview" id="uploadPreview"></div></div><div class="field-error" id="publishError"></div><button class="btn btn-primary btn-block" type="submit">${isEdit ? "Reenviar Projeto" : "Publicar projeto"}</button></form></div></section>`;
   }
 
   function viewCommunity() {
@@ -1361,15 +1366,28 @@ import { uid, nowISO } from "./seed.js";
 
     const publishForm = qs("#publishForm");
     if (publishForm) {
-      const imageInput = qs("#imageInput"); pendingImages = [];
-      if (imageInput) { imageInput.addEventListener("change", async () => { const files = Array.from(imageInput.files).slice(0, 4); pendingImages = []; for (const f of files) { const durl = await fileToCompressedDataURL(f, 1280, 0.75); pendingImages.push(durl); } renderUploadPreview(); }); }
+      const imageInput = qs("#imageInput");
+      const editingProjectIdForImages = qs('input[name="editingProjectId"]', publishForm)?.value;
+      const editingProject = editingProjectIdForImages ? db.projects.find((p) => p.id === editingProjectIdForImages) : null;
+      // Ao editar, começa com as fotos que o projeto já tem (a pessoa pode
+      // remover alguma clicando no × ou só adicionar fotos novas — não
+      // precisa mais reenviar tudo do zero).
+      pendingImages = editingProject && Array.isArray(editingProject.images) ? editingProject.images.slice(0, 4) : [];
+      renderUploadPreview();
+      if (imageInput) { imageInput.addEventListener("change", async () => { const slots = Math.max(0, 4 - pendingImages.length); const files = Array.from(imageInput.files).slice(0, slots); for (const f of files) { const durl = await fileToCompressedDataURL(f, 1280, 0.75); pendingImages.push(durl); } imageInput.value = ""; renderUploadPreview(); }); }
       publishForm.addEventListener("submit", (e) => {
         e.preventDefault(); const fd = new FormData(publishForm); qs("#publishError").style.display = "none";
         const editingProjectId = fd.get("editingProjectId");
         const submitBtn = publishForm.querySelector('button[type="submit"]'); submitBtn.disabled = true;
+        // Fotos que já são uma URL http(s) de verdade (vieram do projeto
+        // existente) não precisam subir de novo — só as novas (data: URL,
+        // recém-escolhidas no input) passam pelo upload pro R2.
+        const alreadyUploaded = pendingImages.filter((img) => /^https?:\/\//.test(img));
+        const needsUpload = pendingImages.filter((img) => !/^https?:\/\//.test(img));
         Promise.resolve()
-          .then(() => uploadProjectImages(pendingImages))
-          .then((imageUrls) => {
+          .then(() => uploadProjectImages(needsUpload))
+          .then((uploadedUrls) => {
+            const imageUrls = [...alreadyUploaded, ...uploadedUrls];
             const payload = { title: fd.get("title"), description: fd.get("description"), categoryId: fd.get("categoryId"), link: fd.get("link"), ownerName: fd.get("ownerName"), contact: fd.get("contact"), images: imageUrls };
             return editingProjectId ? resendProject(editingProjectId, payload) : publishProject(payload);
           })
