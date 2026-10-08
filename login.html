@@ -22,6 +22,15 @@
   }
 </script>
 
+<style>
+  /* Avatar de "bem-vindo de volta" na tela de login: centralizado, maior,
+     e escala com a largura da tela (clamp) pra funcionar bem no celular. */
+  .login-avatar-wrap{display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;margin:4px 0 18px;text-align:center}
+  .login-avatar-wrap.is-visible{display:flex;animation:loginAvatarIn .18s ease-out}
+  .login-avatar-circle{width:clamp(72px,22vw,96px);height:clamp(72px,22vw,96px);font-size:clamp(24px,7vw,32px);flex-shrink:0}
+  .login-avatar-greeting{font-size:clamp(16px,4.4vw,19px);font-weight:600;color:var(--ink-600);line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @keyframes loginAvatarIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+</style>
 </head>
 <body>
 <!-- ===== HEADER ===== -->
@@ -84,9 +93,9 @@
           <label for="loginEmail">E-mail</label>
           <input type="email" id="loginEmail" name="email" required placeholder="voce@email.com" autocomplete="email">
         </div>
-        <div class="field" id="loginAvatarPreviewWrap" style="display:none;align-items:center;gap:10px;margin-top:-6px">
-          <span class="avatar-circle" id="loginAvatarPreview" style="width:40px;height:40px;font-size:14px;flex-shrink:0"></span>
-          <span id="loginAvatarGreeting" style="font-size:14px;color:var(--ink-600)"></span>
+        <div id="loginAvatarPreviewWrap" class="login-avatar-wrap" aria-live="polite">
+          <span class="avatar-circle login-avatar-circle" id="loginAvatarPreview"></span>
+          <span class="login-avatar-greeting" id="loginAvatarGreeting"></span>
         </div>
         <div class="field">
           <label for="loginPassword">Senha</label>
@@ -182,6 +191,6 @@
 </script>
 
 <script src="/cookie-consent.js?"></script>
-<script src="atualizador.js?v=1"></script>
+<script src="atualizador.js?"></script>
 </body>
 </html>
