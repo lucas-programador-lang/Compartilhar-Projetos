@@ -80,15 +80,71 @@ import { getDB, onDBChange } from "./db-sync.js";
     return (name || "?").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
   }
 
-  // Busca o avatar/nome de quem já tem conta com esse e-mail, pra mostrar
-  // na tela de login como confirmação visual ("é essa conta mesmo").
-  // Rota pública no Worker — não expõe senha nem nada sensível.
-  async function lookupAvatarByEmail(email) {
+  // ---- Avatar de "bem-vindo de volta" na tela de login ----
+  // Mostra o avatar/nome de quem já tem conta com o e-mail digitado. Pra
+  // aparecer rápido (principalmente quando o navegador preenche e-mail e
+  // senha sozinho e a pessoa aperta Entrar na hora):
+  //  1) guarda as últimas contas vistas no localStorage e mostra daí,
+  //     instantaneamente, sem esperar a rede;
+  //  2) confirma/atualiza em segundo plano pelo Worker.
+  const AVATAR_CACHE_KEY = "loginAvatarCache";
+  const AVATAR_CACHE_MAX = 3; // poucas entradas: a foto pode ter dezenas de KB
+  let avatarLookupSeq = 0;
+
+  function readAvatarCache() {
+    try { return JSON.parse(localStorage.getItem(AVATAR_CACHE_KEY) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function writeAvatarCache(email, data) {
+    try {
+      const cache = readAvatarCache();
+      delete cache[email];
+      cache[email] = { name: data.name || "", avatarUrl: data.avatarUrl || "", avatarColor: data.avatarColor || "", ts: Date.now() };
+      const keys = Object.keys(cache).sort((a, b) => cache[b].ts - cache[a].ts).slice(0, AVATAR_CACHE_MAX);
+      const trimmed = {}; keys.forEach((k) => { trimmed[k] = cache[k]; });
+      localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(trimmed));
+    } catch (e) { /* sem espaço/bloqueado: segue sem cache */ }
+  }
+  function removeFromAvatarCache(email) {
+    try { const cache = readAvatarCache(); delete cache[email]; localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(cache)); } catch (e) {}
+  }
+
+  function hideLoginAvatar() {
+    const wrap = qs("#loginAvatarPreviewWrap");
+    if (wrap) wrap.classList.remove("is-visible");
+  }
+
+  function showLoginAvatar(data) {
     const wrap = qs("#loginAvatarPreviewWrap");
     const avatarEl = qs("#loginAvatarPreview");
     const greetingEl = qs("#loginAvatarGreeting");
     if (!wrap || !avatarEl || !greetingEl) return;
 
+    if (data.avatarUrl) {
+      // Ordem importa: o "background" (atalho) tem que vir ANTES do
+      // backgroundImage, senão ele apaga a imagem que acabamos de setar.
+      avatarEl.style.background = "none";
+      avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
+      avatarEl.style.backgroundSize = "cover";
+      avatarEl.style.backgroundPosition = "center";
+      avatarEl.textContent = "";
+    } else {
+      avatarEl.style.backgroundImage = "none";
+      avatarEl.style.background = data.avatarColor || "#888";
+      avatarEl.textContent = initialsFrom(data.name);
+    }
+    greetingEl.textContent = data.name ? `Olá, ${data.name.split(" ")[0]}!` : "";
+    wrap.classList.add("is-visible");
+  }
+
+  async function lookupAvatarByEmail(email) {
+    const seq = ++avatarLookupSeq;
+    const key = email.toLowerCase();
+
+    // 1) cache local: aparece na hora
+    const cached = readAvatarCache()[key];
+    if (cached) showLoginAvatar(cached);
+
+    // 2) confirma no servidor (e atualiza se a foto/nome mudou)
     try {
       const res = await fetch(`${WORKER_URL}/lookup-avatar-by-email`, {
         method: "POST",
@@ -96,25 +152,16 @@ import { getDB, onDBChange } from "./db-sync.js";
         body: JSON.stringify({ email }),
       });
       const data = await res.json().catch(() => ({ found: false }));
-      if (!data.found) { wrap.style.display = "none"; return; }
+      // Se a pessoa já mudou o e-mail enquanto a resposta vinha, ignora.
+      const input = qs("#loginEmail");
+      if (seq !== avatarLookupSeq || (input && input.value.trim().toLowerCase() !== key)) return;
 
-      if (data.avatarUrl) {
-        // Ordem importa: o "background" (atalho) tem que vir ANTES do
-        // backgroundImage, senão ele apaga a imagem que acabamos de setar.
-        avatarEl.style.background = "none";
-        avatarEl.style.backgroundImage = `url('${data.avatarUrl}')`;
-        avatarEl.style.backgroundSize = "cover";
-        avatarEl.style.backgroundPosition = "center";
-        avatarEl.textContent = "";
-      } else {
-        avatarEl.style.backgroundImage = "none";
-        avatarEl.style.background = data.avatarColor || "#888";
-        avatarEl.textContent = initialsFrom(data.name);
-      }
-      greetingEl.textContent = data.name ? `Olá, ${data.name.split(" ")[0]}!` : "";
-      wrap.style.display = "flex";
+      if (!data.found) { removeFromAvatarCache(key); hideLoginAvatar(); return; }
+      writeAvatarCache(key, data);
+      showLoginAvatar(data);
     } catch (err) {
-      wrap.style.display = "none";
+      // Sem rede: se já mostramos pelo cache, mantém; senão, nada a mostrar.
+      if (!cached) hideLoginAvatar();
     }
   }
 
@@ -199,18 +246,25 @@ import { getDB, onDBChange } from "./db-sync.js";
     const loginEmailInput = qs("#loginEmail");
     if (loginEmailInput) {
       let avatarLookupTimer;
-      loginEmailInput.addEventListener("input", () => {
+      let lastLookedUp = "";
+      const checkEmail = (immediate) => {
         clearTimeout(avatarLookupTimer);
         const email = loginEmailInput.value.trim();
-        if (!isValidEmail(email)) {
-          const wrap = qs("#loginAvatarPreviewWrap");
-          if (wrap) wrap.style.display = "none";
-          return;
-        }
-        // Debounce: só busca 500ms depois que a pessoa parar de digitar,
-        // pra não disparar uma requisição a cada letra.
-        avatarLookupTimer = setTimeout(() => lookupAvatarByEmail(email), 500);
-      });
+        if (!isValidEmail(email)) { lastLookedUp = ""; avatarLookupSeq++; hideLoginAvatar(); return; }
+        if (email.toLowerCase() === lastLookedUp) return; // já tratado
+        const run = () => { lastLookedUp = email.toLowerCase(); lookupAvatarByEmail(email); };
+        // Digitando: espera um pouquinho pra não buscar a cada letra.
+        // Colou/autopreencheu/saiu do campo: busca já.
+        if (immediate) run(); else avatarLookupTimer = setTimeout(run, 200);
+      };
+      loginEmailInput.addEventListener("input", () => checkEmail(false));
+      loginEmailInput.addEventListener("change", () => checkEmail(true));
+      loginEmailInput.addEventListener("blur", () => checkEmail(true));
+
+      // Preenchimento automático do navegador (e-mail/senha salvos): muitas
+      // vezes não dispara "input" de forma confiável, então confere o campo
+      // algumas vezes logo depois que a página abre.
+      [0, 150, 400, 900, 1800].forEach((ms) => setTimeout(() => checkEmail(true), ms));
     }
 
     const loginForm = qs("#loginForm");
