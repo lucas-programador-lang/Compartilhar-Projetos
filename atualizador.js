@@ -1,6 +1,6 @@
 /* =========================================================
    COMPARTILHAR PROJETOS — update-modal.js
-   Aviso de atualização obrigatória do app Android.
+   Aviso de atualização obrigatória do app Android e Funções Nativas.
    ========================================================= */
 (function () {
   "use strict";
@@ -65,18 +65,16 @@
   }
 
   // ==========================================================
-  // CORREÇÃO: FUNÇÃO PARA BAIXAR O APK DIRETO PELO APLICATIVO
+  // FUNÇÃO PARA BAIXAR O APK DIRETO PELO APLICATIVO
   // ==========================================================
   function openUpdateLink() {
     if (typeof Android !== "undefined" && typeof Android.baixarApkDireto === "function") {
-      // 1. Chama a função Java que faz o download silencioso e instala automaticamente
       Android.baixarApkDireto(APK_URL);
       
-      // 2. Muda o visual do botão para que o usuário saiba que está a baixar
       var btn = document.getElementById("cpuUpdateBtn");
-      btn.innerHTML = '<span>Baixando atualização... Aguarde a tela de instalação.</span>';
+      btn.innerHTML = '<span>Baixando atualização... Aguarde a instalação.</span>';
       btn.style.opacity = "0.7";
-      btn.style.pointerEvents = "none"; // Desativa o botão para não clicar duas vezes
+      btn.style.pointerEvents = "none"; 
     } else {
       window.open(APK_URL, "_blank");
     }
@@ -104,9 +102,7 @@
           '<span class="cpu-arrow">' + ICON_ARROW + '</span>' +
           '<div class="cpu-ver is-new"><small>Nova</small><strong id="cpuLatest"></strong></div>' +
         '</div>' +
-        // CORREÇÃO: TEXTO DO BOTÃO ALTERADO PARA "Atualizar Agora"
         '<button type="button" class="cpu-btn" id="cpuUpdateBtn">' + ICON_DOWNLOAD + '<span>Atualizar Agora</span></button>' +
-        // CORREÇÃO: TEXTO DA DICA ALTERADO
         '<p class="cpu-hint">Toque no botão para baixar e instalar a nova versão direto no aplicativo.</p>' +
         '<div class="cpu-divider"></div>' +
         '<a class="cpu-support" id="cpuSupport" href="' + SUPPORT_URL + '" target="_blank" rel="noopener">' + ICON_WHATSAPP + '<span>Precisa de ajuda? Fale no WhatsApp</span></a>' +
@@ -156,14 +152,29 @@
   }
 
   // ==========================================================
-  // ONDE COLOCAR O TEMA ESCURO: PODE FICAR AQUI NO FINAL MESMO!
+  // FUNÇÃO DE TEMA ESCURO (Ajustada para o seu 'data-theme')
   // ==========================================================
   window.mudarTemaApp = function(isEscuro) {
       if (isEscuro) {
-          document.body.classList.add('dark-mode');
+          document.documentElement.setAttribute('data-theme', 'dark');
       } else {
-          document.body.classList.remove('dark-mode');
+          document.documentElement.setAttribute('data-theme', 'light');
       }
   };
+
+  // ==========================================================
+  // O TRUQUE GLOBAL DE VIBRAÇÃO (HAPTIC FEEDBACK)
+  // ==========================================================
+  document.addEventListener('click', function(event) {
+      // Verifica se a pessoa clicou num botão ou num link
+      var elementoClicado = event.target.closest('button, a');
+
+      if (elementoClicado) {
+          // Se for no Android, dá o Toque Sutil (vibração premium)
+          if (typeof Android !== 'undefined' && typeof Android.toqueSutil === 'function') {
+              Android.toqueSutil();
+          }
+      }
+  });
 
 })();
