@@ -3,6 +3,9 @@ name: Compilar APK Android
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/android-build.yml'
   workflow_dispatch:
 
 jobs:
