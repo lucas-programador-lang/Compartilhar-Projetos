@@ -30,7 +30,6 @@ document.addEventListener("DOMContentLoaded", function() {
       <h4>Atualização Obrigatória</h4>
       <p id="update-message">Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, instale a atualização mais recente.</p>
       
-      <!-- REMOVIDO o target="_blank" para o download correr nativamente -->
       <a id="btnDownloadApk" href="#" class="btn-update-now">Baixar Atualização</a>
       
       <a href="https://wa.me/5569993607367?text=Ol%C3%A1%2C%20estou%20com%20problemas%20para%20atualizar%20o%20aplicativo%20Compartilhar%20Projetos." class="btn-support">Precisa de ajuda? Fale no WhatsApp</a>
@@ -55,7 +54,18 @@ document.addEventListener("DOMContentLoaded", function() {
             const assetApk = data.assets && data.assets.find(asset => asset.name.endsWith('.apk'));
             const linkDireto = assetApk ? assetApk.browser_download_url : `https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/download/${data.tag_name}/compartilhar-projetos.apk`;
 
-            document.getElementById('btnDownloadApk').href = linkDireto;
+            const botaoDownload = document.getElementById('btnDownloadApk');
+            if (botaoDownload) {
+              botaoDownload.href = linkDireto;
+              
+              // Intercepta o clique para chamar o DownloadManager nativo do Android
+              botaoDownload.onclick = function(e) {
+                if (typeof Android !== 'undefined' && typeof Android.baixarApkDireto === 'function') {
+                  e.preventDefault(); // Impede o navegador de abrir
+                  Android.baixarApkDireto(linkDireto); // Dispara o download nativo em segundo plano
+                }
+              };
+            }
 
             document.getElementById('bloqueioFundo').style.display = 'block';
             document.getElementById('updateModal').style.display = 'block';
