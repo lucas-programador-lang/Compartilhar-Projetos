@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
-  // Cria a tela de bloqueio e o aviso obrigatório
+  // Cria a tela de bloqueio, o aviso obrigatório e o botão de WhatsApp
   const modalHTML = `
     <style>
       #bloqueioFundo {
@@ -17,8 +17,13 @@ document.addEventListener("DOMContentLoaded", function() {
       .btn-update-now {
         display: inline-block; background: #6c63ff; color: #ffffff; border: none; padding: 14px 24px;
         border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 16px; font-weight: 600; width: 100%;
+        box-sizing: border-box;
       }
       .btn-update-now:hover { background: #5750d4; }
+      .btn-support {
+        display: inline-block; margin-top: 18px; color: #25D366; text-decoration: none; font-size: 14px; font-weight: 500;
+      }
+      .btn-support:hover { text-decoration: underline; }
     </style>
     
     <div id="bloqueioFundo"></div>
@@ -26,11 +31,14 @@ document.addEventListener("DOMContentLoaded", function() {
       <h4>Atualização Obrigatória</h4>
       <p>Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, por favor instale a atualização mais recente.</p>
       <a href="https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/latest/download/compartilhar-projetos.apk" class="btn-update-now">Baixar Atualização</a>
+      
+      <!-- Botão do WhatsApp (Altere o número 5569999999999) -->
+      <a href="https://wa.me/5569993607367?text=Ol%C3%A1%2C%20estou%20com%20problemas%20para%20atualizar%20o%20aplicativo%20Compartilhar%20Projetos." class="btn-support">Precisa de ajuda? Fale no WhatsApp</a>
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-  // Verifica a versão
+  // Verifica a versão no GitHub
   if (typeof Android !== 'undefined' && typeof Android.obterVersaoApp === 'function') {
     var versaoInstalada = Android.obterVersaoApp();
     
