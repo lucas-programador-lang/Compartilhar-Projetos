@@ -5,9 +5,11 @@ import android.app.DownloadManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
@@ -108,6 +110,20 @@ public class MainActivity extends AppCompatActivity {
     private long tempoUltimoCliqueVoltar = 0;
     private static WeakReference<MainActivity> instanciaAtual;
 
+    // --- VARIÁVEIS PARA A ATUALIZAÇÃO AUTOMÁTICA ---
+    private long downloadIdAtual = -1;
+
+    private final BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+            if (id == downloadIdAtual && id != -1) {
+                instalarApkBaixado(id);
+            }
+        }
+    };
+    // -----------------------------------------------
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
@@ -132,6 +148,14 @@ public class MainActivity extends AppCompatActivity {
         configurarGestorDeDownloads();
         configurarNavegacaoDeGestos();
         monitorarRedeEmTempoReal();
+
+        // Regista o ouvinte para instalar o APK assim que o download terminar
+        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(downloadReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(downloadReceiver, filter);
+        }
 
         if (savedInstanceState == null) {
             processarIntentRecebida(getIntent());
@@ -461,6 +485,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // --- FUNÇÃO PARA ABRIR O INSTALADOR DO APK ---
+    private void instalarApkBaixado(long id) {
+        DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        Uri apkUri = dm.getUriForDownloadedFile(id);
+        
+        if (apkUri != null) {
+            Intent installIntent = new Intent(Intent.ACTION_VIEW);
+            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(installIntent);
+            } catch (ActivityNotFoundException e) {
+                Toast.makeText(this, "Erro ao abrir o instalador do Android.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     public class WebAppInterface {
         @JavascriptInterface public void siteTotalmenteCarregado() { siteCarregando = false; }
         @JavascriptInterface public void atualizarRota(String rota) { rotaAtual = rota; }
@@ -497,25 +539,30 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // --- FUNÇÃO NATIVA DE DOWNLOAD DIRETO VIA JAVASCRIPT ---
         @JavascriptInterface
         public void baixarApkDireto(String urlParaBaixar) {
             runOnUiThread(() -> {
                 try {
+                    // Remove ficheiro antigo para evitar o sufixo (1).apk
+                    File arquivoAntigo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "compartilhar-projetos.apk");
+                    if (arquivoAntigo.exists()) arquivoAntigo.delete();
+
                     DownloadManager.Request request = new DownloadManager.Request(Uri.parse(urlParaBaixar));
                     request.setMimeType("application/vnd.android.package-archive");
                     request.addRequestHeader("cookie", CookieManager.getInstance().getCookie(urlParaBaixar));
                     request.allowScanningByMediaScanner();
+                    request.setTitle("Compartilhar Projetos");
+                    request.setDescription("Baixando atualização...");
                     request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
                     request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "compartilhar-projetos.apk");
                     
                     DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
                     if (dm != null) {
-                        dm.enqueue(request);
-                        Toast.makeText(getApplicationContext(), "A descarregar atualização...", Toast.LENGTH_LONG).show();
+                        downloadIdAtual = dm.enqueue(request); // Grava o ID do download para acionar a instalação
+                        Toast.makeText(getApplicationContext(), "Download iniciado. Aguarde a instalação...", Toast.LENGTH_LONG).show();
                     }
                 } catch (Exception e) {
-                    Toast.makeText(getApplicationContext(), "Erro ao iniciar download direto", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Erro ao iniciar download", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -662,6 +709,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        try { unregisterReceiver(downloadReceiver); } catch(Exception e) {} // Desliga o ouvinte de downloads
+
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null && networkCallback != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             try { cm.unregisterNetworkCallback(networkCallback); } catch (Exception ignored) {}
