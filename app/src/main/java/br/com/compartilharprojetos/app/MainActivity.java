@@ -337,9 +337,8 @@ public class MainActivity extends AppCompatActivity {
                     return abrirAppExterno(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                 }
                 
-                // --- REGRA ADICIONADA: Permite que downloads de APK do GitHub fiquem dentro do app ---
                 if (url.endsWith(".apk") || url.contains("github.com") && url.contains("releases/download")) {
-                    return false; // Deixa o DownloadListener cuidar do APK internamente
+                    return false; 
                 }
                 
                 if (url.startsWith("http") && !url.contains("compartilhar-projetos.com.br")) {
@@ -495,6 +494,29 @@ public class MainActivity extends AppCompatActivity {
                 sendIntent.putExtra(Intent.EXTRA_TEXT, texto + "\n\n" + url);
                 sendIntent.setType("text/plain");
                 startActivity(Intent.createChooser(sendIntent, "Compartilhar usando..."));
+            });
+        }
+
+        // --- FUNÇÃO NATIVA DE DOWNLOAD DIRETO VIA JAVASCRIPT ---
+        @JavascriptInterface
+        public void baixarApkDireto(String urlParaBaixar) {
+            runOnUiThread(() -> {
+                try {
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(urlParaBaixar));
+                    request.setMimeType("application/vnd.android.package-archive");
+                    request.addRequestHeader("cookie", CookieManager.getInstance().getCookie(urlParaBaixar));
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "compartilhar-projetos.apk");
+                    
+                    DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                    if (dm != null) {
+                        dm.enqueue(request);
+                        Toast.makeText(getApplicationContext(), "A descarregar atualização...", Toast.LENGTH_LONG).show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(getApplicationContext(), "Erro ao iniciar download direto", Toast.LENGTH_SHORT).show();
+                }
             });
         }
     }
