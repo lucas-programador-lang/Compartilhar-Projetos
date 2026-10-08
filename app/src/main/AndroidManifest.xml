@@ -42,7 +42,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:usesCleartextTraffic="false"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:requestLegacyExternalStorage="true"> <!-- NOVA LINHA ADICIONADA AQUI -->
 
         <!-- Definições padrão para o Firebase Push -->
         <meta-data
