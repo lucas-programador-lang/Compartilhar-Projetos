@@ -53,4 +53,3 @@ jobs:
         files: app/build/outputs/apk/release/compartilhar-projetos.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-aaa
