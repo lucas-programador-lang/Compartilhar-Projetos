@@ -37,6 +37,25 @@ document.addEventListener("DOMContentLoaded", function() {
   `;
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+  // Variável global para guardar o link do APK encontrado
+  window.linkApkGlobal = "#";
+
+  // Configura o clique do botão IMEDIATAMENTE (assim que a página carrega)
+  const botaoDownload = document.getElementById('btnDownloadApk');
+  if (botaoDownload) {
+    botaoDownload.onclick = function(e) {
+      e.preventDefault(); // Corta sempre o comportamento padrão do link web
+      
+      if (typeof Android !== 'undefined' && typeof Android.baixarApkDireto === 'function') {
+        // Se estiver no app nativo, chama o DownloadManager do Java com o link atual
+        Android.baixarApkDireto(window.linkApkGlobal);
+      } else {
+        // Se estiver num navegador comum (fora do app), abre o link normalmente
+        window.location.href = window.linkApkGlobal;
+      }
+    };
+  }
+
   if (typeof Android !== 'undefined') {
     var versaoInstalada = "0.0.0"; 
     
@@ -50,23 +69,12 @@ document.addEventListener("DOMContentLoaded", function() {
         if (data.tag_name) {
           var versaoMaisRecente = data.tag_name.replace('v', '').trim();
           
+          const assetApk = data.assets && data.assets.find(asset => asset.name.endsWith('.apk'));
+          window.linkApkGlobal = assetApk ? assetApk.browser_download_url : `https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/download/${data.tag_name}/compartilhar-projetos.apk`;
+
+          // ATENÇÃO PARA TESTES: Se quiser forçar o modal a aparecer mesmo com a mesma versão, 
+          // comente a linha abaixo tirando o "if". Por enquanto, deixamos a regra original:
           if (versaoInstalada !== versaoMaisRecente) {
-            const assetApk = data.assets && data.assets.find(asset => asset.name.endsWith('.apk'));
-            const linkDireto = assetApk ? assetApk.browser_download_url : `https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/download/${data.tag_name}/compartilhar-projetos.apk`;
-
-            const botaoDownload = document.getElementById('btnDownloadApk');
-            if (botaoDownload) {
-              botaoDownload.href = linkDireto;
-              
-              // Intercepta o clique para chamar o DownloadManager nativo do Android
-              botaoDownload.onclick = function(e) {
-                if (typeof Android !== 'undefined' && typeof Android.baixarApkDireto === 'function') {
-                  e.preventDefault(); // Impede o navegador de abrir
-                  Android.baixarApkDireto(linkDireto); // Dispara o download nativo em segundo plano
-                }
-              };
-            }
-
             document.getElementById('bloqueioFundo').style.display = 'block';
             document.getElementById('updateModal').style.display = 'block';
             document.body.style.overflow = 'hidden'; 
