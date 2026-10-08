@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function() {
     <div id="updateModal">
       <h4>Atualização Obrigatória</h4>
       <p>Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, por favor instale a atualização mais recente.</p>
-      <a href="https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/latest/download/compartilhar-projetos.apk" class="btn-update-now">Baixar Atualização</a>
+      <a href="intent://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/latest/download/compartilhar-projetos.apk#Intent;scheme=https;action=android.intent.action.VIEW;end;" class="btn-update-now">Baixar Atualização</a>
       <a href="https://wa.me/5569993607367?text=Ol%C3%A1%2C%20estou%20com%20problemas%20para%20atualizar%20o%20aplicativo%20Compartilhar%20Projetos." class="btn-support">Precisa de ajuda? Fale no WhatsApp</a>
     </div>
   `;
