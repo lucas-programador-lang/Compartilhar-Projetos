@@ -31,35 +31,45 @@ document.addEventListener("DOMContentLoaded", function() {
       <h4>Atualização Obrigatória</h4>
       <p>Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, por favor instale a atualização mais recente.</p>
       <a href="https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/latest/download/compartilhar-projetos.apk" class="btn-update-now">Baixar Atualização</a>
-      
-      <!-- Botão do WhatsApp -->
       <a href="https://wa.me/5569993607367?text=Ol%C3%A1%2C%20estou%20com%20problemas%20para%20atualizar%20o%20aplicativo%20Compartilhar%20Projetos." class="btn-support">Precisa de ajuda? Fale no WhatsApp</a>
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-  // Verifica a versão no GitHub
+  // INÍCIO DO DEBUG
   if (typeof Android !== 'undefined' && typeof Android.obterVersaoApp === 'function') {
-    var versaoInstalada = Android.obterVersaoApp();
+    
+    // Teste 1: Confirma que o JS foi lido
+    Android.mostrarToast("1. Verificando atualizações...");
+    
+    var versaoInstalada = Android.obterVersaoApp().trim();
     
     fetch("https://api.github.com/repos/lucas-programador-lang/Compartilhar-Projetos/releases/latest")
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+           // Teste 2: Erro do GitHub
+           Android.mostrarToast("Erro do GitHub: Código " + response.status);
+           throw new Error("Erro na API");
+        }
+        return response.json();
+      })
       .then(data => {
         if (data.tag_name) {
-          var versaoMaisRecente = data.tag_name.replace('v', '');
+          var versaoMaisRecente = data.tag_name.replace('v', '').trim();
           
-          // MENSAGEM DE TESTE: Mostra na tela os números (pode remover depois que testar)
-          Android.mostrarToast("App: " + versaoInstalada + " | GitHub: " + versaoMaisRecente);
+          // Teste 3: Mostra as versões limpas na tela
+          Android.mostrarToast("App: [" + versaoInstalada + "] Git: [" + versaoMaisRecente + "]");
           
-          // CORREÇÃO: Removido o && versaoInstalada !== "1.0.0"
           if (versaoInstalada !== versaoMaisRecente) {
-            // Ativa a tela de bloqueio e impede o scroll do site
             document.getElementById('bloqueioFundo').style.display = 'block';
             document.getElementById('updateModal').style.display = 'block';
             document.body.style.overflow = 'hidden'; 
           }
         }
       })
-      .catch(error => console.error("Erro ao verificar atualizações.", error));
+      .catch(error => {
+         // Teste 4: Erro de Internet ou Bloqueio
+         Android.mostrarToast("Falha de conexão com o servidor de versão.");
+      });
   }
 });
