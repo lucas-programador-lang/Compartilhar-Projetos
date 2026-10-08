@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-            if (id == downloadIdAtual && id != -1) {
+            if (id != -1) {
                 instalarApkBaixado(id);
             }
         }
@@ -487,19 +487,26 @@ public class MainActivity extends AppCompatActivity {
 
     // --- FUNÇÃO PARA ABRIR O INSTALADOR DO APK ---
     private void instalarApkBaixado(long id) {
-        DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        Uri apkUri = dm.getUriForDownloadedFile(id);
-        
-        if (apkUri != null) {
-            Intent installIntent = new Intent(Intent.ACTION_VIEW);
-            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                startActivity(installIntent);
-            } catch (ActivityNotFoundException e) {
-                Toast.makeText(this, "Erro ao abrir o instalador do Android.", Toast.LENGTH_SHORT).show();
+        try {
+            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            Uri apkUri = dm.getUriForDownloadedFile(id);
+            
+            if (apkUri == null) {
+                File apkFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "compartilhar-projetos.apk");
+                if (apkFile.exists()) {
+                    apkUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", apkFile);
+                }
             }
+
+            if (apkUri != null) {
+                Intent installIntent = new Intent(Intent.ACTION_VIEW);
+                installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+                installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(installIntent);
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Abra a pasta Downloads do celular para instalar a atualização.", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -543,7 +550,6 @@ public class MainActivity extends AppCompatActivity {
         public void baixarApkDireto(String urlParaBaixar) {
             runOnUiThread(() -> {
                 try {
-                    // Remove ficheiro antigo para evitar o sufixo (1).apk
                     File arquivoAntigo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "compartilhar-projetos.apk");
                     if (arquivoAntigo.exists()) arquivoAntigo.delete();
 
@@ -558,7 +564,7 @@ public class MainActivity extends AppCompatActivity {
                     
                     DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
                     if (dm != null) {
-                        downloadIdAtual = dm.enqueue(request); // Grava o ID do download para acionar a instalação
+                        downloadIdAtual = dm.enqueue(request); 
                         Toast.makeText(getApplicationContext(), "Download iniciado. Aguarde a instalação...", Toast.LENGTH_LONG).show();
                     }
                 } catch (Exception e) {
