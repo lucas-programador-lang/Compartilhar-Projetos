@@ -209,6 +209,14 @@ public class MainActivity extends AppCompatActivity {
         int corFundo = isModoEscuro() ? Color.rgb(11, 11, 16) : Color.WHITE;
         rootLayout.setBackgroundColor(corFundo);
 
+        // --- CÓDIGO NOVO: Evita que o site passe por trás da barra de status (hora/bateria) ---
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, windowInsets) -> {
+            androidx.core.graphics.Insets insets = windowInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+            v.setPadding(0, insets.top, 0, insets.bottom);
+            return windowInsets;
+        });
+        // -------------------------------------------------------------------------------------
+
         swipeRefreshLayout = new SwipeRefreshLayout(this);
         swipeRefreshLayout.setProgressBackgroundColorSchemeColor(corFundo);
         swipeRefreshLayout.setColorSchemeColors(Color.rgb(108, 99, 255));
