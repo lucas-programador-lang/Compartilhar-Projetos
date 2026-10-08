@@ -1,10 +1,6 @@
 /* =========================================================
    COMPARTILHAR PROJETOS — update-modal.js
    Aviso de atualização obrigatória do app Android.
-
-   Só roda dentro do app (quando existe a ponte "Android"): compara a
-   versão instalada com a última release do GitHub e, se forem
-   diferentes, bloqueia a tela com um aviso pedindo a atualização.
    ========================================================= */
 (function () {
   "use strict";
@@ -68,12 +64,19 @@
     return String(v || "").trim().replace(/^v/i, "");
   }
 
+  // ==========================================================
+  // CORREÇÃO: FUNÇÃO PARA BAIXAR O APK DIRETO PELO APLICATIVO
+  // ==========================================================
   function openUpdateLink() {
-    var title = "Atualização Necessária";
-    var text = "Copie o link abaixo e cole no Chrome do seu celular para baixar a nova versão do Compartilhar Projetos:";
-    // Usa a gaveta nativa de compartilhar do Android pra a pessoa copiar o link.
-    if (typeof Android !== "undefined" && typeof Android.compartilhar === "function") {
-      Android.compartilhar(title, text, APK_URL);
+    if (typeof Android !== "undefined" && typeof Android.baixarApkDireto === "function") {
+      // 1. Chama a função Java que faz o download silencioso e instala automaticamente
+      Android.baixarApkDireto(APK_URL);
+      
+      // 2. Muda o visual do botão para que o usuário saiba que está a baixar
+      var btn = document.getElementById("cpuUpdateBtn");
+      btn.innerHTML = '<span>Baixando atualização... Aguarde a tela de instalação.</span>';
+      btn.style.opacity = "0.7";
+      btn.style.pointerEvents = "none"; // Desativa o botão para não clicar duas vezes
     } else {
       window.open(APK_URL, "_blank");
     }
@@ -101,14 +104,15 @@
           '<span class="cpu-arrow">' + ICON_ARROW + '</span>' +
           '<div class="cpu-ver is-new"><small>Nova</small><strong id="cpuLatest"></strong></div>' +
         '</div>' +
-        '<button type="button" class="cpu-btn" id="cpuUpdateBtn">' + ICON_DOWNLOAD + '<span>Obter link de atualização</span></button>' +
-        '<p class="cpu-hint">Toque no botão, copie o link e cole no Chrome para baixar e instalar.</p>' +
+        // CORREÇÃO: TEXTO DO BOTÃO ALTERADO PARA "Atualizar Agora"
+        '<button type="button" class="cpu-btn" id="cpuUpdateBtn">' + ICON_DOWNLOAD + '<span>Atualizar Agora</span></button>' +
+        // CORREÇÃO: TEXTO DA DICA ALTERADO
+        '<p class="cpu-hint">Toque no botão para baixar e instalar a nova versão direto no aplicativo.</p>' +
         '<div class="cpu-divider"></div>' +
         '<a class="cpu-support" id="cpuSupport" href="' + SUPPORT_URL + '" target="_blank" rel="noopener">' + ICON_WHATSAPP + '<span>Precisa de ajuda? Fale no WhatsApp</span></a>' +
       '</div>';
     document.body.appendChild(backdrop);
 
-    // Versões entram como texto (nunca como HTML).
     document.getElementById("cpuInstalled").textContent = installed && installed !== "0.0.0" ? "v" + installed : "—";
     document.getElementById("cpuLatest").textContent = "v" + latest;
 
@@ -116,8 +120,6 @@
     var support = document.getElementById("cpuSupport");
     btn.addEventListener("click", openUpdateLink);
 
-    // Atualização é obrigatória: trava a rolagem do site e mantém o foco
-    // dentro do aviso (só tem dois elementos clicáveis).
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     backdrop.addEventListener("keydown", function (e) {
@@ -130,7 +132,7 @@
   }
 
   function checkForUpdate() {
-    if (typeof Android === "undefined") return; // só vale dentro do app
+    if (typeof Android === "undefined") return;
 
     var installed = "0.0.0";
     if (typeof Android.obterVersaoApp === "function") {
@@ -152,4 +154,16 @@
   } else {
     checkForUpdate();
   }
+
+  // ==========================================================
+  // ONDE COLOCAR O TEMA ESCURO: PODE FICAR AQUI NO FINAL MESMO!
+  // ==========================================================
+  window.mudarTemaApp = function(isEscuro) {
+      if (isEscuro) {
+          document.body.classList.add('dark-mode');
+      } else {
+          document.body.classList.remove('dark-mode');
+      }
+  };
+
 })();
