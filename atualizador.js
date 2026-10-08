@@ -30,7 +30,8 @@ document.addEventListener("DOMContentLoaded", function() {
       <h4>Atualização Obrigatória</h4>
       <p id="update-message">Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, instale a atualização mais recente.</p>
       
-      <a id="btnDownloadApk" href="#" class="btn-update-now">Baixar Atualização</a>
+      <!-- A ALTERAÇÃO ESTÁ AQUI: TROQUEI A TAG <a> POR <button> -->
+      <button type="button" id="btnDownloadApk" class="btn-update-now">Baixar Atualização</button>
       
       <a href="https://wa.me/5569993607367?text=Ol%C3%A1%2C%20estou%20com%20problemas%20para%20atualizar%20o%20aplicativo%20Compartilhar%20Projetos." class="btn-support">Precisa de ajuda? Fale no WhatsApp</a>
     </div>
@@ -44,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const botaoDownload = document.getElementById('btnDownloadApk');
   if (botaoDownload) {
     botaoDownload.onclick = function(e) {
-      e.preventDefault(); // Corta sempre o comportamento padrão do link web
+      e.preventDefault(); // Corta sempre o comportamento padrão
       
       if (typeof Android !== 'undefined' && typeof Android.baixarApkDireto === 'function') {
         // Se estiver no app nativo, chama o DownloadManager do Java com o link atual
@@ -72,8 +73,6 @@ document.addEventListener("DOMContentLoaded", function() {
           const assetApk = data.assets && data.assets.find(asset => asset.name.endsWith('.apk'));
           window.linkApkGlobal = assetApk ? assetApk.browser_download_url : `https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/download/${data.tag_name}/compartilhar-projetos.apk`;
 
-          // ATENÇÃO PARA TESTES: Se quiser forçar o modal a aparecer mesmo com a mesma versão, 
-          // comente a linha abaixo tirando o "if". Por enquanto, deixamos a regra original:
           if (versaoInstalada !== versaoMaisRecente) {
             document.getElementById('bloqueioFundo').style.display = 'block';
             document.getElementById('updateModal').style.display = 'block';
