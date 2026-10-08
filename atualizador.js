@@ -1,85 +1,155 @@
-document.addEventListener("DOMContentLoaded", function() {
-  const modalHTML = `
-    <style>
-      #bloqueioFundo {
-        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(11, 11, 16, 0.95); z-index: 99998; backdrop-filter: blur(8px);
-      }
-      #updateModal {
-        display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background-color: #1e1e24; color: #ffffff; padding: 32px; border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.8); z-index: 99999; width: 90%; max-width: 380px;
-        font-family: sans-serif; border: 1px solid #333; text-align: center;
-      }
-      #updateModal h4 { margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #ffffff; }
-      #updateModal p { margin: 0 0 24px 0; font-size: 15px; color: #b3b3b3; line-height: 1.5; }
-      .btn-update-now {
-        display: inline-block; background: #6c63ff; color: #ffffff; border: none; padding: 14px 24px;
-        border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 16px; font-weight: 600; width: 100%;
-        box-sizing: border-box;
-      }
-      .btn-update-now:hover { background: #5750d4; }
-      .btn-support {
-        display: inline-block; margin-top: 18px; color: #25D366; text-decoration: none; font-size: 14px; font-weight: 500;
-      }
-      .btn-support:hover { text-decoration: underline; }
-    </style>
-    
-    <div id="bloqueioFundo"></div>
-    <div id="updateModal">
-      <h4>Atualização Obrigatória</h4>
-      <p id="update-message">Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, instale a atualização mais recente.</p>
-      
-      <!-- A ALTERAÇÃO ESTÁ AQUI: TROQUEI A TAG <a> POR <button> -->
-      <button type="button" id="btnDownloadApk" class="btn-update-now">Baixar Atualização</button>
-      
-      <a href="https://wa.me/5569993607367?text=Ol%C3%A1%2C%20estou%20com%20problemas%20para%20atualizar%20o%20aplicativo%20Compartilhar%20Projetos." class="btn-support">Precisa de ajuda? Fale no WhatsApp</a>
-    </div>
-  `;
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
+/* =========================================================
+   COMPARTILHAR PROJETOS — update-modal.js
+   Aviso de atualização obrigatória do app Android.
 
-  // Variável global para guardar o link do APK encontrado
-  window.linkApkGlobal = "#";
+   Só roda dentro do app (quando existe a ponte "Android"): compara a
+   versão instalada com a última release do GitHub e, se forem
+   diferentes, bloqueia a tela com um aviso pedindo a atualização.
+   ========================================================= */
+(function () {
+  "use strict";
 
-  // Configura o clique do botão IMEDIATAMENTE (assim que a página carrega)
-  const botaoDownload = document.getElementById('btnDownloadApk');
-  if (botaoDownload) {
-    botaoDownload.onclick = function(e) {
-      e.preventDefault(); // Corta sempre o comportamento padrão
-      
-      if (typeof Android !== 'undefined' && typeof Android.baixarApkDireto === 'function') {
-        // Se estiver no app nativo, chama o DownloadManager do Java com o link atual
-        Android.baixarApkDireto(window.linkApkGlobal);
-      } else {
-        // Se estiver num navegador comum (fora do app), abre o link normalmente
-        window.location.href = window.linkApkGlobal;
-      }
-    };
+  var REPO = "lucas-programador-lang/Compartilhar-Projetos";
+  var APK_URL = "https://github.com/" + REPO + "/releases/latest/download/compartilhar-projetos.apk";
+  var SUPPORT_URL = "https://wa.me/5569993607367?text=" + encodeURIComponent("Olá, estou com problemas para atualizar o aplicativo Compartilhar Projetos.");
+
+  var CSS = [
+    ".cpu-backdrop{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;",
+    "padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));",
+    "background:radial-gradient(120% 70% at 50% 0%,rgba(47,91,255,.30) 0%,rgba(8,23,54,0) 62%),rgba(5,10,24,.93);",
+    "-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:cpuFade .25s ease-out;font-family:inherit}",
+
+    ".cpu-card{position:relative;width:100%;max-width:400px;margin:auto;padding:34px 26px 20px;border-radius:26px;overflow:hidden;text-align:center;color:#fff;",
+    "background:linear-gradient(180deg,#10214a 0%,#0b1636 100%);border:1px solid rgba(255,255,255,.09);",
+    "box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);animation:cpuRise .34s cubic-bezier(.2,.9,.3,1)}",
+    ".cpu-card::before{content:\"\";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#2f5bff,#ecc65b,#2f5bff)}",
+
+    ".cpu-icon{position:relative;width:76px;height:76px;margin:2px auto 20px;border-radius:24px;display:grid;place-items:center;color:#fff;",
+    "background:linear-gradient(145deg,#2f5bff,#0a2fb8);box-shadow:0 12px 30px rgba(47,91,255,.45),inset 0 1px 0 rgba(255,255,255,.25)}",
+    ".cpu-icon::after{content:\"\";position:absolute;inset:-8px;border-radius:30px;border:2px solid rgba(98,135,255,.5);animation:cpuPulse 2.2s ease-out infinite}",
+
+    ".cpu-tag{display:inline-block;margin-bottom:12px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;",
+    "color:#ecc65b;background:rgba(220,174,44,.12);border:1px solid rgba(236,198,91,.28)}",
+    ".cpu-title{margin:0 0 10px;font-size:clamp(22px,6vw,26px);font-weight:800;letter-spacing:-.02em;line-height:1.15;color:#fff}",
+    ".cpu-text{margin:0 auto 22px;max-width:34ch;font-size:15px;line-height:1.55;color:rgba(226,232,245,.74)}",
+
+    ".cpu-versions{display:flex;align-items:stretch;justify-content:center;gap:10px;margin:0 0 22px}",
+    ".cpu-ver{flex:1;min-width:0;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}",
+    ".cpu-ver small{display:block;margin-bottom:2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:rgba(226,232,245,.5)}",
+    ".cpu-ver strong{display:block;font-size:16px;font-weight:700;color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+    ".cpu-ver.is-new{background:rgba(47,91,255,.15);border-color:rgba(98,135,255,.5)}",
+    ".cpu-ver.is-new strong{color:#fff}",
+    ".cpu-arrow{flex:none;align-self:center;color:#ecc65b}",
+
+    ".cpu-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;padding:14px 20px;border:0;border-radius:16px;cursor:pointer;",
+    "font:inherit;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(135deg,#2f5bff 0%,#0a2fb8 100%);",
+    "box-shadow:0 10px 26px rgba(47,91,255,.42),inset 0 1px 0 rgba(255,255,255,.22);transition:transform .15s,filter .15s;-webkit-tap-highlight-color:transparent}",
+    ".cpu-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}",
+    ".cpu-btn:active{transform:scale(.985)}",
+    ".cpu-btn:focus-visible,.cpu-support:focus-visible{outline:3px solid #ecc65b;outline-offset:3px}",
+    ".cpu-hint{margin:12px 0 0;font-size:12.5px;line-height:1.45;color:rgba(226,232,245,.55)}",
+
+    ".cpu-divider{height:1px;margin:18px -26px 12px;background:rgba(255,255,255,.07)}",
+    ".cpu-support{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;font-size:14px;font-weight:600;text-decoration:none;color:#25D366;transition:background .15s}",
+    ".cpu-support:hover{background:rgba(37,211,102,.10)}",
+
+    "@keyframes cpuFade{from{opacity:0}to{opacity:1}}",
+    "@keyframes cpuRise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}",
+    "@keyframes cpuPulse{0%{opacity:.9;transform:scale(.92)}100%{opacity:0;transform:scale(1.22)}}",
+    "@media (prefers-reduced-motion:reduce){.cpu-backdrop,.cpu-card,.cpu-icon::after{animation:none}.cpu-btn{transition:none}}"
+  ].join("");
+
+  var ICON_UPDATE = '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
+  var ICON_ARROW = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>';
+  var ICON_DOWNLOAD = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>';
+  var ICON_WHATSAPP = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.38-.03-.53-.07-.15-.67-1.62-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.87 1.22 3.07.15.2 2.1 3.2 5.1 4.49.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35zM12.05 21.8h-.01a9.9 9.9 0 0 1-5.03-1.38l-.36-.21-3.75.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.89 9.9-9.89 2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 0 1 2.9 7c0 5.45-4.44 9.88-9.89 9.88zM20.5 3.45A11.8 11.8 0 0 0 12.05 0C5.5 0 .16 5.33.16 11.89c0 2.1.55 4.14 1.59 5.94L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.69 1.45h.01c6.55 0 11.89-5.34 11.89-11.9 0-3.17-1.23-6.16-3.48-8.4z"/></svg>';
+
+  function normalizeVersion(v) {
+    return String(v || "").trim().replace(/^v/i, "");
   }
 
-  if (typeof Android !== 'undefined') {
-    var versaoInstalada = "0.0.0"; 
-    
-    if (typeof Android.obterVersaoApp === 'function') {
-        versaoInstalada = Android.obterVersaoApp().trim();
+  function openUpdateLink() {
+    var title = "Atualização Necessária";
+    var text = "Copie o link abaixo e cole no Chrome do seu celular para baixar a nova versão do Compartilhar Projetos:";
+    // Usa a gaveta nativa de compartilhar do Android pra a pessoa copiar o link.
+    if (typeof Android !== "undefined" && typeof Android.compartilhar === "function") {
+      Android.compartilhar(title, text, APK_URL);
+    } else {
+      window.open(APK_URL, "_blank");
     }
-    
-    fetch("https://api.github.com/repos/lucas-programador-lang/Compartilhar-Projetos/releases/latest")
-      .then(response => response.json())
-      .then(data => {
-        if (data.tag_name) {
-          var versaoMaisRecente = data.tag_name.replace('v', '').trim();
-          
-          const assetApk = data.assets && data.assets.find(asset => asset.name.endsWith('.apk'));
-          window.linkApkGlobal = assetApk ? assetApk.browser_download_url : `https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/download/${data.tag_name}/compartilhar-projetos.apk`;
-
-          if (versaoInstalada !== versaoMaisRecente) {
-            document.getElementById('bloqueioFundo').style.display = 'block';
-            document.getElementById('updateModal').style.display = 'block';
-            document.body.style.overflow = 'hidden'; 
-          }
-        }
-      })
-      .catch(error => console.error("Erro ao verificar atualizações.", error));
   }
-});
+
+  function showUpdateModal(installed, latest) {
+    if (document.getElementById("cpuBackdrop")) return;
+
+    var style = document.createElement("style");
+    style.id = "cpuStyle";
+    style.textContent = CSS;
+    document.head.appendChild(style);
+
+    var backdrop = document.createElement("div");
+    backdrop.id = "cpuBackdrop";
+    backdrop.className = "cpu-backdrop";
+    backdrop.innerHTML =
+      '<div class="cpu-card" role="dialog" aria-modal="true" aria-labelledby="cpuTitle" aria-describedby="cpuText">' +
+        '<div class="cpu-icon">' + ICON_UPDATE + '</div>' +
+        '<span class="cpu-tag">Atualização obrigatória</span>' +
+        '<h2 class="cpu-title" id="cpuTitle">Nova versão disponível</h2>' +
+        '<p class="cpu-text" id="cpuText">Lançamos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar usando o Compartilhar Projetos, instale a atualização mais recente.</p>' +
+        '<div class="cpu-versions">' +
+          '<div class="cpu-ver"><small>Instalada</small><strong id="cpuInstalled"></strong></div>' +
+          '<span class="cpu-arrow">' + ICON_ARROW + '</span>' +
+          '<div class="cpu-ver is-new"><small>Nova</small><strong id="cpuLatest"></strong></div>' +
+        '</div>' +
+        '<button type="button" class="cpu-btn" id="cpuUpdateBtn">' + ICON_DOWNLOAD + '<span>Obter link de atualização</span></button>' +
+        '<p class="cpu-hint">Toque no botão, copie o link e cole no Chrome para baixar e instalar.</p>' +
+        '<div class="cpu-divider"></div>' +
+        '<a class="cpu-support" id="cpuSupport" href="' + SUPPORT_URL + '" target="_blank" rel="noopener">' + ICON_WHATSAPP + '<span>Precisa de ajuda? Fale no WhatsApp</span></a>' +
+      '</div>';
+    document.body.appendChild(backdrop);
+
+    // Versões entram como texto (nunca como HTML).
+    document.getElementById("cpuInstalled").textContent = installed && installed !== "0.0.0" ? "v" + installed : "—";
+    document.getElementById("cpuLatest").textContent = "v" + latest;
+
+    var btn = document.getElementById("cpuUpdateBtn");
+    var support = document.getElementById("cpuSupport");
+    btn.addEventListener("click", openUpdateLink);
+
+    // Atualização é obrigatória: trava a rolagem do site e mantém o foco
+    // dentro do aviso (só tem dois elementos clicáveis).
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    backdrop.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var first = btn, last = support;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); }
+  }
+
+  function checkForUpdate() {
+    if (typeof Android === "undefined") return; // só vale dentro do app
+
+    var installed = "0.0.0";
+    if (typeof Android.obterVersaoApp === "function") {
+      installed = normalizeVersion(Android.obterVersaoApp());
+    }
+
+    fetch("https://api.github.com/repos/" + REPO + "/releases/latest")
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.tag_name) return;
+        var latest = normalizeVersion(data.tag_name);
+        if (installed !== latest) showUpdateModal(installed, latest);
+      })
+      .catch(function (error) { console.error("Erro ao verificar atualizações.", error); });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkForUpdate);
+  } else {
+    checkForUpdate();
+  }
+})();
