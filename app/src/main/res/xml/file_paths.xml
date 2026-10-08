@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- As suas permissões originais (para fotos e cache) -->
     <external-files-path name="my_images" path="Pictures" />
     <cache-path name="my_cache" path="." />
+
+    <!-- NOVAS PERMISSÕES: Para o app conseguir ler e abrir o APK baixado -->
+    <external-path name="downloads" path="Download/" />
+    <external-path name="external_files" path="." />
 </paths>
