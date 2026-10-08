@@ -28,10 +28,10 @@ document.addEventListener("DOMContentLoaded", function() {
     <div id="bloqueioFundo"></div>
     <div id="updateModal">
       <h4>Atualização Obrigatória</h4>
-      <p>Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, instale a atualização mais recente.</p>
+      <p id="update-message">Lançámos uma nova versão com melhorias importantes de segurança e desempenho. Para continuar a utilizar o Compartilhar Projetos, instale a atualização mais recente.</p>
       
-      <!-- TRUQUE: Usa a função nativa do Android para abrir a gaveta de cópia -->
-      <button onclick="Android.compartilhar('Atualização Necessária', 'Copie o link abaixo e cole no Chrome do seu celular para baixar a nova versão do Compartilhar Projetos:', 'https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/latest/download/compartilhar-projetos.apk')" class="btn-update-now">Obter Link de Atualização</button>
+      <!-- Botão que agora direciona diretamente para o link do APK -->
+      <a id="btnDownloadApk" href="#" class="btn-update-now" target="_blank">Baixar Atualização</a>
       
       <a href="https://wa.me/5569993607367?text=Ol%C3%A1%2C%20estou%20com%20problemas%20para%20atualizar%20o%20aplicativo%20Compartilhar%20Projetos." class="btn-support">Precisa de ajuda? Fale no WhatsApp</a>
     </div>
@@ -52,6 +52,13 @@ document.addEventListener("DOMContentLoaded", function() {
           var versaoMaisRecente = data.tag_name.replace('v', '').trim();
           
           if (versaoInstalada !== versaoMaisRecente) {
+            // Procura o link direto do APK nos assets da release do GitHub
+            const assetApk = data.assets && data.assets.find(asset => asset.name.endsWith('.apk'));
+            const linkDireto = assetApk ? assetApk.browser_download_url : `https://github.com/lucas-programador-lang/Compartilhar-Projetos/releases/download/${data.tag_name}/compartilhar-projetos.apk`;
+
+            // Atribui o link exato ao botão de download
+            document.getElementById('btnDownloadApk').href = linkDireto;
+
             document.getElementById('bloqueioFundo').style.display = 'block';
             document.getElementById('updateModal').style.display = 'block';
             document.body.style.overflow = 'hidden'; 
