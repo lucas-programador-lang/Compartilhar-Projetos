@@ -142,21 +142,17 @@ public class MainActivity extends AppCompatActivity {
         pedirPermissaoNotificacao();
     }
 
-    // NOVA FUNÇÃO: Lê links recebidos de fora
     private void processarIntentRecebida(Intent intent) {
         if (intent == null) return;
         
-        // Verifica se alguém partilhou um texto com o app
         if (Intent.ACTION_SEND.equals(intent.getAction()) && "text/plain".equals(intent.getType())) {
             String textoPartilhado = intent.getStringExtra(Intent.EXTRA_TEXT);
             if (textoPartilhado != null) {
-                // Envia o link para o seu site web ler
                 webView.loadUrl(URL_HOME + "?linkRecebido=" + Uri.encode(textoPartilhado));
                 return;
             }
         }
 
-        // Lógica normal de abertura
         Uri data = intent.getData();
         if (data != null) {
             webView.loadUrl(data.toString());
@@ -167,7 +163,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // NOVA FUNÇÃO: Verifica se o telemóvel está no Modo Escuro
     private boolean isModoEscuro() {
         int nightModeFlags = getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
         return nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES;
@@ -342,6 +337,11 @@ public class MainActivity extends AppCompatActivity {
                     return abrirAppExterno(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                 }
                 
+                // --- REGRA ADICIONADA: Permite que downloads de APK do GitHub fiquem dentro do app ---
+                if (url.endsWith(".apk") || url.contains("github.com") && url.contains("releases/download")) {
+                    return false; // Deixa o DownloadListener cuidar do APK internamente
+                }
+                
                 if (url.startsWith("http") && !url.contains("compartilhar-projetos.com.br")) {
                     abrirLinkExternoComCustomTabs(url);
                     return true;
@@ -469,7 +469,6 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface public void mostrarToast(String mensagem) { runOnUiThread(() -> Toast.makeText(getApplicationContext(), mensagem, Toast.LENGTH_SHORT).show()); }
         @JavascriptInterface public void solicitarTokenFCM() { registrarTokenFCM(); }
         
-        // NOVO CÓDIGO: Informa a versão exata do app para o site
         @JavascriptInterface
         public String obterVersaoApp() {
             try {
@@ -578,7 +577,7 @@ public class MainActivity extends AppCompatActivity {
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype));
             DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            if (dm != null) { dm.enqueue(request); Toast.makeText(getApplicationContext(), "Download iniciado...", Toast.LENGTH_SHORT).show(); }
+            if (dm != null) { dm.enqueue(request); Toast.makeText(getApplicationContext(), "A descarregar atualização...", Toast.LENGTH_SHORT).show(); }
         } catch (Exception e) { Toast.makeText(this, "Erro ao iniciar download", Toast.LENGTH_SHORT).show(); }
     }
 
