@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", function() {
-  // Cria a tela de bloqueio, o aviso obrigatório e o botão de WhatsApp
   const modalHTML = `
     <style>
       #bloqueioFundo {
@@ -36,30 +35,22 @@ document.addEventListener("DOMContentLoaded", function() {
   `;
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-  // INÍCIO DO DEBUG
-  if (typeof Android !== 'undefined' && typeof Android.obterVersaoApp === 'function') {
+  if (typeof Android !== 'undefined') {
+    // SE O APP FOR ANTIGO (NÃO TEM A FUNÇÃO), ASSUME VERSÃO 0.0.0
+    var versaoInstalada = "0.0.0"; 
     
-    // Teste 1: Confirma que o JS foi lido
-    Android.mostrarToast("1. Verificando atualizações...");
-    
-    var versaoInstalada = Android.obterVersaoApp().trim();
+    // SE O APP FOR NOVO, LÊ A VERSÃO CORRETA
+    if (typeof Android.obterVersaoApp === 'function') {
+        versaoInstalada = Android.obterVersaoApp().trim();
+    }
     
     fetch("https://api.github.com/repos/lucas-programador-lang/Compartilhar-Projetos/releases/latest")
-      .then(response => {
-        if (!response.ok) {
-           // Teste 2: Erro do GitHub
-           Android.mostrarToast("Erro do GitHub: Código " + response.status);
-           throw new Error("Erro na API");
-        }
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
         if (data.tag_name) {
           var versaoMaisRecente = data.tag_name.replace('v', '').trim();
           
-          // Teste 3: Mostra as versões limpas na tela
-          Android.mostrarToast("App: [" + versaoInstalada + "] Git: [" + versaoMaisRecente + "]");
-          
+          // Se a versão for diferente (ou for a 0.0.0), bloqueia a tela!
           if (versaoInstalada !== versaoMaisRecente) {
             document.getElementById('bloqueioFundo').style.display = 'block';
             document.getElementById('updateModal').style.display = 'block';
@@ -67,9 +58,6 @@ document.addEventListener("DOMContentLoaded", function() {
           }
         }
       })
-      .catch(error => {
-         // Teste 4: Erro de Internet ou Bloqueio
-         Android.mostrarToast("Falha de conexão com o servidor de versão.");
-      });
+      .catch(error => console.error("Erro ao verificar atualizações.", error));
   }
 });
