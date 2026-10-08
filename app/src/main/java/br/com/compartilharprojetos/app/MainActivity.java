@@ -496,25 +496,28 @@ public class MainActivity extends AppCompatActivity {
     // --- FUNÇÃO PARA ABRIR O INSTALADOR DO APK ---
     private void instalarApkBaixado(long id) {
         try {
-            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            Uri apkUri = dm.getUriForDownloadedFile(id);
+            // Vai buscar diretamente o ficheiro que mandámos descarregar
+            File apkFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "compartilhar-projetos.apk");
             
-            if (apkUri == null) {
-                File apkFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "compartilhar-projetos.apk");
-                if (apkFile.exists()) {
-                    apkUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", apkFile);
-                }
-            }
+            if (apkFile.exists()) {
+                // Força a URI segura via FileProvider
+                Uri apkUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", apkFile);
 
-            if (apkUri != null) {
                 Intent installIntent = new Intent(Intent.ACTION_VIEW);
                 installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+                
+                // Flags críticas para conceder permissão de leitura ao Instalador do Android
                 installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                installIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                
                 startActivity(installIntent);
+            } else {
+                Toast.makeText(this, "Erro: Arquivo APK não encontrado na pasta Downloads.", Toast.LENGTH_LONG).show();
             }
         } catch (Exception e) {
             Toast.makeText(this, "Abra a pasta Downloads do celular para instalar a atualização.", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
         }
     }
 
