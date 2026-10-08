@@ -43,7 +43,8 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:usesCleartextTraffic="false"
         android:hardwareAccelerated="true"
-        android:requestLegacyExternalStorage="true"> <!-- NOVA LINHA ADICIONADA AQUI -->
+        android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true"> <!-- NOVA LINHA: ATIVA O DESLIZAR PARA VOLTAR NO ANDROID 14+ -->
 
         <!-- Definições padrão para o Firebase Push -->
         <meta-data
