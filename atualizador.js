@@ -1,6 +1,10 @@
 /* =========================================================
    COMPARTILHAR PROJETOS — update-modal.js
    Aviso de atualização obrigatória do app Android e Funções Nativas.
+
+   Só roda dentro do app (quando existe a ponte "Android"): compara a
+   versão instalada com a última release do GitHub e, se forem
+   diferentes, bloqueia a tela com um aviso pedindo a atualização.
    ========================================================= */
 (function () {
   "use strict";
@@ -13,7 +17,7 @@
     ".cpu-backdrop{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;",
     "padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));",
     "background:radial-gradient(120% 70% at 50% 0%,rgba(47,91,255,.30) 0%,rgba(8,23,54,0) 62%),rgba(5,10,24,.93);",
-    "-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:cpuFade .25s ease-out;font-family:inherit}",
+    "-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:cpuFade .25s ease-out;font-family:var(--font-body,Inter),system-ui,-apple-system,\"Segoe UI\",Roboto,Arial,sans-serif}",
 
     ".cpu-card{position:relative;width:100%;max-width:400px;margin:auto;padding:34px 26px 20px;border-radius:26px;overflow:hidden;text-align:center;color:#fff;",
     "background:linear-gradient(180deg,#10214a 0%,#0b1636 100%);border:1px solid rgba(255,255,255,.09);",
@@ -26,7 +30,7 @@
 
     ".cpu-tag{display:inline-block;margin-bottom:12px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;",
     "color:#ecc65b;background:rgba(220,174,44,.12);border:1px solid rgba(236,198,91,.28)}",
-    ".cpu-title{margin:0 0 10px;font-size:clamp(22px,6vw,26px);font-weight:800;letter-spacing:-.02em;line-height:1.15;color:#fff}",
+    ".cpu-title{margin:0 0 10px;font-family:var(--font-display,Sora),system-ui,-apple-system,\"Segoe UI\",Roboto,Arial,sans-serif;font-size:clamp(22px,6vw,26px);font-weight:800;letter-spacing:-.02em;line-height:1.15;color:#fff}",
     ".cpu-text{margin:0 auto 22px;max-width:34ch;font-size:15px;line-height:1.55;color:rgba(226,232,245,.74)}",
 
     ".cpu-versions{display:flex;align-items:stretch;justify-content:center;gap:10px;margin:0 0 22px}",
@@ -46,8 +50,9 @@
     ".cpu-hint{margin:12px 0 0;font-size:12.5px;line-height:1.45;color:rgba(226,232,245,.55)}",
 
     ".cpu-divider{height:1px;margin:18px -26px 12px;background:rgba(255,255,255,.07)}",
-    ".cpu-support{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;font-size:14px;font-weight:600;text-decoration:none;color:#25D366;transition:background .15s}",
-    ".cpu-support:hover{background:rgba(37,211,102,.10)}",
+    ".cpu-help{margin:0 0 8px;font-size:13px;color:rgba(226,232,245,.55)}",
+    ".cpu-support{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap;color:#25D366;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.35);transition:background .15s}",
+    ".cpu-support:hover{background:rgba(37,211,102,.16)}",
 
     "@keyframes cpuFade{from{opacity:0}to{opacity:1}}",
     "@keyframes cpuRise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}",
@@ -67,14 +72,30 @@
   // ==========================================================
   // FUNÇÃO PARA BAIXAR O APK DIRETO PELO APLICATIVO
   // ==========================================================
+  var RETRY_AFTER_MS = 20000; // depois disso, libera o botão pra tentar de novo
+  var retryTimer = null;
+
   function openUpdateLink() {
     if (typeof Android !== "undefined" && typeof Android.baixarApkDireto === "function") {
       Android.baixarApkDireto(APK_URL);
-      
+
       var btn = document.getElementById("cpuUpdateBtn");
+      var hint = document.getElementById("cpuHint");
+      var originalBtn = btn.innerHTML;
       btn.innerHTML = '<span>Baixando atualização... Aguarde a instalação.</span>';
       btn.style.opacity = "0.7";
-      btn.style.pointerEvents = "none"; 
+      btn.style.pointerEvents = "none";
+
+      // Se o download não começar ou não terminar (sem permissão pra instalar,
+      // sem internet...), o botão não pode ficar travado pra sempre: depois de
+      // um tempo ele volta ao normal e a pessoa pode tentar de novo.
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(function () {
+        btn.innerHTML = originalBtn;
+        btn.style.opacity = "";
+        btn.style.pointerEvents = "";
+        if (hint) hint.textContent = "Não terminou? Toque em Atualizar Agora para tentar de novo ou fale com o suporte.";
+      }, RETRY_AFTER_MS);
     } else {
       window.open(APK_URL, "_blank");
     }
@@ -103,12 +124,14 @@
           '<div class="cpu-ver is-new"><small>Nova</small><strong id="cpuLatest"></strong></div>' +
         '</div>' +
         '<button type="button" class="cpu-btn" id="cpuUpdateBtn">' + ICON_DOWNLOAD + '<span>Atualizar Agora</span></button>' +
-        '<p class="cpu-hint">Toque no botão para baixar e instalar a nova versão direto no aplicativo.</p>' +
+        '<p class="cpu-hint" id="cpuHint">Toque no botão para baixar e instalar a nova versão direto no aplicativo.</p>' +
         '<div class="cpu-divider"></div>' +
-        '<a class="cpu-support" id="cpuSupport" href="' + SUPPORT_URL + '" target="_blank" rel="noopener">' + ICON_WHATSAPP + '<span>Precisa de ajuda? Fale no WhatsApp</span></a>' +
+        '<p class="cpu-help">Precisa de ajuda?</p>' +
+        '<a class="cpu-support" id="cpuSupport" href="' + SUPPORT_URL + '" target="_blank" rel="noopener">' + ICON_WHATSAPP + '<span>Falar no WhatsApp</span></a>' +
       '</div>';
     document.body.appendChild(backdrop);
 
+    // Versões entram como texto (nunca como HTML).
     document.getElementById("cpuInstalled").textContent = installed && installed !== "0.0.0" ? "v" + installed : "—";
     document.getElementById("cpuLatest").textContent = "v" + latest;
 
@@ -116,6 +139,8 @@
     var support = document.getElementById("cpuSupport");
     btn.addEventListener("click", openUpdateLink);
 
+    // Atualização é obrigatória: trava a rolagem do site e mantém o foco
+    // dentro do aviso (só tem dois elementos clicáveis).
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     backdrop.addEventListener("keydown", function (e) {
@@ -128,7 +153,7 @@
   }
 
   function checkForUpdate() {
-    if (typeof Android === "undefined") return;
+    if (typeof Android === "undefined") return; // só vale dentro do app
 
     var installed = "0.0.0";
     if (typeof Android.obterVersaoApp === "function") {
@@ -175,6 +200,8 @@
               Android.toqueSutil();
           }
       }
-  });
+  }, true); // true = fase de captura: roda ANTES dos outros cliques. Sem isso, botões
+            // que redesenham a tela ao clicar (como o "Atualizar Agora" e a SPA toda)
+            // já saíram do DOM quando este código roda, e o closest() não acha mais o botão.
 
 })();
